@@ -1,0 +1,68 @@
+\documentclass[11pt]{report}
+
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{todonotes}
+\usepackage[square,numbers]{natbib}
+\usepackage[american,siunitx]{circuitikz}
+
+\usepackage[font=small,skip=2pt,justification=raggedright]{subcaption}
+\usepackage[font=small,skip=2pt,justification=raggedright]{caption}
+
+\usepackage{amsmath,amssymb,stmaryrd}
+\usepackage[makeroom]{cancel}
+
+\graphicspath{{./figures/}}
+
+% include version control watermark
+\usepackage[mark,maxdepth=6,raisemark=2.\baselineskip]{gitinfo2}
+\renewcommand{\gitMark}{\gitAbbrevHash{} (\gitAuthorDate)}
+\renewcommand{\gitMarkPref}{[~revision~]}
+
+% custom colors
+\definecolor{copper}{rgb}{0.72,0.45,0.20}
+\definecolor{darksilver}{rgb}{0.67,0.67,0.67}
+\definecolor{silver}{rgb}{0.75,0.75,0.75}
+\definecolor{lightsilver}{rgb}{0.83,0.83,0.83}
+\definecolor{mint}{rgb}{0.6,0.98,0.6}
+\definecolor{darkgreen}{rgb}{0.0,0.5,0.0}
+
+% custom commands
+\newcommand{\mbb}[1]{\mathbb{#1}}
+\newcommand{\mbf}[1]{\mathbf{#1}}
+\newcommand{\sbf}[1]{\boldsymbol{#1}}
+\newcommand{\mcal}[1]{\mathcal{#1}}
+\newcommand{\mfk}[1]{\mathfrak{#1}}
+\newcommand{\pp}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\dd}[2]{\frac{d #1}{d #2}}
+\newcommand{\rarrow}{\rightarrow}
+\newcommand{\Rarrow}{\Rightarrow}
+\newcommand{\LRarrow}{\Leftrightarrow}
+\newcommand{\ud}{\,\mathrm{d}}
+\newcommand{\jump}[1]{\llbracket #1 \rrbracket}
+\newcommand{\avg}[1]{\{ #1 \}}
+
+% title foo
+% TODO: make a snazzy title page
+\title{Glow Discharge Modeling Document}
+\author{%
+  The PECOS Development Team\\
+  Oden Institute for Computational Engineering and Sciences\\
+  The University of Texas at Austin
+}
+\date{}
+
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\chapter*{Preface}
+\input{overview}
+
+
+\bibliographystyle{plainnat}
+\bibliography{bibs/glow}
+
+\end{document}
