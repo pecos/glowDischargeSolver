@@ -5,14 +5,6 @@ TEXSRC   := $(wildcard *.tex)
 FIGURES  := $(wildcard figures/*.pdf figures/*.jpg)
 BIBS     := $(wildcard bibs/*.bib)
 
-#$(info $$GITID is [${GITID}])
-$(info $$FIGURES is [${FIGURES}])
-$(info $$PAPER is [${PAPER}])
-$(info $$TEXSRC is [${TEXSRC}])
-$(info $$FIGURES is [${FIGURES}])
-$(info $$BIBS is [${BIBS}])
-
-
 %.pdf:%.tex $(TEXSRC) $(BIBS) $(FIGURES) gitinfo2.pm
 	echo "hello"
 ifdef GITID
