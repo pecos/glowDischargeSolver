@@ -1,0 +1,112 @@
+\section{BOLSIG+ Governing Equations}
+The electron Boltzmann equation may be written as follows:
+%
+\begin{equation}
+\pp{f}{t}
++
+\mbf{v} \cdot \nabla f
+-
+\frac{e}{m} \mbf{E} \cdot \nabla_{\mbf{v}} f
+=
+C[f],
+\label{eqn:electron-boltzmann-full}
+\end{equation}
+%
+where $f(\mbf{x}, \mbf{v}, t)$ denotes the electron distribution
+function, $\mbf{v}$ is the velocity vector, $\nabla f$ is the spatial
+gradient of $f$ (i.e., wrt $\mbf{x}$), $\nabla_{\mbf{v}} f$ is the
+velocity gradient of $f$ (i.e., wrt $\mbf{v}$), $e$ is the absolute
+value of the charge of an electron, $m$ is the mass of an electron,
+$\mbf{E}$ is the electric field, and $C[f]$ denotes the collision
+term.
+
+The development here is based upon the description of Hagelaar and
+Pitchford~\cite{} (referred to as HP for short) and the BOLSIG+ User's
+Manual~\cite{}.
+
+To begin, it is assumed that the electric field and collision
+probabilities are spatially uniform.  In this situation, HP asserts
+that the distribution function $f$ is 1) ``symmetric in velocity space
+around the electric field direction'' and 2) ``may vary only along the
+field direction'' in physical space.  The meaning of 1) is somewhat
+unclear, but in the subsequent analysis, a spherical coordinate system
+is used and no possible dependence on the azimuthal angle is included.
+Thus, the combined import of these assumptions is to reduce the
+dependence of $f$ from 6D plus time to 3D plus time.  Specifically,
+letting $z$ denote the direction of the electric field, $v$ denote the
+velocity magnitude, and $\theta$ denote the polar angle between the
+electric field direction and the velocity direction, we have $f = f(z,
+v, \theta, t)$.  In this situation,~\ref{eqn:electron-boltzmann-full}
+simplifies to
+%
+\begin{equation}
+\pp{f}{t}
++
+v \cos \theta \pp{f}{z}
+-
+\frac{e}{m} E \left( \cos \theta \pp{f}{v} - \frac{\sin \theta}{v} \pp{f}{\theta} \right)
+=
+C[f].
+\label{eqn:electron-boltzmann-reduced}
+\end{equation}
+%
+
+In preparation for subsequent development, let $\xi = \cos \theta$.
+Then,~\ref{eqn:electron-boltzmann-reduced} becomes
+%
+\begin{equation}
+\pp{f}{t}
++
+v \xi \pp{f}{z}
+-
+\frac{e}{m} E \left( \xi \pp{f}{v} + \frac{(1-\xi^2)}{v} \pp{f}{\xi} \right)
+=
+C[f].
+\label{eqn:electron-boltzmann-xi}
+\end{equation}
+%
+To continue, the following two-term expansion is introduced:
+%
+\begin{equation}
+f(v, \xi, z, t) = f_0(v, z, t) + \xi f_1(v, z, t).
+\label{eqn:two-term}
+\end{equation}
+%
+To derive governing equations for $f_0$ and $f_1$, we apply the
+Galerkin method in the $\xi$ coordinate.  Specifically,
+substitute~\eqref{eqn:two-term} into
+~\eqref{eqn:electron-boltzmann-xi} and integrate against $1$ and
+$\xi$.  Rewriting the result in terms of a rescaled energy variable
+$\epsilon \equiv (v^2 / \gamma^2)$, where $\gamma^2 = 2e / m$, gives
+%
+\begin{gather}
+\pp{f_0}{t}
++
+\frac{\gamma}{3} \sqrt{\epsilon} \pp{f_1}{z}
+-
+\frac{\gamma}{3} \frac{E}{\sqrt{\epsilon}} \pp{}{\epsilon} \left( \epsilon f_1 \right)
+=
+C_0
+\label{eqn:f0}\\
+%
+\pp{f_1}{t}
++
+\gamma \sqrt{\epsilon} \pp{f_0}{z}
+-
+\gamma E \sqrt{\epsilon} \pp{f_0}{\epsilon}
+=
+C_1
+\label{eqn:f1}
+\end{gather}
+%
+where
+%
+\begin{gather*}
+C_0 = \frac{1}{2} \int_{-1}^{1} C[f_0 + \xi f_1] \, d\xi\\
+C_1 = \frac{3}{2} \int_{-1}^{1} \xi C[f_0 + \xi f_1] \, d\xi.
+\end{gather*}
+%
+Note that~\eqref{eqn:f0} and~\eqref{eqn:f1} are equivalent to HP (5)
+and (6), respectively.  Although, to match the forms in HP more
+precisely, we must examine the collision terms in more detail.
+\todo[inline]{Collisions}
