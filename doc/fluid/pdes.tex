@@ -1,0 +1,87 @@
+The fluid model takes the form of a set of coupled PDEs governing the
+species densities, temperatures, and the electric potential.  We
+document a 1-D version of the model here, including the PDEs, boundary
+conditions, and transport and chemistry closure models.  Extension to
+2-D is necessary to model the full device, including the edge effects,
+but this is not expected to be necessary for the envisioned model
+validation relevant to the torch simulations.
+
+\section{PDEs}
+We require PDEs for the species densities, temperatures, and electric potential.
+
+\subsection{Species Continuity}
+The species transport equations are as follows:
+%
+\begin{equation}
+\pp{n_{\alpha}}{t} + \pp{F_{\alpha}}{x} = \dot{\omega}_{\alpha},
+\label{eqn:species}
+\end{equation}
+%
+where $t$ is time, $x$ is the coordinate in the electrode-normal
+direction, $n_{\alpha}$ denotes the number density of species
+$\alpha$, $F_{\alpha}$ is the corresponding flux, and
+$\dot{\omega}_{\alpha}$ is the net production rate of species $\alpha$
+due to chemical reactions.  The flux is closed as follows:
+%
+\begin{equation*}
+F_{\alpha} = z_{\alpha} \mu_{\alpha} n_{\alpha} E - D_{\alpha} \pp{n_{\alpha}}{x},
+\end{equation*}
+%
+where $z_{\alpha}$ is the charge number, $\mu_{\alpha}$ is the
+mobility, $D_{\alpha}$ is the diffusion coefficient, and $E$ is the
+electric field.  The transport and chemistry closures are discussed in
+\S\ref{sec:fluid-closures}.  The electric field is determined from the
+potential, $E = -\pp{\phi}{x}$, which is governed by a Poisson
+equation (\S\ref{sec:pdes-poisson}).
+
+For a mixture of $N_s$ species, $N_s - 1$ species densities are
+evolved according to~\eqref{eqn:species}.  The density of the dominant
+background species (e.g., argon) is determined from the pressure,
+which is assumed known, and the ideal gas law:
+%
+\begin{equation*}
+p = \sum_{\alpha = 1}^{N_s} n_{\alpha} k_B T_{\alpha},
+\end{equation*}
+%
+where $k_B$ is the Boltzmann constant and $T_{\alpha}$ is the
+temperature of species $\alpha$.  As discussed in
+\S\ref{sec:pdes-energy}, a two temperature model is adopted where the
+heavy species share a single temperature $T_g$, such that the ideal
+gas law becomes
+%
+\begin{equation*}
+p = n_e k_B T_e + k_B T_g \sum_{\alpha \neq e} n_{\alpha}.
+\end{equation*}
+%
+
+
+\subsection{Energy Equations} \label{sec:pdes-energy}
+A two-temperature model is adopted.  We assume a common temperature
+$T_g$ for the heavy species and a separate temperature for the
+electrons.  These temperatures are governed by the gas and electron
+energy equations, respectively:
+%
+\begin{gather*}
+TODO: put in equations
+\end{gather*}
+%
+
+\subsection{Electromagnetics} \label{sec:pdes-poisson}
+A quasi-static model is used for the electromagnetics.  In this case,
+Maxwell's equations reduce to a Poisson equation governing the
+electric potential $\phi$:
+%
+\begin{equation*}
+-\pp{\phi}{x} = \frac{\rho_c}{\epsilon_0}
+\end{equation*}
+%
+where $\rho_c$ is the charge density and $\epsilon_0$ is the
+permittivity of free space.  The charge density is given from the
+species densities:
+%
+\begin{equation*}
+\rho_c = \sum_{\alpha=1}^{N_s} z_{\alpha} q_e n_{\alpha},
+\end{equation*}
+%
+where $q_e$ is the elementary charge (the magnitude of the charge of
+an electron).
