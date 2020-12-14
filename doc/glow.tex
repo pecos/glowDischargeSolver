@@ -12,6 +12,7 @@
 
 \usepackage{amsmath,amssymb,stmaryrd}
 \usepackage[makeroom]{cancel}
+\usepackage{mhchem}
 
 \graphicspath{{./figures/}}
 
@@ -61,7 +62,7 @@
 \chapter*{Preface}
 \input{overview}
 
-\chapter{Fluid Model}
+\chapter{Fluid Model} \label{sec:fluid}
 \input{fluid/pdes}
 \input{fluid/bcs}
 \input{fluid/closure}
@@ -69,6 +70,10 @@
 \chapter{Supporting Models and Data}
 \input{bolsig/overview}
 \input{bolsig/eqns}
+
+\chapter{Hybrid Fluid/Kinetic Model}
+\input{hybrid/overview}
+\input{hybrid/eqns}
 
 \chapter{Numerical Methods}
 

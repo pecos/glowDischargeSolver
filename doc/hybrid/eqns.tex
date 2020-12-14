@@ -1,0 +1,291 @@
+\section{PDEs}
+We require PDEs for the heavy species densities, the electric
+potential, and the electron distribution function.  In this initial
+work, the background gas temperature $T_g$ is taken as given and thus
+no gas energy equation is necessary.
+
+\subsection{Species Continuity}
+The species transport equations are as follows:
+%
+\begin{equation}
+\pp{n_{\alpha}}{t} + \pp{F_{\alpha}}{x} = \dot{\omega}_{\alpha},
+\label{eqn:species}
+\end{equation}
+%
+where $t$ is time, $x$ is the coordinate in the electrode-normal
+direction, $n_{\alpha}$ denotes the number density of species
+$\alpha$, $F_{\alpha}$ is the corresponding flux, and
+$\dot{\omega}_{\alpha}$ is the net production rate of species $\alpha$
+due to chemical reactions.  The flux is closed as follows:
+%
+\begin{equation*}
+F_{\alpha} = \mu_{\alpha} n_{\alpha} E - D_{\alpha} \pp{n_{\alpha}}{x},
+\end{equation*}
+%
+where $z_{\alpha}$ is the charge number, $\mu_{\alpha}$ is the
+mobility, $D_{\alpha}$ is the diffusion coefficient, and $E$ is the
+electric field.  The transport closures are as given in
+\S\ref{sec:fluid-closures}.  The electric field is determined from the
+potential, $E = -\pp{\phi}{x}$, which is governed by a Poisson
+equation (\S\ref{sec:hybrid-poisson}).  Finally, the heavy species
+production due to chemical reactions are discussed in
+\S\ref{sec:hybrid-chemistry}.
+
+For a mixture of $N_s$ species, $N_s - 2$ species densities are
+evolved according to~\eqref{eqn:species}.  The electron density is
+obtained from the electron distribution function, which is governed by
+the electron Boltzmann equation (\S\ref{sec:hybrid-ebolt}).
+Further,the density of the dominant background species (e.g., argon)
+is determined from the pressure, which is assumed known, and the ideal
+gas law:
+%
+\begin{equation*}
+p = \sum_{\alpha = 1}^{N_s} n_{\alpha} k_B T_{\alpha},
+\end{equation*}
+%
+where $k_B$ is the Boltzmann constant and $T_{\alpha}$ is the
+temperature of species $\alpha$.  A two temperature model is adopted
+where the heavy species share a single temperature $T_g$, which is
+different from the electron temperature, such that the ideal gas law
+becomes
+%
+\begin{equation*}
+p = n_e k_B T_e + k_B T_g \sum_{\alpha \neq e} n_{\alpha}.
+\end{equation*}
+%
+The gas temperature is assumed known.  The electron temperture is
+governed by the electron Boltzmann equation (\S\ref{sec:ebolt}).
+
+\subsection{Electromagnetics} \label{sec:hybrid-poisson}
+A quasi-static model is used for the electromagnetics.  In this case,
+Maxwell's equations reduce to a Poisson equation governing the
+electric potential $\phi$:
+%
+\begin{equation*}
+-\pp{\phi}{x} = \frac{\rho_c}{\epsilon_0}
+\end{equation*}
+%
+where $\rho_c$ is the charge density and $\epsilon_0$ is the
+permittivity of free space.  The charge density is given from the
+species densities:
+%
+\begin{equation*}
+\rho_c = \sum_{\alpha=1}^{N_s} z_{\alpha} q_e n_{\alpha},
+\end{equation*}
+%
+where $q_e$ is the elementary charge (the magnitude of the charge of
+an electron).
+
+The electron number density $n_e$ is determined from the electron
+distribution function,
+%
+\begin{equation*}
+n_e(x,t) = \int_{\mbb{R}^3} f_e(x, \mbf{v}_e, t) \, d^3 \mbf{v}_e
+\end{equation*}
+%
+which is governed by the electron Boltzmann equation.
+
+\subsection{Electron Boltzmann Equation} \label{sec:hybrid-ebolt}
+Let $f_e$ denote the electron distribution function.  In the 1-D glow
+discharge model, the distribution function depends on space $x \in
+(0,h)$, velocity $\mbf{v} \in \mathbb{R}^3$, and time $t \in
+\mathbb{R}^+$.  Since $f_e$ depends only on $x$ and $\mbf{E} = E
+\hat{x}$, the electron Boltzmann equation simplifies to
+%
+\begin{equation*}
+\pp{f_e}{t} + v_x \pp{f_e}{x} - \frac{q_e}{m_e} E \pp{f_e}{v_x} = S_e + C_e,
+\end{equation*}
+%
+where $S_e+C_e$ denotes the collision term, with $S_e$ representing elastic
+collisions and $C_e$ representing reactive collisions.
+
+For $S_e$, we consider only two-body interactions.  Then, suppressing
+the dependence on $x$ and $t$, $S_e$ can be written as
+%
+\begin{equation*}
+S_e(\mbf{v}_e)
+=
+\sum_{\alpha=1}^{N_s}
+\int \left(
+f_e(\mbf{v}_e^{\prime}) f_{\alpha}(\mbf{v}_{\alpha}^{\prime}
+-
+f_e(\mbf{v}_e) f_{\alpha}(\mbf{v}_{\alpha})
+\right) \,
+W_{e \alpha}
+d^3 \mbf{v}_{\alpha} d^3 \mbf{v}_e^{\prime} d^3 \mbf{v}_{\alpha}^{\prime},
+\end{equation*}
+%
+where $W_{e \alpha}$ is the transition probability associated with the
+nonreactive collision between and electron and species $\alpha$.  In
+practice, we will begin by considering only non-reactive collisions
+between electrons and the background gas (argon), such that $S_e$ becomes
+%
+\begin{equation*}
+S_e (\mbf{v}_e)
+=
+\int \left(
+f_e(\mbf{v}_e^{\prime}) f_{b}(\mbf{v}_{b}^{\prime})
+-
+f_e(\mbf{v}_e) f_{b}(\mbf{v}_{b})
+\right) \,
+W_{e b}
+d^3 \mbf{v}_{b} d^3 \mbf{v}_e^{\prime} d^3 \mbf{v}_{b}^{\prime},
+\end{equation*}
+%
+where subscript $b$ denotes the background species.  The background
+species distribution function $f_b$ is assumed given by the Maxwellian
+consistent with its number density $n_b$ and the gas temperature
+$T_g$.  Thus,
+%
+\begin{equation*}
+f_b(x, \mbf{v}, t)
+=
+n_b(x,t)
+\left( \frac{m}{2 \pi k_B T_g} \right)^{3/2} 
+\exp \left( \frac{-m_b \|\mbf{v}\|^2}{2 k_B T_g} \right).
+\end{equation*}
+%
+The integral in $S_e$ may be simplified by recognizing that many
+interactions considered in the integral are impossible due to
+conservation of momentum and energy.  Specifically, for elastic
+collisions, conservation of momentum and energy require that
+%
+\begin{equation*}
+m_e \mbf{v}_e + m_b \mbf{v}_b
+=
+m_e \mbf{v}_e^{\prime} + m_b \mbf{v}_b^{\prime}
+\quad
+\frac{1}{2} m_e \mbf{v}_e \cdot \mbf{v}_e +
+\frac{1}{2} m_b \mbf{v}_b \cdot \mbf{v}_b
+=
+\frac{1}{2} m_e \mbf{v}_e^{\prime} \cdot \mbf{v}_e^{\prime} + 
+\frac{1}{2} m_b \mbf{v}_b^{\prime} \cdot \mbf{v}_b^{\prime}
+\end{equation*}
+%
+Then, given the direction of the post-collision velocity
+$\hat{\mbf{e}}$, the post-collision velocities may be written as
+%
+\begin{equation*}
+PUT IN
+\end{equation*}
+%
+and the nine-dimensional integral above may be re-written as a
+five-dimensional integral:
+%
+\begin{equation*}
+\int_{\mbb{R}^3} \int_{S^2} 
+\left(
+f_e(\mbf{v}_e^{\prime}) f_{b}(\mbf{v}_{b}^{\prime})
+-
+f_e(\mbf{v}_e) f_{b}(\mbf{v}_{b})
+\right) \,
+\|\mbf{v}_e - \mbf{v}_b\| \sigma_{eb}(\|\mbf{v}_e - \mbf{v}_b\|, \hat{\mbf{e}})
+d\hat{\mbf{e}} \, d^3 \mbf{v}_{b},
+\end{equation*}
+%
+where $\sigma_{eb}$ denotes the differential cross section.
+
+To write the contribution of reactive collisions, we follow the
+formulation of Ern and Giovangigli~\cite{}.  The full reaction term is
+written as follows:
+%
+\begin{equation*}
+C_e = \sum_{r=1}^{N_r} C_e^r,
+\end{equation*}
+%
+where $N_r$ is the number of reactions and $C_e^r$ is the contributin
+of the $r$th reaction.  To formulate $C_e^r$, consider the following
+reaction:
+%
+\begin{equation*}
+\sum_{j \in R^r} \chi_j
+\ce{<=>}
+\sum_{k \in P^r} \chi_k,
+\end{equation*}
+%
+where $\chi_j$ denotes the $j$th species, $R^r$ is the set of
+reactants, and $P^r$ is the set of products.  For reactions that
+include the same species more than once, $R^r$ and $P^r$ include that
+species multiple times.  For example, the set of products of the argon
+ionization reaction $\ce{Ar + e <=> Ar^+ + e + e}$ is given by $P^r =
+\{\ce{Ar^+}, \ce{e}, \ce{e}\}$.  Further, for a given species $i$, let
+$R^r_i$ and $P^r_i$ denote the set of reactants and products for
+reaction $r$ with species $i$ removed only once.  Thus, for the argon
+ionization reaction example, $P^r_e = \{\ce{Ar^+}, \ce{e}\}$.
+
+Equivalently, one may write the generic chemical reaction as
+%
+\begin{equation*}
+\sum_{j =1}^{N_s} \nu^{r}_j\chi_j
+\ce{<=>}
+\sum_{k=1}^{N_s} \nu^{\prime,r}_k \chi_k,
+\end{equation*}
+%
+where $\nu^r_{j}$ and $\nu^{\prime,r}_j$ denote the stoichiometric
+coefficients of the $j$th species in the reactants and products,
+respectively.  Using all of this notation, the contribution of the
+$r$th reaction to the reactive collision term is given by
+%
+\begin{align*}
+C_e^r
+=&
+\nu_e^r \int \left( \prod_{k \in P^r} \beta_k f_k - \prod_{j \in R^r} \beta_j f_j \right)
+\frac{W_{R^r P^r}}{\prod_{j \in R^r} \beta_j} \,
+\prod_{j \in R^r_e} d^3 \mbf{v}_j \, \prod_{k \in P^r} d^3 \mbf{v}_k\\
+&+
+\nu_e^{\prime,r} \int \left( \prod_{j \in R^r} \beta_j f_j - \prod_{k \in P^r} \beta_k f_k \right)
+\frac{W_{R^r P^r}}{\prod_{j \in R^r} \beta_j} \,
+\prod_{j \in R^r} d^3 \mbf{v}_j \, \prod_{k \in P^r_e} d^3 \mbf{v}_k,
+\end{align*}
+%
+where $W_{R^r P^r}$ is the transition probability for the forward
+reaction,
+%
+\begin{equation*}
+\beta_j = \frac{h^3_{\mathrm{P}}}{a_j m_j^3},
+\end{equation*}
+%
+and $a_j$ is the degeneracy.
+
+For binary reactions (e.g., $\chi_0 + \chi_1 \ce{<=>} \chi_2 +
+\chi_3$), this may be rewritten in terms of the differential collision
+cross section.  For example, the contribution of such a reaction to
+species 0 is given by
+%
+\begin{equation*}
+C_0 = \int_{\mbb{R}^3} \int_{S^2} \left( \frac{\beta_2 \beta_3}{\beta_0 \beta_1} f_2 f_3 - f_0 f_1\right) g \sigma(g, \hat{\mbf{e}}) d\hat{\mbf{e}} d^3 \mbf{v}_1
+\end{equation*}
+%
+
+Formally, reactions involving three
+particles (e.g., direct ionization and recombination: $\ce{Ar + e <=>
+  Ar^+ + e + e}$ are supported by this framework, but this introduces
+complexity into the formulation of $W$.  While this can likely be
+overcome,
+\todo{Alexeev introduces a collision cross section for such reactions, but I don't understand his notation.}
+ we may also avoid it by decomposing such three particle
+interactions into two steps.  For instance, instead of including
+direct impact ionization in the mechanism, we have
+%
+\begin{gather*}
+\ce{Ar + e <=> Ar^{\dagger} + e} \\
+\ce{Ar^{\dagger} -> Ar^+ + e},
+\end{gather*}
+%
+where $Ar^{\dagger}$ is an intermediate species.  For these reactions,
+letting $\ce{A}$ be species 1, $\ce{Ar^{\dagger}}$ be species 2, and
+$\ce{Ar^+}$ be species 3, the reactive collision terms in the electron
+Boltzmann equation reads
+%
+\begin{align*}
+C_e(\mbf{v}_e)
+&=
+\int_{\mbb{R}^3} \int_{S^2}
+\left( \frac{\beta_2}{\beta_1} f_e(\mbf{v}^{\prime}_e) f_2(\mbf{v}_2) - f_e(\mbf{v}_e) f_1(\mbf{v}_1) \right) W_{10,20} d^3 \mbf{v}_1 d^3 \mbf{v}^{\prime}_e d^3 \mbf{v}_2
+\\
+&+\int_{\mbb{R}^3} \int_{S^2}
+\left( f_e(\mbf{v}^{\prime}_e) f_1(\mbf{v}_1) - \frac{\beta_2}{\beta_1} f_e(\mbf{v}_e) f_2(\mbf{v}_2) \right) W_{10,20} d^3 \mbf{v}^{\prime}_e d^3 \mbf{v}_1 d^3 \mbf{v}_2
++
+\int_{S^2} \frac{1}{\tau} f_2(\mbf{v}_2) d\hat{\mbf{e}}.
+\end{align*}
+%
