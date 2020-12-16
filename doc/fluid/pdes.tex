@@ -58,13 +58,30 @@ p = n_e k_B T_e + k_B T_g \sum_{\alpha \neq e} n_{\alpha}.
 \subsection{Energy Equations} \label{sec:pdes-energy}
 A two-temperature model is adopted.  We assume a common temperature
 $T_g$ for the heavy species and a separate temperature for the
-electrons.  These temperatures are governed by the gas and electron
-energy equations, respectively:
+electrons.  The electron energy equation is given by
 %
 \begin{gather*}
-TODO: put in equations
+\pp{}{t} \left( \frac{3}{2} k_B n_e T_e \right)
++
+\pp{}{x} \left( \frac{5}{2} k_B T_e F_e - \kappa_e \pp{T_e}{x} \right)
+=
+\underbrace{- q_e F_e E}_{\textrm{Joule heating}}
+-
+\underbrace{\frac{3}{2} k_B n_e \frac{2 m_e}{m_b} \left( T_e - T_g \right) \bar{\nu}_{e,b}}_{\textrm{Elastic}}
+-
+\underbrace{q_e \sum_{j=1}^{N_r} \Delta E_j G_j}_{\textrm{Inelastic}},
 \end{gather*}
 %
+where $m_e$ and $m_b$ denote the molecular mass of electron and the
+background species, respectively, $\kappa_e$ is the electron thermal
+conductivity, $\Delta E_j$ is the energy lost per electron in the
+collisional process represented by reaction $j$, and $G_j$ is the rate
+of progress of reaction $j$.  The thermal conductivity $\kappa_e$ and
+chemistry related quantities $\Delta E_j$ and $G_j$ are described more
+in \S\ref{sec:fluid-closures}.
+
+The gas energy equation is given by\ldots
+
 
 \subsection{Electromagnetics} \label{sec:pdes-poisson}
 A quasi-static model is used for the electromagnetics.  In this case,
