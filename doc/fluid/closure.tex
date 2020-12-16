@@ -1,3 +1,92 @@
 \section{Fluid Closure Models: Transport and Chemistry} \label{sec:fluid-closures}
 This section details the transport and chemistry models necessary to
 close the PDEs in the fluid model.
+
+\subsection{Chemistry}
+The chemical source terms $\dot{\omega}_{\alpha}$ are determined by
+specifying a chemical mechanism and associated rate parameters.  This
+section gives the form of the source terms appearing in the species
+transport equations for a generic mechanism as well as example
+mechanisms for argon plasma.
+
+\subsubsection{General Form}
+Assume that we have a set of $N_r$ chemical reactions, each taking the
+following form:
+%
+\begin{equation*}
+\sum_{\alpha=1}^{N_s} \nu^{\prime}_{\alpha r} X_{\alpha}
+\ce{<=>}
+\sum_{\alpha=1}^{N_s} \nu^{\prime\prime}_{\alpha r} X_{\alpha}
+\quad
+\textrm{for} \,\, r = 1, \ldots, N_r.
+\end{equation*}
+%
+Then,
+%
+\begin{equation*}
+\dot{\omega}_{\alpha}
+=
+\sum_{r=1}^{N_r} (\nu^{\prime \prime}_{\alpha r} - \nu^{\prime}_{\alpha r}) G_r
+\end{equation*}
+%
+where $M_{\alpha}$ is the molar mass of species $\alpha$ and $G_r$ is
+the rate of progress of reaction $r$.  The rate of progress is given
+by
+%
+\begin{equation*}
+G_r
+=
+k_{f,r} \prod_{s=1}^{N_s} n_s^{\nu^{\prime}_{sr}}
+-
+k_{b,r} \prod_{s=1}^{N_s} n_s^{\nu^{\prime \prime}_{sr}},
+\end{equation*}
+%
+where $k_{f,r}$ and $k_{b,r}$ are the forward and backward rate
+coefficients.  These rate coefficients are functions of temperature
+that must be provided as part of the mechanism.
+
+\subsubsection{Simple argon mechanism}
+
+\subsubsection{Advanced argon mechanism}
+
+
+\subsection{Transport}
+To close the fluid model transport equation, we require transport
+properties, namely the diffusion coefficient and thermal conductivity
+for all species and the mobility for charged species.
+
+\subsubsection{Simple}
+Some authors~\cite{} specify these quantities as constant for a given
+background number density.  Data from~\cite{} is shown in
+Table~\ref{tbl:simpleTransport}.
+%
+\begin{table}[htp]
+\caption{Transport property values from~\cite{}.}
+\begin{center}
+\begin{tabular}{|c|ccc|}
+\hline
+Name & Symbol & Units & Value \\
+\hline
+Electron (\ce{e}) diffusivity & $n_{\ce{Ar}} D_{\ce{e}}$ & \si{(cm.s)^{-1}} & $3.86 \times 10^{22}$ \\
+Positive ion (\ce{Ar^+}) diffusivity & $n_{\ce{Ar}} D_{\ce{Ar^+}}$ & \si{(cm.s)^{-1}} & $2.07 \times 10^{18}$ \\
+Metastable atom (\ce{Ar^*}) diffusivity & $n_{\ce{Ar}} D_{\ce{Ar^{\ast}}}$ & \si{(cm.s)^{-1}} & $2.42 \times 10^{18}$ \\
+\hline
+Electron mobility & $n_{\ce{Ar}} \mu_{\ce{e}}$ & \si{(V.cm.s)^{-1}} & $9.66 \times 10^{21}$ \\
+Positive ion mobility & $n_{\ce{Ar}} \mu_{\ce{Ar^+}}$ & \si{(V.cm.s)^{-1}} & $4.65 \times 10^{19}$ \\
+\hline
+\end{tabular}
+\end{center}
+\label{tbl:simpleTransport}
+\end{table}
+%
+The required thermal conductivities may be computed from the
+diffusivity as follows:
+%
+\begin{equation*}
+\kappa_{\alpha} = \frac{5}{2} n_{\alpha} k_B D_{\alpha}.
+\end{equation*}
+%
+\todo[inline]{NB: this is from Panneer Chelvam and Raja.  Some authors use 3/2 instead of 5/2.  Why?  Is it an error or a different modeling choice?}
+
+
+\subsubsection{Advanced}
