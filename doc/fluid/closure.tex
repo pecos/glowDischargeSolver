@@ -45,10 +45,41 @@ where $k_{f,r}$ and $k_{b,r}$ are the forward and backward rate
 coefficients.  These rate coefficients are functions of temperature
 that must be provided as part of the mechanism.
 
-\subsubsection{Simple argon mechanism}
+\subsubsection{Simple argon mechanisms}
+The simplest possible argon mechanism that has been used~\cite{}
+includes only irreversible ionization of ground state argon:
+%
+\begin{equation*}
+\ce{Ar + e -> Ar^+ + 2e}.
+\end{equation*}
+%
+Denoting this reaction 0, the energy loss per electron in $\Delta E_0
+= 15.7 \si{eV}$, and the rate of progress is
+%
+\begin{equation*}
+G_0 = k_i(T_e) n_b n_e,
+\end{equation*}
+%
+where $n_b$ is the argon number density.  Thus,
+%
+\begin{equation*}
+\dot{\omega}_e = (2 - 1) G_0 = k_i n_b n_e.
+\end{equation*}
+%
+Liu et al.~\cite{} uses
+%
+\begin{equation*}
+k_i(T_e) = A \exp(-C/T_e),
+\end{equation*}
+%
+where $A = 1.235 \times 10^{-7} \si{cm^3.s^{-1}}$ and $C =
+-18.687\si{eV}$.\todo{Ref isn't clear only units for C, but has to be eV, right?}
+
+This may be sufficient for code development purposes, but a more
+complex mechanism will be required for realistic simulations.
 
 \subsubsection{Advanced argon mechanism}
-
+More complex argon plasma chemistry models are detailed in~\cite{}.
 
 \subsection{Transport}
 To close the fluid model transport equation, we require transport

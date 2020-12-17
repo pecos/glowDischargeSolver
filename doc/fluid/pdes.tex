@@ -80,8 +80,27 @@ of progress of reaction $j$.  The thermal conductivity $\kappa_e$ and
 chemistry related quantities $\Delta E_j$ and $G_j$ are described more
 in \S\ref{sec:fluid-closures}.
 
-The gas energy equation is given by\ldots
-
+The gas energy equation is given by
+%
+\begin{gather*}
+\pp{}{t} \left( \sum_{\alpha \in h} C_{v,\alpha} n_\alpha T_g \right)
++
+\pp{}{x} \left( \sum_{\alpha \in h} C_{p,\alpha} F_\alpha T_g - \sum_{\alpha \in h} \kappa_\alpha \pp{T_g}{x} \right)
+=
+\underbrace{C_{\textrm{inc}} \sum_{\alpha \in h} q_e z_{\alpha} F_\alpha E}_{\textrm{Joule heating}}
++
+\underbrace{\frac{3}{2} k_B n_e \frac{2 m_e}{m_b} \left( T_e - T_g \right) \bar{\nu}_{e,b}}_{\textrm{Elastic}}
++
+\underbrace{q_e \sum_{j=1}^{N_r} \Delta E_j G_j}_{\textrm{Inelastic}},
+\end{gather*}
+%
+where the notation $\sum_{\alpha \in h}$ denotes the summation over
+the heavy species, $C_{v,\alpha}$ and $C_{p,\alpha}$ are the specific
+heat at constant volume and pressure, respectively, for species
+$\alpha$.  Finally, $C_{\textrm{inc}}$ is a constant that may be used
+to account for incomplete conversion of the kinetic energy gained by
+the electrons into heat due to the fact that the ion mean free path
+can be of the same order of the sheath thickness~\cite{}.
 
 \subsection{Electromagnetics} \label{sec:pdes-poisson}
 A quasi-static model is used for the electromagnetics.  In this case,

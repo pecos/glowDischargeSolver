@@ -1,1 +1,74 @@
-\section{Boundary Conditions}
+\section{Boundary Conditions} \label{sec:fluid-bcs}
+
+\subsection{Species Continuity}
+We impose conditions on the species fluxes at the walls.  The electron
+flux $F_e$ is given by
+%
+\begin{equation*}
+F_e \mbf{n}_x
+=
+\frac{1}{4} n_e \left( \frac{8 k_B T_e}{\pi m_e} \right)^{1/2}
+-
+\sum_{\alpha=1}^{N_s} \gamma_{\alpha} F_{\alpha} \mbf{n}_x
+\end{equation*}
+%
+where $\mbf{n}_x$ denotes the outward pointing unit normal (in 1D,
+$\mbf{n}_x =-1$ on the 'left' and $\mbf{n}_x = 1$ on the 'right') and
+$\gamma_{\alpha}$ is the secondary electron emission coefficient for
+species $\alpha$.  \todo[inline]{We need values for the
+  $\gamma_{\alpha}$ parameters!}
+
+The ion flux, $F_i$, is given by
+%
+\begin{equation*}
+F_i \mbf{n}_x
+=
+\frac{1}{4} n_i \left( \frac{8 k_B T_g}{\pi m_i} \right)^{1/2}
++
+n_i \max(0, \mu_i E \mbf{n}_x),
+\end{equation*}
+%
+\todo[inline]{Check inconsistency in refs for ion BC with Raja}
+
+Finally, the all neutral species fluxes ars given by
+%
+\begin{equation*}
+F_{\alpha} \mbf{n}_x
+=
+\frac{1}{4} n_{\alpha} \left( \frac{8 k_B T_g}{\pi m_{\alpha}} \right)^{1/2}
+\end{equation*}
+%
+
+\subsection{Electric Potential}
+Dirichlet conditions on the electric potential are imposed on both
+sides.  For instance, assuming $x=0$ is ground and $x=L$ has an
+imposed fluctuating voltage:
+%
+\begin{equation*}
+\phi(0,t) = 0, \quad \phi(L,t) = V_0 \sin(2 \pi f t),
+\end{equation*}
+%
+where $V_0$ is the voltage amplitude and $f$ is the frequency.
+
+\subsection{Energy}
+For the electron energy equation, the total surface energy flux at the
+wall is given by
+%
+\begin{equation*}
+Q_{e,wall} \mbf{n}_x
+\equiv
+\left. \left( \frac{5}{2} k_B T_e F_e - \kappa_e \pp{T_e}{x} \right)\right|_{wall} \mbf{n}_x
+= 
+\frac{5}{2} k_B T_e F_e \mbf{n}_x,
+\end{equation*}
+%
+where $F_e \mbf{n}_x$ is taken from the species continuity boundary
+condition.
+
+Isothermal wall conditions are imposed on the gas temperature:
+%
+\begin{equation*}
+T_g(0,t) = T_g(L,t) = T_{g,wall},
+\end{equation*}
+%
+where $T_{g,wall}$ is a specified value.
