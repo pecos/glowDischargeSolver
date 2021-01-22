@@ -162,16 +162,9 @@ class timeDomainCollocationSolver:
         self.params = modelClosures()
         setLiu2014Properties(gam, self.params)
 
-        # Points used to define state (Gauss-Lobatto-Chebyshev points)
+        # Points used to define state and collocation
+        # (Gauss-Lobatto-Chebyshev points)
         self.xp = -np.cos(np.pi*np.linspace(0,self.deg,self.Np)/self.deg)
-
-        # Points used for collocation (Gauss-Chebyshev)
-        #self.xc = -np.cos(np.pi*(np.linspace(1,self.Nc,self.Nc)-0.5)/self.Nc)
-        #self.xc = np.zeros(self.xp.shape)
-        #self.xc[0] = -1.0
-        #self.xc[1:-1] = -np.cos(np.pi*(np.linspace(1,self.Nc,self.Nc)-0.5)/self.Nc)
-        #self.xc[-1] = 1.0
-        self.xc = self.xp
 
         # Jacobian storage
         self.jac = np.zeros((self.Ndof, self.Ndof))
@@ -185,16 +178,6 @@ class timeDomainCollocationSolver:
         # V0pinv: xp values to coefficients
         self.V0pinv = np.linalg.solve(self.V0p, ident)
 
-        # V0c: Coefficients to values at xc
-        self.V0c = cheb.chebvander(self.xc, self.deg)
-
-        # Mc: xp values to xc values
-        self.Mc = self.V0c @ self.V0pinv
-
-        # Mc0: xp values to xc, with 0 on 'top' and 'bottom'
-        self.Mc0 = np.zeros((self.Np, self.Np))
-        self.Mc0[1:-1,:] = self.Mc[1:-1,:]
-
         # V1p: coefficients to derivatives at xp
         self.V1p = np.zeros((self.Np,self.Np))
         for i in range(0,self.Np): 
@@ -203,28 +186,18 @@ class timeDomainCollocationSolver:
         # Dp: values at xp to derivatives at xp
         self.Dp = self.V1p @ self.V0pinv
 
-        # V1c: coefficients to derivatives at xc
-        #self.V1c = np.zeros((self.Nc,self.Np))
-        self.V1c = np.zeros((self.Np,self.Np))
+        # V2p: coefficients to 2nd derivatives at xp
+        self.V2p = np.zeros((self.Np,self.Np))
         for i in range(0,self.Np): 
-            self.V1c[:,i] = cheb.chebval(self.xc, cheb.chebder(ident[i,:], m=1))
+            self.V2p[:,i] = cheb.chebval(self.xp, cheb.chebder(ident[i,:], m=2))
 
-        # Dc: values at xp to derivatives at xc
-        self.Dc = self.V1c @ self.V0pinv
+        # Lp: values at xp to 2nd derivatives at xp
+        self.Lp = self.V2p @ self.V0pinv
 
-        # V2c: coefficients to 2nd derivatives at xc
-        #self.V2c = np.zeros((self.Nc,self.Np))
-        self.V2c = np.zeros((self.Np,self.Np))
-        for i in range(0,self.Np): 
-            self.V2c[:,i] = cheb.chebval(self.xc, cheb.chebder(ident[i,:], m=2))
-
-        # Lc: values at xp to 2nd derivatives at xc
-        self.Lc = self.V2c @ self.V0pinv
-
-        # LcD: values at xp to 2nd derivatives at xc, with identity
+        # LpD: values at xp to 2nd derivatives at xc, with identity
         # for top and bottom row (for Dirichlet BCs)
-        self.LcD = np.identity(self.Np)
-        self.LcD[1:-1,:] = self.Lc[1:-1,:]
+        self.LpD = np.identity(self.Np)
+        self.LpD[1:-1,:] = self.Lp[1:-1,:]
         
 
     def filter(self):
@@ -257,9 +230,10 @@ class timeDomainCollocationSolver:
 
         Outputs: None (sets self.phi to computed potential)
         """
-        r = -self.params.alpha* (self.Mc0 @ (ni-ne))
+        r = -self.params.alpha*(ni-ne)
+        r[0] = 0.0
         r[-1] = np.sin(2*np.pi*time)
-        self.phi = np.linalg.solve(self.LcD, r)
+        self.phi = np.linalg.solve(self.LpD, r)
         
     def residual(self, Uin, time, dt, first_step=False):
         """Evaluates the residual.
@@ -276,70 +250,50 @@ class timeDomainCollocationSolver:
           This function currently assumes that Ns=2 and NT=1
         """
         # pull off state for convenience
-        nep = Uin[0:self.Np]
-        nip = Uin[self.Np:2*self.Np]
-        Tep = Uin[2*self.Np:]
+        ne = Uin[0:self.Np]
+        ni = Uin[self.Np:2*self.Np]
+        Te = Uin[2*self.Np:]
 
         # solve poisson equation for phi
         # now have self.phi
-        self.solve_poisson(nep,nip,time)
+        self.solve_poisson(ne,ni,time)
 
         # form state at collocation points
-        ne = self.Mc @ nep
-        ni = self.Mc @ nip
-        Te = self.Mc @ Tep
+        ne1 = self.U1[0:self.Np]
+        ni1 = self.U1[self.Np:2*self.Np]
+        Te1 = self.U1[2*self.Np:]
 
-        ne1 = self.Mc @ self.U1[0:self.Np]
-        ni1 = self.Mc @ self.U1[self.Np:2*self.Np]
-        Te1 = self.Mc @ self.U1[2*self.Np:]
-
-        ne0 = self.Mc @ self.U0[0:self.Np]
-        ni0 = self.Mc @ self.U0[self.Np:2*self.Np]
-        Te0 = self.Mc @ self.U0[2*self.Np:]
+        ne0 = self.U0[0:self.Np]
+        ni0 = self.U0[self.Np:2*self.Np]
+        Te0 = self.U0[2*self.Np:]
 
 
         # form fluxes at grid points
-        ne_x  = self.Dp @ nep
-        ni_x  = self.Dp @ nip
-        Te_x  = self.Dp @ Tep
+        ne_x  = self.Dp @ ne
+        ni_x  = self.Dp @ ni
+        Te_x  = self.Dp @ Te
         phi_x = self.Dp @ self.phi
 
-        #fe = -self.params.eleMobility()*nep*(-phi_x) - self.params.eleDiffusivity()*ne_x
-        fe = -self.params.eleMobility()*nep*(-phi_x)
-        #fi =  self.params.ionMobility()*nip*(-phi_x) - self.params.ionDiffusivity()*ni_x
-        fi =  self.params.ionMobility()*nip*(-phi_x)
-        fT = (5./3.)*(-self.params.eleMobility()*nep*Tep*(-phi_x) - self.params.eleDiffusivity()*(ne_x*Tep + nep*Te_x))
-        #fT = (5./3.)*(-self.params.eleMobility()*nep*Tep*(-phi_x) - self.params.eleDiffusivity()*(nep*Te_x))
-        #fT = (5./3.)*(-self.params.eleMobility()*nep*Tep*(-phi_x) - self.params.eleDiffusivity()*(self.Dp @ (nep*Tep) ))
+        fe = -self.params.eleMobility()*ne*(-phi_x) - self.params.eleDiffusivity()*ne_x
+        fi =  self.params.ionMobility()*ni*(-phi_x) - self.params.ionDiffusivity()*ni_x
+        fT = (5./3.)*(-self.params.eleMobility()*ne*Te*(-phi_x) - self.params.eleDiffusivity()*(ne_x*Te + ne*Te_x))
 
         # overwrite endpoints in fi (weakly impose BC)
-        fi[ 0] = -self.params.ksion*nip[ 0] + self.params.ionMobility()*nip[ 0]*(-phi_x[ 0])
-        fi[-1] =  self.params.ksion*nip[-1] + self.params.ionMobility()*nip[-1]*(-phi_x[-1])
-
-        #fe[ 0] = (-self.params.ks*nep[ 0] - self.params.gam*fi[ 0])
-        #fe[-1] = ( self.params.ks*nep[-1] - self.params.gam*fi[-1])
-
+        fi[ 0] = -self.params.ksion*ni[ 0] + self.params.ionMobility()*ni[ 0]*(-phi_x[ 0])
+        fi[-1] =  self.params.ksion*ni[-1] + self.params.ionMobility()*ni[-1]*(-phi_x[-1])
 
         # form derivatives of fluxes at collocation points
-        fe_x = self.Dc @ fe - self.params.eleDiffusivity()*self.Lc @ nep
-        fi_x = self.Dc @ fi - self.params.ionDiffusivity()*self.Lc @ nip
-        fT_x = self.Dc @ fT
-
-        # prep for BCs and src terms
-        fe = -self.params.eleMobility()*nep*(-phi_x) - self.params.eleDiffusivity()*ne_x
-        #fe[0] = -self.params.eleMobility()*nep[0]*(-phi_x[0]) - self.params.eleDiffusivity()*ne_x[0]
-        #fe[-1] = -self.params.eleMobility()*nep[-1]*(-phi_x[-1]) - self.params.eleDiffusivity()*ne_x[-1]
+        fe_x = self.Dp @ fe
+        fi_x = self.Dp @ fi
+        fT_x = self.Dp @ fT
 
         # form source terms at collocation points
-        
         ki = self.params.rxnRateCoefficient(Te)
         ome = ki*ne
         omi = ome
 
-        omE = -self.params.dH*ome #- 0.0313*ne*Te
-        SJ = -self.params.qStar*(self.Mc @ fe)*(-self.Mc @ phi_x)
-        #SJ = -self.params.qStar*(self.Mc @ (fe*(-phi_x)))
-        #SJ = -self.params.qStar*(self.Mc @ (-self.params.eleMobility()*nep*(-phi_x)*(-phi_x)))
+        omE = -self.params.dH*ome
+        SJ = -self.params.qStar*fe*(-phi_x)
 
         res = np.zeros((3*self.Np,1))
 
@@ -360,16 +314,12 @@ class timeDomainCollocationSolver:
             res[2*self.Np:3*self.Np] += ne*Te - ne1*Te1
 
         # boundary conditions (strongly enforced)
-        res[0]           = fe[ 0]  - (-self.params.ks*nep[ 0] - self.params.gam*fi[ 0])
-        res[self.Np-1]   = fe[-1]  - ( self.params.ks*nep[-1] - self.params.gam*fi[-1])
-        #res[0]           = nep[0]
-        #res[self.Np-1]   = nep[-1]
+        res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
+        res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
 
         # Dirichlet on temperature
-        res[2*self.Np  ] = (Tep[ 0] - 0.75)
-        res[3*self.Np-1] = (Tep[-1] - 0.75)
-        #res[2*self.Np  ] = fT[ 0] - ((5./3.)*fe[0]*Tep[ 0])
-        #res[3*self.Np-1] = fT[-1] - ((5./3.)*fe[-1]*Tep[-1])
+        res[2*self.Np  ] = (Te[ 0] - 0.75)
+        res[3*self.Np-1] = (Te[-1] - 0.75)
 
         return res
 
@@ -387,118 +337,89 @@ class timeDomainCollocationSolver:
           This function currently assumes that Ns=2 and NT=1
         """
         # pull off state
-        nep = Uin[0:self.Np]
-        nip = Uin[self.Np:2*self.Np]
-        Tep = Uin[2*self.Np:]
+        ne = Uin[0:self.Np]
+        ni = Uin[self.Np:2*self.Np]
+        Te = Uin[2*self.Np:]
 
         # solve poisson equation for phi
         # now have self.phi
-        phi_ni = np.linalg.solve(self.LcD, -self.params.alpha*self.Mc0)
+        ident0 = np.identity(self.Np)
+        ident0[0,0] = ident0[-1,-1] = 0.0
+        phi_ni = np.linalg.solve(self.LpD, -self.params.alpha*ident0)
         phi_ne = -phi_ni
 
-        # form state at collocation points
-        ne = self.Mc @ nep
-        ni = self.Mc @ nip
-        Te = self.Mc @ Tep
-
         # form fluxes at grid points
-        ne_x  = self.Dp @ nep
-        ni_x  = self.Dp @ nip
-        Te_x  = self.Dp @ Tep
+        ne_x  = self.Dp @ ne
+        ni_x  = self.Dp @ ni
+        Te_x  = self.Dp @ Te
         phi_x = self.Dp @ self.phi
-        phi_x_nep = self.Dp @ phi_ne
-        phi_x_nip = self.Dp @ phi_ni
+        phi_x_ne = self.Dp @ phi_ne
+        phi_x_ni = self.Dp @ phi_ni
 
-        fe = -self.params.eleMobility()*nep*(-phi_x) - self.params.eleDiffusivity()*ne_x
-        fe_nep = ( -self.params.eleMobility()*np.multiply(np.identity(self.Np),-phi_x)
-                   -self.params.eleMobility()*np.multiply(nep,-phi_x_nep) )
-        #-self.params.eleDiffusivity()*self.Dp )
-        fe_nip =   -self.params.eleMobility()*np.multiply(nep,-phi_x_nip)
+        fe = -self.params.eleMobility()*ne*(-phi_x) - self.params.eleDiffusivity()*ne_x
+        fe_ne = ( -self.params.eleMobility()*np.multiply(np.identity(self.Np),-phi_x)
+                  -self.params.eleMobility()*np.multiply(ne,-phi_x_ne) 
+                  -self.params.eleDiffusivity()*self.Dp )
+        fe_ni =   -self.params.eleMobility()*np.multiply(ne,-phi_x_ni)
         
-        fi_nep = self.params.ionMobility()*np.multiply(nip,-phi_x_nep)
-        fi_nip = (  self.params.ionMobility()*np.multiply(nip,-phi_x_nip)
-                  + self.params.ionMobility()*np.multiply(np.identity(self.Np), -phi_x))
-        #- self.params.ionDiffusivity()*self.Dp )
+        fi_ne = self.params.ionMobility()*np.multiply(ni,-phi_x_ne)
+        fi_ni = ( +self.params.ionMobility()*np.multiply(ni,-phi_x_ni)
+                  +self.params.ionMobility()*np.multiply(np.identity(self.Np), -phi_x)
+                  -self.params.ionDiffusivity()*self.Dp )
         
-        fT_nep = (5./3.)*(-self.params.eleMobility()*np.multiply(np.identity(self.Np),Tep*(-phi_x))
-                          -self.params.eleMobility()*np.multiply(nep*Tep,(-phi_x_nep))
-                          - self.params.eleDiffusivity()*(np.multiply(self.Dp,Tep) + np.multiply(np.identity(self.Np),Te_x)))
-        fT_nip = (5./3.)*(-self.params.eleMobility()*np.multiply(nep*Tep,(-phi_x_nip)))
-        fT_Tep = (5./3.)*(-self.params.eleMobility()*np.multiply(nep*(-phi_x),np.identity(self.Np))
-                          - self.params.eleDiffusivity()*(np.multiply(ne_x,np.identity(self.Np)) + np.multiply(nep,self.Dp)))
+        fT_ne = (5./3.)*(-self.params.eleMobility()*np.multiply(np.identity(self.Np),Te*(-phi_x))
+                          -self.params.eleMobility()*np.multiply(ne*Te,(-phi_x_ne))
+                          - self.params.eleDiffusivity()*(np.multiply(self.Dp,Te) + np.multiply(np.identity(self.Np),Te_x)))
+        fT_ni = (5./3.)*(-self.params.eleMobility()*np.multiply(ne*Te,(-phi_x_ni)))
+        fT_Te = (5./3.)*(-self.params.eleMobility()*np.multiply(ne*(-phi_x),np.identity(self.Np))
+                          - self.params.eleDiffusivity()*(np.multiply(ne_x,np.identity(self.Np)) + np.multiply(ne,self.Dp)))
         
         # overwrite endpoints in fi (weakly impose BC)
-        fi_nep[0,:] = self.params.ionMobility()*nip[ 0]*(-phi_x_nep[ 0,:])
-        fi_nip[0,:] = self.params.ionMobility()*nip[ 0]*(-phi_x_nip[ 0,:])
-        fi_nip[0,0] += -self.params.ksion + self.params.ionMobility()*(-phi_x[ 0])
+        fi_ne[0,:] = self.params.ionMobility()*ni[ 0]*(-phi_x_ne[ 0,:])
+        fi_ni[0,:] = self.params.ionMobility()*ni[ 0]*(-phi_x_ni[ 0,:])
+        fi_ni[0,0] += -self.params.ksion + self.params.ionMobility()*(-phi_x[ 0])
         
-        fi_nep[-1,:] = self.params.ionMobility()*nip[-1]*(-phi_x_nep[-1,:])
-        fi_nip[-1,:] = self.params.ionMobility()*nip[-1]*(-phi_x_nip[-1,:])
-        fi_nip[-1,-1] += self.params.ksion + self.params.ionMobility()*(-phi_x[-1])
-
-        # #fe[ 0] = (-self.params.ks*nep[ 0] - self.params.gam*fi[ 0])
-        # fe_nep[ 0,:] = - self.params.gam*fi_nep[ 0,:]
-        # fe_nep[ 0,0] -= self.params.ks
-        # fe_nip[ 0,:] = - self.params.gam*fi_nip[ 0,:]
-
-        # #fe[-1] = ( self.params.ks*nep[-1] - self.params.gam*fi[-1])
-        # fe_nep[-1,:] =  - self.params.gam*fi_nep[-1,:]
-        # fe_nep[-1,-1] += self.params.ks
-        # fe_nip[-1,:] =  - self.params.gam*fi_nip[-1,:]
-
+        fi_ne[-1,:] = self.params.ionMobility()*ni[-1]*(-phi_x_ne[-1,:])
+        fi_ni[-1,:] = self.params.ionMobility()*ni[-1]*(-phi_x_ni[-1,:])
+        fi_ni[-1,-1] += self.params.ksion + self.params.ionMobility()*(-phi_x[-1])
 
         # form derivatives of fluxes at collocation points
-        fe_x_nep = self.Dc @ fe_nep
-        fe_x_nep -=  self.params.eleDiffusivity()*self.Lc
-        
-        fe_x_nip = self.Dc @ fe_nip
+        fe_x_ne = self.Dp @ fe_ne
+        fe_x_ni = self.Dp @ fe_ni
 
-        fe_nep = ( -self.params.eleMobility()*np.multiply(np.identity(self.Np),-phi_x)
-                   -self.params.eleMobility()*np.multiply(nep,-phi_x_nep) 
-                   -self.params.eleDiffusivity()*self.Dp )
-        fe_nip =   -self.params.eleMobility()*np.multiply(nep,-phi_x_nip)
+        fi_x_ne = self.Dp @ fi_ne
+        fi_x_ni = self.Dp @ fi_ni
 
-        
-        fi_x_nep = self.Dc @ fi_nep
-        fi_x_nip = self.Dc @ fi_nip
-        fi_x_nip -=  self.params.ionDiffusivity()*self.Lc
-
-
-
-        fT_x_nep = self.Dc @ fT_nep
-        fT_x_nip = self.Dc @ fT_nip
-        fT_x_Tep = self.Dc @ fT_Tep
+        fT_x_ne = self.Dp @ fT_ne
+        fT_x_ni = self.Dp @ fT_ni
+        fT_x_Te = self.Dp @ fT_Te
 
         # form source terms at collocation points
-        
         ki = self.params.rxnRateCoefficient(Te)
-        ki_Tep = np.multiply(self.params.rxnRateCoefficientJac(Te), self.Mc)
-        ome_nep = np.multiply(ki, self.Mc)
-        ome_Tep = np.multiply(ki_Tep, ne)
+        ki_Te = np.multiply(self.params.rxnRateCoefficientJac(Te), np.identity(self.Np))
+        ome_ne = np.multiply(ki, np.identity(self.Np))
+        ome_Te = np.multiply(ki_Te, ne)
         
-        #omE = -self.params.dH*ome - 0.0313*ne*Te
-        omE_nep = -self.params.dH*ome_nep# - 0.0313*np.multiply(self.Mc, Te)
-        omE_Tep = -self.params.dH*ome_Tep# - 0.0313*np.multiply(ne, self.Mc)
-
+        omE_ne = -self.params.dH*ome_ne
+        omE_Te = -self.params.dH*ome_Te
         
-        #SJ = -self.params.qStar*(self.Mc @ fe)*(-self.Mc @ phi_x)
-        SJ_nep = ( -self.params.qStar*np.multiply((self.Mc @ fe_nep),(-self.Mc @ phi_x))
-                   -self.params.qStar*np.multiply((self.Mc @ fe    ),(-self.Mc @ phi_x_nep)))
-        SJ_nip = ( -self.params.qStar*np.multiply((self.Mc @ fe_nip),(-self.Mc @ phi_x))
-                   -self.params.qStar*np.multiply((self.Mc @ fe    ),(-self.Mc @ phi_x_nip)))
+        SJ_ne = ( -self.params.qStar*np.multiply(fe_ne,-phi_x)
+                  -self.params.qStar*np.multiply(fe ,-phi_x_ne))
+        SJ_ni = ( -self.params.qStar*np.multiply(fe_ni,-phi_x)
+                  -self.params.qStar*np.multiply(fe,-phi_x_ni))
                    
         # spatial part of residual
-        self.jac[0:self.Np,0:self.Np]         = dt*(fe_x_nep - ome_nep)
-        self.jac[0:self.Np,self.Np:2*self.Np] = dt*(fe_x_nip          )
-        self.jac[0:self.Np,2*self.Np:]        = dt*(         - ome_Tep)
+        self.jac[0:self.Np,0:self.Np]         = dt*(fe_x_ne - ome_ne)
+        self.jac[0:self.Np,self.Np:2*self.Np] = dt*(fe_x_ni         )
+        self.jac[0:self.Np,2*self.Np:]        = dt*(        - ome_Te)
         
-        self.jac[self.Np:2*self.Np,0:self.Np]         = dt*(fi_x_nep - ome_nep)
-        self.jac[self.Np:2*self.Np,self.Np:2*self.Np] = dt*(fi_x_nip          )
-        self.jac[self.Np:2*self.Np,2*self.Np:]        = dt*(         - ome_Tep)
+        self.jac[self.Np:2*self.Np,0:self.Np]         = dt*(fi_x_ne - ome_ne)
+        self.jac[self.Np:2*self.Np,self.Np:2*self.Np] = dt*(fi_x_ni         )
+        self.jac[self.Np:2*self.Np,2*self.Np:]        = dt*(        - ome_Te)
         
-        self.jac[2*self.Np:,0:self.Np]         = dt*(fT_x_nep - omE_nep - SJ_nep)
-        self.jac[2*self.Np:,self.Np:2*self.Np] = dt*(fT_x_nip           - SJ_nip)
-        self.jac[2*self.Np:,2*self.Np:]        = dt*(fT_x_Tep - omE_Tep         )
+        self.jac[2*self.Np:,0:self.Np]         = dt*(fT_x_ne - omE_ne - SJ_ne)
+        self.jac[2*self.Np:,self.Np:2*self.Np] = dt*(fT_x_ni          - SJ_ni)
+        self.jac[2*self.Np:,2*self.Np:]        = dt*(fT_x_Te - omE_Te        )
         
 
         # time derivative part of residual
@@ -506,53 +427,53 @@ class timeDomainCollocationSolver:
             print("Shouldn't be here!")
             exit(-1)
         else: # BDF1 = backward Euler
-            self.jac[0:self.Np,0:self.Np] += self.Mc
-            self.jac[self.Np:2*self.Np,self.Np:2*self.Np] += self.Mc #np.identity(self.Np)
-            self.jac[2*self.Np:,0:self.Np ] += np.multiply(self.Mc,Te)
-            self.jac[2*self.Np:,2*self.Np:] += np.multiply(ne,self.Mc)
+            self.jac[0:self.Np,0:self.Np] += np.identity(self.Np)
+            self.jac[self.Np:2*self.Np,self.Np:2*self.Np] += np.identity(self.Np)
+            self.jac[2*self.Np:,0:self.Np ] += np.multiply(np.identity(self.Np),Te)
+            self.jac[2*self.Np:,2*self.Np:] += np.multiply(ne,np.identity(self.Np))
             
         # boundary conditions (strongly enforced)
-        #res[0]           = fe[ 0]  - (-self.params.ks*nep[ 0] - self.params.gam*fi[ 0])
+        #res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
         self.jac[0,:] = np.zeros((1,3*self.Np))
-        self.jac[0,0:self.Np] = fe_nep[0,:] - (- self.params.gam*fi_nep[ 0,:])
-        self.jac[0,self.Np:2*self.Np] = fe_nip[0,:] - (- self.params.gam*fi_nip[ 0,:])
+        self.jac[0,0:self.Np] = fe_ne[0,:] - (- self.params.gam*fi_ne[ 0,:])
+        self.jac[0,self.Np:2*self.Np] = fe_ni[0,:] - (- self.params.gam*fi_ni[ 0,:])
         self.jac[0,0] += self.params.ks
                                  
-        #res[self.Np-1]   = fe[-1]  - ( self.params.ks*nep[-1] - self.params.gam*fi[-1])
+        #res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
         self.jac[self.Np-1,:] = np.zeros((1,3*self.Np))
-        self.jac[self.Np-1,0:self.Np] = fe_nep[-1,:] - (- self.params.gam*fi_nep[-1,:])
-        self.jac[self.Np-1,self.Np:2*self.Np] = fe_nip[-1,:] - (- self.params.gam*fi_nip[-1,:])
+        self.jac[self.Np-1,0:self.Np] = fe_ne[-1,:] - (- self.params.gam*fi_ne[-1,:])
+        self.jac[self.Np-1,self.Np:2*self.Np] = fe_ni[-1,:] - (- self.params.gam*fi_ni[-1,:])
         self.jac[self.Np-1,self.Np-1] -= self.params.ks
 
         ## # boundary conditions (strongly enforced)
-        ##res[0]           = fe[ 0]  - (-self.params.ks*nep[ 0] - self.params.gam*fi[ 0])
+        ##res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
         #self.jac[0,:] = np.zeros((1,3*self.Np))
         #self.jac[0,0] = 1.0
                                  
-        # #res[self.Np-1]   = fe[-1]  - ( self.params.ks*nep[-1] - self.params.gam*fi[-1])
+        # #res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
         # self.jac[self.Np-1,:] = np.zeros((1,3*self.Np))
         # self.jac[self.Np-1,self.Np-1] = 1.0
 
-        #res[2*self.Np  ] = (Tep[ 0] - 0.75)
+        #res[2*self.Np  ] = (Te[ 0] - 0.75)
         self.jac[2*self.Np,:] = np.zeros((1,3*self.Np))
         self.jac[2*self.Np,2*self.Np] = 1.0
         
-        #res[3*self.Np-1] = (Tep[-1] - 0.75)
+        #res[3*self.Np-1] = (Te[-1] - 0.75)
         self.jac[3*self.Np-1,:] = np.zeros((1,3*self.Np))
         self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
-        # #res[2*self.Np  ] = fT[ 0] - ((5./3.)*fe[0]*Tep[ 0])
+        # #res[2*self.Np  ] = fT[ 0] - ((5./3.)*fe[0]*Te[ 0])
         # self.jac[2*self.Np,:] = np.zeros((1,3*self.Np))
-        # self.jac[2*self.Np,0:self.Np] = fT_nep[0,:] - ((5./3.)*fe_nep[0,:]*Tep[0])
-        # self.jac[2*self.Np,self.Np:2*self.Np] = fT_nip[0,:] - ((5./3.)*fe_nip[0,:]*Tep[0])
-        # self.jac[2*self.Np,2*self.Np:] = fT_Tep[0,:]
+        # self.jac[2*self.Np,0:self.Np] = fT_ne[0,:] - ((5./3.)*fe_ne[0,:]*Te[0])
+        # self.jac[2*self.Np,self.Np:2*self.Np] = fT_ni[0,:] - ((5./3.)*fe_ni[0,:]*Te[0])
+        # self.jac[2*self.Np,2*self.Np:] = fT_Te[0,:]
         # self.jac[2*self.Np,2*self.Np] += - (5./3.)*fe[0]
                 
-        # #res[3*self.Np-1] = fT[-1] - ((5./3.)*fe[-1]*Tep[-1])
+        # #res[3*self.Np-1] = fT[-1] - ((5./3.)*fe[-1]*Te[-1])
         # self.jac[3*self.Np-1,:] = np.zeros((1,3*self.Np))
-        # self.jac[3*self.Np-1,0:self.Np] = fT_nep[-1,:] - ((5./3.)*fe_nep[-1,:]*Tep[-1])
-        # self.jac[3*self.Np-1,self.Np:2*self.Np] = fT_nip[-1,:] - ((5./3.)*fe_nip[-1,:]*Tep[-1])
-        # self.jac[3*self.Np-1,2*self.Np:] = fT_Tep[-1,:]
+        # self.jac[3*self.Np-1,0:self.Np] = fT_ne[-1,:] - ((5./3.)*fe_ne[-1,:]*Te[-1])
+        # self.jac[3*self.Np-1,self.Np:2*self.Np] = fT_ni[-1,:] - ((5./3.)*fe_ni[-1,:]*Te[-1])
+        # self.jac[3*self.Np-1,2*self.Np:] = fT_Te[-1,:]
         # self.jac[3*self.Np-1,3*self.Np-1] += - (5./3.)*fe[-1]
      
         
