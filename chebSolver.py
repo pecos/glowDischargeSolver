@@ -724,7 +724,6 @@ class timeDomainCollocationSolver:
         
 
 if __name__ == "__main__":
-    import argparse
     desc  = "# \n"
     desc += "# chebSolver: A program for simulating glow discharge devices\n"
     desc += "#             using a 1-D, time-domain, drift-diffusion model\n"
@@ -733,6 +732,8 @@ if __name__ == "__main__":
     desc += "#"
     print(desc)
 
+    # Define and parse command line arguments
+    import argparse
     usage = "python3 ./chebSolver"
     parser = argparse.ArgumentParser(usage)
     parser.add_argument('--Np', metavar='Np', default=100,
@@ -756,15 +757,15 @@ if __name__ == "__main__":
     parser.add_argument('--plot', default=False,
                         action='store_true', help="Plot the final state for inspection.")
     args = parser.parse_args()
-
     
-    
+    # Dump inputs to the screen for posterity
     print("# Input parameters:")
     
     print("#   Number of Chebyshev points (Np) = {0:d}".format(args.Np))
     print("#   Number of time steps (Nt)       = {0:d}".format(args.Nt))
     print("#   Size of time step (dt)          = {0:.6e}".format(args.dt))
     print("#   Initial time (t0)               = {0:.6e}".format(args.t0))
+    print("#   Relative tolerance (rtol)       = {0:.6e}".format(args.rtol))
 
     if(args.restart!=None):
         print("#")
@@ -785,7 +786,7 @@ if __name__ == "__main__":
 
     print("#")
 
-    # instantiate solver class
+    # Instantiate solver class
     tds = timeDomainCollocationSolver(2,1,args.Np)
 
     # Default IC (may be overwritten below if we are restarting)
