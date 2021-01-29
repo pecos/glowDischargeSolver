@@ -1,60 +1,137 @@
 import numpy as np
 import chebSolver as cs
 
+class timePeriodicSolver:
+
+    def __init__(self, Ns, NT, Np, gam, restart=None):
+        self.tds = cs.timeDomainCollocationSolver(Ns,NT,Np,gam)
+        self.res = np.zeros((self.tds.Ndof,1))
+        self.jac = np.zeros((self.tds.Ndof,self.tds.Ndof))
+
+        if (restart!=None):
+            self.tds.U1 = np.load(restart)
+        else:
+            # Default initial guess.  This should be overwritten
+            # by reading restart if you want this to work.
+            self.tds.U1[0:self.self.tds.Np] = 1e-4
+            self.tds.U1[self.tds.Np:2*self.tds.Np] = 1e-4
+            self.tds.U1[2*self.tds.Np:] = 0.75
+
+        self.tds.U2 = np.copy(self.tds.U1)
 
 
-# Instantiate time domain solver
-tds = cs.timeDomainCollocationSolver(2,1,100)
 
-# Default initial guess.  This should be overwritten
-# by reading restart if you want this to work.
-tds.U1[0:tds.Np] = 1e-4
-tds.U1[tds.Np:2*tds.Np] = 1e-4
-tds.U1[2*tds.Np:] = 0.75
+    def periodicityResidual(self, Uic, Nt):
+        '''
+        Compute the "periodicity residual"---i.e., the difference between
+        Uic and the solution 1 period later.
 
-# Load restart (hardcoded for now)
-tds.U1 = np.load("restart_Np150_T200.npy")
-#tds.U1 = np.load("newton_restart.npy")
+        Inputs:
+        Uic : array specifying initial condition for time domain solver
+        tds : chebSolver.timeDomainCollocationSolver class
+        Nt  : Number of time steps (for single period)
 
-# Initialize rest of state
-tds.U0 = np.copy(tds.U1)
-tds.U2 = np.copy(tds.U1)
+        Returns:
+        None.  Residual is computed
+        '''
+        # reset ICs for time domain solve
+        self.tds.U1 = np.copy(Uic)
+        self.tds.U2 = np.copy(Uic)
+        self.tds.A0 = np.copy(np.identity(self.tds.Ndof))
+        self.tds.A1 = np.copy(np.identity(self.tds.Ndof))
 
-# Save the IC, for use in computing the residual below
-Uic = np.copy(tds.U1)
+        # Run from IC for 1 period
+        self.tds.solve(0.0, 1.0/Nt, Nt, savedata=None, verbose=False, rtol=1e-8, computeSensitivity=True)
 
-# Set parameters of time stepper
-Nt = 64
-dt = 1./Nt
-t0 = 0.0
+        # Compute difference between final state and Uic
+        self.res = self.tds.U2 - Uic
 
-rtol = 1e-6
-rnorm = 1.0
-niter=0
+        # Compute the Jacobian
+        self.jac = self.tds.A1 - np.identity(self.tds.Ndof)
 
-# Newton iterations
-while ( (rnorm > rtol) and (niter<30) ):
+        # return norm of residual
+        return np.linalg.norm(self.res)
 
-    # reset ICs for time domain solve
-    tds.U1 = np.copy(Uic)
-    tds.A0 = np.copy(np.identity(tds.A0.shape[0]))
-    
-    # Run from IC for 1 period
-    tds.solve(t0, dt, Nt, savedata=None, verbose=False, rtol=1e-6, computeSensitivity=True)
+    def solveNewtonStep(self, Uic, Nt):
+        # solve for newton update
+        Uic += np.linalg.solve(self.jac, -self.res)
 
-    # Compute difference between final state and Uic
-    res = tds.U2 - Uic
-    rnorm = np.linalg.norm(res)
-    print("Newton residual: ||res|| = {0:.6e}".format(rnorm))
 
-    # Compute the Jacobian
-    jac = tds.A1 - np.identity(tds.A1.shape[0])
+if __name__ == "__main__":
+    desc  = "# \n"
+    desc += "# timePeriodicSolver: A program for simulating glow discharge\n"
+    desc += "#     devices using a 1-D, time-domain, drift-diffusion model\n"
+    desc += "#     discretized with a Chebyshev-collocation/BDF approach  \n"
+    desc += "#     with enforced time periodicity.                        \n"
+    desc += "#"
+    print(desc)
 
-    # Newton update
-    dU = np.linalg.solve(jac, -res)
+    # Define and parse command line arguments
+    import argparse
+    usage = "python3 ./timeDomainSolver"
+    parser = argparse.ArgumentParser(usage)
+    parser.add_argument('--Np', metavar='Np', default=100,
+                        type=int, help='Number of Chebyshev points')
+    parser.add_argument('--Nt', metavar='Nt', default=16,
+                        type=int, help='Number of time steps (per period)')
+    parser.add_argument('--Nn', metavar='Nn', default=20,
+                        type=int, help='Maximum number of Newton iterations')
+    parser.add_argument('--rtol',metavar='rtol', default=1e-6,
+                        type=float, help="Relative tolerance for non-linear solve")
+    parser.add_argument('--atol',metavar='atol', default=1e-14,
+                        type=float, help="Absolute tolerance for non-linear solve")
+    parser.add_argument('--restart', metavar='rst.npy', default=None,
+                        help='Restart file (*.npy format, must have same Np)')
+    parser.add_argument('--outfile', metavar='out.npy', default='result.npy',
+                        help='Filename to save restart file')
+    parser.add_argument('--verbose',default=False,
+                        action='store_true', help='Be extra chatty')
+    parser.add_argument('--plot', default=False,
+                        action='store_true', help="Plot the final state for inspection.")
+    args = parser.parse_args()
 
-    Uic += dU
+    # Dump inputs to the screen for posterity
+    print("# Input parameters:")
 
-    niter += 1
+    print("#   Number of Chebyshev points (Np) = {0:d}".format(args.Np))
+    print("#   Number of time steps (Nt)       = {0:d}".format(args.Nt))
+    print("#   Maximum Newton iterationss (Nn) = {0:d}".format(args.Nn))
+    print("#   Relative tolerance (rtol)       = {0:.6e}".format(args.rtol))
+    print("#   Absolute tolerance (atol)       = {0:.6e}".format(args.atol))
 
-np.save('newton_restart.npy', Uic)
+    if(args.restart!=None):
+        print("#")
+        print("#   Restarting from {0:s}".format(args.restart))
+    else:
+        print("#")
+        print("#   No restart file provided.")
+        print("#   Using uniform IC with ne = ni = 1e-4, Te = 0.5.")
+
+    print("#   Save final state to {0:s}".format(args.outfile))
+    print("#")
+
+    gam = 0.01
+    tps = timePeriodicSolver(2, 1, args.Np, gam, restart=args.restart)
+
+
+    # Get the IC, for use in computing the residual below
+    Uic = np.copy(tps.tds.U1)
+
+    # evaluate the residual
+    rnorm0 = tps.periodicityResidual(Uic, args.Nt)
+    rnorm = rnorm0
+    resPrint="Newton step {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}"
+    print(resPrint.format(0,rnorm,rnorm/rnorm0))
+
+    # Newton iterations
+    niter = 0
+    while ( (rnorm/rnorm0 > args.rtol) and (rnorm > args.atol) and (niter<args.Nn) ):
+        tps.solveNewtonStep(Uic, args.Nt)
+        rnorm = tps.periodicityResidual(Uic, args.Nt)
+        niter += 1
+        print(resPrint.format(niter,rnorm,rnorm/rnorm0))
+
+
+    # save final state
+    np.save(args.outfile, Uic)
+
