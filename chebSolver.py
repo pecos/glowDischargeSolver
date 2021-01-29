@@ -167,7 +167,11 @@ class timeDomainCollocationSolver:
         self.xp = -np.cos(np.pi*np.linspace(0,self.deg,self.Np)/self.deg)
 
         # Jacobian storage
-        self.jac = np.zeros((self.Ndof, self.Ndof))
+        self.jac  = np.zeros((self.Ndof, self.Ndof))
+        self.jac0 = np.zeros((self.Ndof, self.Ndof))
+
+        self.A1 = np.zeros((self.Ndof, self.Ndof))
+        self.A0 = np.identity(self.Ndof)
         
         # Operators
         ident = np.identity(self.Np)
@@ -475,8 +479,45 @@ class timeDomainCollocationSolver:
         # self.jac[3*self.Np-1,self.Np:2*self.Np] = fT_ni[-1,:] - ((5./3.)*fe_ni[-1,:]*Te[-1])
         # self.jac[3*self.Np-1,2*self.Np:] = fT_Te[-1,:]
         # self.jac[3*self.Np-1,3*self.Np-1] += - (5./3.)*fe[-1]
-     
+
+    def jacobian0(self, dt, first_step=False):
+        """Evaluate the Jacobian of the residual with respect to the state at
+        the previous time step
         
+        Inputs:
+          dt   : Time step
+
+        Outputs: None (sets self.jac0)
+
+        Notes:
+          This function currently assumes that Ns=2 and NT=1
+
+        """
+
+        # form state at previous step at collocation points
+        ne1 = self.U1[0:self.Np]
+        ni1 = self.U1[self.Np:2*self.Np]
+        Te1 = self.U1[2*self.Np:]
+
+
+        if (not first_step): # BDF2
+            print("Shouldn't be here!")
+            exit(-1)
+        else: # BDF1 = backward Euler
+            self.jac0[0:self.Np,0:self.Np]                     = -np.identity(self.Np)
+            self.jac0[self.Np:2*self.Np,self.Np:2*self.Np]     = -np.identity(self.Np)
+            self.jac0[2*self.Np:3*self.Np,0:self.Np]           = -np.multiply(np.identity(self.Np),Te1)
+            self.jac0[2*self.Np:3*self.Np,2*self.Np:3*self.Np] = -np.multiply(ne1,np.identity(self.Np))
+
+        # for boundary conditions that are strongly enforced,
+        # corresponding residual has no dependence on previous state
+        self.jac0[0        ,:] = np.zeros((1,3*self.Np))
+        self.jac0[self.Np-1,:] = np.zeros((1,3*self.Np))
+
+        self.jac0[2*self.Np  ,:] = np.zeros((1,3*self.Np))
+        self.jac0[3*self.Np-1,:] = np.zeros((1,3*self.Np))
+
+
     def jacobianFD(self, Uin, time, dt, first_step=False):
         """Evaluates the Jacobian at Uin, but using a finite difference
         approximation.  Useful for testing, but very slow.
@@ -565,8 +606,29 @@ class timeDomainCollocationSolver:
             print("Step did not converge")
             exit(-1)
 
+    def stepSensitivity(self, time, dt, first_step=False, verbose=False):
+        """Advance the sensitivity matrix
 
-    def solve(self, time0, dt, Nstep, savedata=None, verbose=False, rtol=1e-6):
+        Inputs
+          time       : Current time
+          dt         : Time step
+          first_step : If true, use backward Euler
+          verbose    : If true, print nonlinear solve info
+
+        Outputs: None (self.A1 is set to sensitivity at the end of the time step)
+        """
+        # evaluate the required Jacobians
+        self.jacobian(self.U2, time, dt, first_step)
+        self.jacobian0(dt, first_step)
+
+        # solve the sensitivity update system
+        self.A1 = np.linalg.solve(self.jac, -self.jac0 @ self.A0)
+
+        if (verbose):
+            print("# Advancing sensitivity system.")
+
+
+    def solve(self, time0, dt, Nstep, savedata=None, verbose=False, rtol=1e-6, computeSensitivity=False):
 
         if(savedata!=None):
             Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float)
@@ -578,12 +640,17 @@ class timeDomainCollocationSolver:
         print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
             time0, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
             self.U2[2*self.Np:].min(), self.U2[2*self.Np:].max()))
+
         # assume initial condition has been set in U1!
         time = time0+dt
         self.step(time, dt, first_step=True, verbose=verbose, rtol=rtol)
         print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
             time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
             self.U2[2*self.Np:].min(), self.U2[2*self.Np:].max()))
+
+        if(computeSensitivity):
+            self.stepSensitivity(time, dt, first_step=True, verbose=verbose)
+
 
         if(savedata!=None):
             Usave[1,:] = self.U2[:,0]
@@ -595,6 +662,9 @@ class timeDomainCollocationSolver:
             self.U1 = np.copy(self.U2)
             time += dt
 
+            if (computeSensitivity):
+                self.A0 = np.copy(self.A1)
+
             # advance
             self.step(time, dt, first_step=True, verbose=verbose, rtol=rtol)
             #self.filter()
@@ -604,6 +674,9 @@ class timeDomainCollocationSolver:
 
             if(savedata!=None):
                 Usave[istep+1,:] = self.U2[:,0]
+
+            if(computeSensitivity):
+                self.stepSensitivity(time, dt, first_step=True, verbose=verbose)
 
         if(savedata!=None):
             np.save(savedata,Usave)
