@@ -172,6 +172,7 @@ class timeDomainCollocationSolver:
 
         self.A1 = np.zeros((self.Ndof, self.Ndof))
         self.A0 = np.identity(self.Ndof)
+        self.rhsSens = np.zeros((self.Ndof, self.Ndof))
         
         # Operators
         ident = np.identity(self.Np)
@@ -361,28 +362,25 @@ class timeDomainCollocationSolver:
         phi_x_ni = self.Dp @ phi_ni
 
         fe = -self.params.eleMobility()*ne*(-phi_x) - self.params.eleDiffusivity()*ne_x
-        fe_ne = ( -self.params.eleMobility()*np.multiply(np.identity(self.Np),-phi_x)
-                  -self.params.eleMobility()*np.multiply(ne,-phi_x_ne) 
+        fe_ne = ( -self.params.eleMobility()*(np.multiply(np.identity(self.Np),-phi_x) + np.multiply(ne,-phi_x_ne))
                   -self.params.eleDiffusivity()*self.Dp )
         fe_ni =   -self.params.eleMobility()*np.multiply(ne,-phi_x_ni)
-        
+
         fi_ne = self.params.ionMobility()*np.multiply(ni,-phi_x_ne)
-        fi_ni = ( +self.params.ionMobility()*np.multiply(ni,-phi_x_ni)
-                  +self.params.ionMobility()*np.multiply(np.identity(self.Np), -phi_x)
+        fi_ni = ( +self.params.ionMobility()*(np.multiply(ni,-phi_x_ni) + np.multiply(np.identity(self.Np), -phi_x))
                   -self.params.ionDiffusivity()*self.Dp )
-        
-        fT_ne = (5./3.)*(-self.params.eleMobility()*np.multiply(np.identity(self.Np),Te*(-phi_x))
-                          -self.params.eleMobility()*np.multiply(ne*Te,(-phi_x_ne))
+
+        fT_ne = (5./3.)*(-self.params.eleMobility()*(np.multiply(np.identity(self.Np),Te*(-phi_x))+np.multiply(ne*Te,(-phi_x_ne)))
                           - self.params.eleDiffusivity()*(np.multiply(self.Dp,Te) + np.multiply(np.identity(self.Np),Te_x)))
         fT_ni = (5./3.)*(-self.params.eleMobility()*np.multiply(ne*Te,(-phi_x_ni)))
         fT_Te = (5./3.)*(-self.params.eleMobility()*np.multiply(ne*(-phi_x),np.identity(self.Np))
                           - self.params.eleDiffusivity()*(np.multiply(ne_x,np.identity(self.Np)) + np.multiply(ne,self.Dp)))
-        
-        # overwrite endpoints in fi (weakly impose BC)
+
+
         fi_ne[0,:] = self.params.ionMobility()*ni[ 0]*(-phi_x_ne[ 0,:])
         fi_ni[0,:] = self.params.ionMobility()*ni[ 0]*(-phi_x_ni[ 0,:])
         fi_ni[0,0] += -self.params.ksion + self.params.ionMobility()*(-phi_x[ 0])
-        
+
         fi_ne[-1,:] = self.params.ionMobility()*ni[-1]*(-phi_x_ne[-1,:])
         fi_ni[-1,:] = self.params.ionMobility()*ni[-1]*(-phi_x_ni[-1,:])
         fi_ni[-1,-1] += self.params.ksion + self.params.ionMobility()*(-phi_x[-1])
@@ -403,28 +401,26 @@ class timeDomainCollocationSolver:
         ki_Te = np.multiply(self.params.rxnRateCoefficientJac(Te), np.identity(self.Np))
         ome_ne = np.multiply(ki, np.identity(self.Np))
         ome_Te = np.multiply(ki_Te, ne)
-        
+
         omE_ne = -self.params.dH*ome_ne
         omE_Te = -self.params.dH*ome_Te
-        
-        SJ_ne = ( -self.params.qStar*np.multiply(fe_ne,-phi_x)
-                  -self.params.qStar*np.multiply(fe ,-phi_x_ne))
-        SJ_ni = ( -self.params.qStar*np.multiply(fe_ni,-phi_x)
-                  -self.params.qStar*np.multiply(fe,-phi_x_ni))
-                   
+
+        SJ_ne = -self.params.qStar*( np.multiply(fe_ne,-phi_x) + np.multiply(fe,-phi_x_ne))
+        SJ_ni = -self.params.qStar*( np.multiply(fe_ni,-phi_x) + np.multiply(fe,-phi_x_ni))
+
         # spatial part of residual
         self.jac[0:self.Np,0:self.Np]         = dt*(fe_x_ne - ome_ne)
         self.jac[0:self.Np,self.Np:2*self.Np] = dt*(fe_x_ni         )
         self.jac[0:self.Np,2*self.Np:]        = dt*(        - ome_Te)
-        
+
         self.jac[self.Np:2*self.Np,0:self.Np]         = dt*(fi_x_ne - ome_ne)
         self.jac[self.Np:2*self.Np,self.Np:2*self.Np] = dt*(fi_x_ni         )
         self.jac[self.Np:2*self.Np,2*self.Np:]        = dt*(        - ome_Te)
-        
+
         self.jac[2*self.Np:,0:self.Np]         = dt*(fT_x_ne - omE_ne - SJ_ne)
         self.jac[2*self.Np:,self.Np:2*self.Np] = dt*(fT_x_ni          - SJ_ni)
         self.jac[2*self.Np:,2*self.Np:]        = dt*(fT_x_Te - omE_Te        )
-        
+
 
         # time derivative part of residual
         if (not first_step): # BDF2
@@ -621,8 +617,10 @@ class timeDomainCollocationSolver:
         self.jacobian(self.U2, time, dt, first_step)
         self.jacobian0(dt, first_step)
 
+        self.rhsSens = -(self.jac0 @ self.A0)
+
         # solve the sensitivity update system
-        self.A1 = np.linalg.solve(self.jac, -self.jac0 @ self.A0)
+        self.A1 = np.linalg.solve(self.jac, self.rhsSens)
 
         if (verbose):
             print("# Advancing sensitivity system.")
