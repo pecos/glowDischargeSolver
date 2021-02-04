@@ -76,6 +76,8 @@ if __name__ == "__main__":
                         type=int, help='Number of time steps (per period)')
     parser.add_argument('--Nn', metavar='Nn', default=20,
                         type=int, help='Maximum number of Newton iterations')
+    parser.add_argument('--gam', metavar='gam', default=0.01,
+                        type=np.float, help='Secondary electron emission parameter')
     parser.add_argument('--rtol',metavar='rtol', default=1e-6,
                         type=float, help="Relative tolerance for non-linear solve")
     parser.add_argument('--atol',metavar='atol', default=1e-14,
@@ -96,6 +98,7 @@ if __name__ == "__main__":
     print("#   Number of Chebyshev points (Np) = {0:d}".format(args.Np))
     print("#   Number of time steps (Nt)       = {0:d}".format(args.Nt))
     print("#   Maximum Newton iterationss (Nn) = {0:d}".format(args.Nn))
+    print("#   Secondary electron param (gam)  = {0:.6e}".format(args.gam))
     print("#   Relative tolerance (rtol)       = {0:.6e}".format(args.rtol))
     print("#   Absolute tolerance (atol)       = {0:.6e}".format(args.atol))
 
@@ -110,8 +113,7 @@ if __name__ == "__main__":
     print("#   Save final state to {0:s}".format(args.outfile))
     print("#")
 
-    gam = 0.01
-    tps = timePeriodicSolver(2, 1, args.Np, gam, restart=args.restart)
+    tps = timePeriodicSolver(2, 1, args.Np, args.gam, restart=args.restart)
 
 
     # Get the IC, for use in computing the residual below
