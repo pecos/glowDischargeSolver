@@ -3,10 +3,11 @@ import numpy.polynomial.chebyshev as cheb
 import matplotlib.pyplot as plt
 
 from Liu2014Properties import setLiu2014Properties
+from PsaapProperties import setPsaapProperties
 
 class modelClosures:
     """Class providing model parameters."""
-    
+
     def __init__(self):
         """Set model parameter values.  These values are non-dimensionalized
         using the following quantities:
@@ -29,7 +30,7 @@ class modelClosures:
             D_e^{\ast} = \frac{D_e \tau}{L^2}
 
         Di: Ion diffusivity (non-dimensionalized same as Di)
-        
+
         Ck: Ionization rate pre-exponential factor
             C_k^{\ast} = C_k \tau n_b
 
@@ -42,7 +43,7 @@ class modelClosures:
         qStar: Multiplier in front of Joule heating term (denoted
             qStar since it takes place of unit charge in dimensional
             equations)
-            
+
             qStar = \frac{q_e V_0}{e_0} (where q_e is unit charge)
 
         alpha: Multiplier in Poisson eqn (Gauss' law)
@@ -52,8 +53,8 @@ class modelClosures:
         self.mue = 1.47
         self.mui = 7.07e-3
 
-        self.De = 5.86e-2 
-        self.Di = 3.15e-6 
+        self.De = 5.86e-2
+        self.Di = 3.15e-6
 
         self.Ck = 272.0
         self.A = 18.687*(3./2.);
@@ -63,10 +64,10 @@ class modelClosures:
 
         self.alpha = 2.33e3
 
-        self.gam = 0.01 
-        self.ks = 6.89e-1 
+        self.gam = 0.01
+        self.ks = 6.89e-1
         self.ksion = 0.0
-        
+
     def eleMobility(self):
         """Returns electron mobility"""
         return self.mue
@@ -128,7 +129,7 @@ class timeDomainCollocationSolver:
         phi        -- Electric potential
 
         params -- modelClosures class (provides model parameters)
-        
+
         xp -- Gauss-Chebyshev-Lobatto points corresponding to
               Chebyshev polynomials of degree deg.  The state vectors
               U0,U1,U2 hold the value of the state at these points
@@ -138,7 +139,7 @@ class timeDomainCollocationSolver:
 
     def __init__(self, Ns, NT, Np, gam=0.01):
         """Initializes storage and operaters required for solve."""
-        
+
         self.Ns = Ns    # Number of species
         self.NT = NT    # Number of temperatures
         self.Nv = Ns+NT # Total number of 'state' variables
@@ -160,7 +161,8 @@ class timeDomainCollocationSolver:
 
         # closures
         self.params = modelClosures()
-        setLiu2014Properties(gam, self.params)
+        #setLiu2014Properties(gam, self.params)
+        setPsaapProperties(gam, self.params)
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -173,7 +175,7 @@ class timeDomainCollocationSolver:
         self.A1 = np.zeros((self.Ndof, self.Ndof))
         self.A0 = np.identity(self.Ndof)
         self.rhsSens = np.zeros((self.Ndof, self.Ndof))
-        
+
         # Operators
         ident = np.identity(self.Np)
 
@@ -185,7 +187,7 @@ class timeDomainCollocationSolver:
 
         # V1p: coefficients to derivatives at xp
         self.V1p = np.zeros((self.Np,self.Np))
-        for i in range(0,self.Np): 
+        for i in range(0,self.Np):
             self.V1p[:,i] = cheb.chebval(self.xp, cheb.chebder(ident[i,:], m=1))
 
         # Dp: values at xp to derivatives at xp
@@ -193,7 +195,7 @@ class timeDomainCollocationSolver:
 
         # V2p: coefficients to 2nd derivatives at xp
         self.V2p = np.zeros((self.Np,self.Np))
-        for i in range(0,self.Np): 
+        for i in range(0,self.Np):
             self.V2p[:,i] = cheb.chebval(self.xp, cheb.chebder(ident[i,:], m=2))
 
         # Lp: values at xp to 2nd derivatives at xp
@@ -203,16 +205,16 @@ class timeDomainCollocationSolver:
         # for top and bottom row (for Dirichlet BCs)
         self.LpD = np.identity(self.Np)
         self.LpD[1:-1,:] = self.Lp[1:-1,:]
-        
+
 
     def filter(self):
         """Filter state by zeroing out the last Chebyshev coefficient.
         This feature is experimental.
         """
         ind = int(self.Np-1)
-        
+
         U0 = self.V0pinv @ self.U2[0:self.Np]
-        
+
         U0[ind:] = 0.0
         self.U2[0:self.Np] = self.V0p @ U0
 
@@ -223,11 +225,11 @@ class timeDomainCollocationSolver:
         U0 = self.V0pinv @ self.U2[2*self.Np:]
         U0[ind:] = 0.0
         self.U2[2*self.Np:] = self.V0p @ U0
-        
+
 
     def solve_poisson(self, ne,ni,time):
         """Solve Gauss' law for the electric potential.
-        
+
         Inputs:
           ne   : Values of electron density at xp
           ni   : Values of ion density at xp
@@ -239,10 +241,10 @@ class timeDomainCollocationSolver:
         r[0] = 0.0
         r[-1] = np.sin(2*np.pi*time)
         self.phi = np.linalg.solve(self.LpD, r)
-        
+
     def residual(self, Uin, time, dt, first_step=False):
         """Evaluates the residual.
-        
+
         Inputs:
           Uin  : Current state
           time : Current time
@@ -306,7 +308,7 @@ class timeDomainCollocationSolver:
         res[0:self.Np]         = dt*(fe_x - ome)
         res[self.Np:2*self.Np] = dt*(fi_x - ome)
         res[2*self.Np:]        = dt*(fT_x - omE - SJ)
-        
+
 
         # time derivative part of residual
         if (not first_step): # BDF2
@@ -330,7 +332,7 @@ class timeDomainCollocationSolver:
 
     def jacobian(self, Uin, time, dt, first_step=False):
         """Evaluates the residual.
-        
+
         Inputs:
           Uin  : Current state
           time : Current time
@@ -431,14 +433,14 @@ class timeDomainCollocationSolver:
             self.jac[self.Np:2*self.Np,self.Np:2*self.Np] += np.identity(self.Np)
             self.jac[2*self.Np:,0:self.Np ] += np.multiply(np.identity(self.Np),Te)
             self.jac[2*self.Np:,2*self.Np:] += np.multiply(ne,np.identity(self.Np))
-            
+
         # boundary conditions (strongly enforced)
         #res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
         self.jac[0,:] = np.zeros((1,3*self.Np))
         self.jac[0,0:self.Np] = fe_ne[0,:] - (- self.params.gam*fi_ne[ 0,:])
         self.jac[0,self.Np:2*self.Np] = fe_ni[0,:] - (- self.params.gam*fi_ni[ 0,:])
         self.jac[0,0] += self.params.ks
-                                 
+
         #res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
         self.jac[self.Np-1,:] = np.zeros((1,3*self.Np))
         self.jac[self.Np-1,0:self.Np] = fe_ne[-1,:] - (- self.params.gam*fi_ne[-1,:])
@@ -449,7 +451,7 @@ class timeDomainCollocationSolver:
         ##res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
         #self.jac[0,:] = np.zeros((1,3*self.Np))
         #self.jac[0,0] = 1.0
-                                 
+
         # #res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
         # self.jac[self.Np-1,:] = np.zeros((1,3*self.Np))
         # self.jac[self.Np-1,self.Np-1] = 1.0
@@ -457,7 +459,7 @@ class timeDomainCollocationSolver:
         #res[2*self.Np  ] = (Te[ 0] - 0.75)
         self.jac[2*self.Np,:] = np.zeros((1,3*self.Np))
         self.jac[2*self.Np,2*self.Np] = 1.0
-        
+
         #res[3*self.Np-1] = (Te[-1] - 0.75)
         self.jac[3*self.Np-1,:] = np.zeros((1,3*self.Np))
         self.jac[3*self.Np-1,3*self.Np-1] = 1.0
@@ -468,7 +470,7 @@ class timeDomainCollocationSolver:
         # self.jac[2*self.Np,self.Np:2*self.Np] = fT_ni[0,:] - ((5./3.)*fe_ni[0,:]*Te[0])
         # self.jac[2*self.Np,2*self.Np:] = fT_Te[0,:]
         # self.jac[2*self.Np,2*self.Np] += - (5./3.)*fe[0]
-                
+
         # #res[3*self.Np-1] = fT[-1] - ((5./3.)*fe[-1]*Te[-1])
         # self.jac[3*self.Np-1,:] = np.zeros((1,3*self.Np))
         # self.jac[3*self.Np-1,0:self.Np] = fT_ne[-1,:] - ((5./3.)*fe_ne[-1,:]*Te[-1])
@@ -479,7 +481,7 @@ class timeDomainCollocationSolver:
     def jacobian0(self, dt, first_step=False):
         """Evaluate the Jacobian of the residual with respect to the state at
         the previous time step
-        
+
         Inputs:
           dt   : Time step
 
@@ -517,7 +519,7 @@ class timeDomainCollocationSolver:
     def jacobianFD(self, Uin, time, dt, first_step=False):
         """Evaluates the Jacobian at Uin, but using a finite difference
         approximation.  Useful for testing, but very slow.
-        
+
         Inputs:
           Uin  : Current state
           time : Current time
@@ -535,7 +537,7 @@ class timeDomainCollocationSolver:
 
             if (np.absolute(dU) < np.finfo(np.float).eps):
                 dU = np.finfo(np.float).eps
-            
+
             Up[k] += dU
 
             rp = self.residual(Up, time, dt, first_step)
@@ -575,7 +577,7 @@ class timeDomainCollocationSolver:
 
                 # zero the last mode
                 #self.filter()
-                
+
             except:
                 # if exception encountered, save state and die
                 np.save("exception_U2.npy", self.U2)
@@ -583,7 +585,7 @@ class timeDomainCollocationSolver:
                 np.save("exception_U0.npy", self.U0)
                 print("Solve failed!", flush=True)
                 exit(-1)
-                
+
             r = self.residual(self.U2, time, dt, first_step)
             normr = np.linalg.norm(r)
             count += 1
@@ -653,7 +655,7 @@ class timeDomainCollocationSolver:
         if(savedata!=None):
             Usave[1,:] = self.U2[:,0]
 
-        
+
         for istep in range(1, Nstep):
             # prepare for next step
             self.U0 = np.copy(self.U1)
@@ -692,7 +694,7 @@ class timeDomainCollocationSolver:
             ax.append(plt.subplot(3,1,3,label='Te',sharex=ax[0]))
         else:
             ax = fig.get_axes()
-        
+
         ax[0].plot(xplot, cheb.chebval(xplot, (self.V0pinv @ self.U2[0:self.Np])[:,0]), col, lw=3)
         ax[0].grid(True)
         plt.setp(ax[0].get_xticklabels(),visible=False)
@@ -712,8 +714,8 @@ class timeDomainCollocationSolver:
         plt.setp(ax[2].get_yticklabels(),fontsize=14)
         ax[2].set_ylabel(r'$T_e$',fontsize=16)
         ax[2].set_xlabel(r'$x$',fontsize=16)
-        
-        
+
+
 
 if __name__ == "__main__":
     desc  = "# \n"
@@ -749,10 +751,10 @@ if __name__ == "__main__":
     parser.add_argument('--plot', default=False,
                         action='store_true', help="Plot the final state for inspection.")
     args = parser.parse_args()
-    
+
     # Dump inputs to the screen for posterity
     print("# Input parameters:")
-    
+
     print("#   Number of Chebyshev points (Np) = {0:d}".format(args.Np))
     print("#   Number of time steps (Nt)       = {0:d}".format(args.Nt))
     print("#   Size of time step (dt)          = {0:.6e}".format(args.dt))
@@ -766,7 +768,7 @@ if __name__ == "__main__":
         print("#")
         print("#   No restart file provided.")
         print("#   Using uniform IC with ne = ni = 1e-4, Te = 0.5.")
-                
+
     print("#   Save file time step to {0:s}".format(args.outfile))
 
     if(args.savedata!=None):
