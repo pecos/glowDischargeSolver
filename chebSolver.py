@@ -3,7 +3,7 @@ import numpy.polynomial.chebyshev as cheb
 import matplotlib.pyplot as plt
 
 from Liu2014Properties import setLiu2014Properties
-from PsaapProperties import setPsaapProperties
+from psaapProperties import setPsaapProperties
 
 class modelClosures:
     """Class providing model parameters."""
@@ -259,7 +259,8 @@ class timeDomainCollocationSolver:
         # pull off state for convenience
         ne = Uin[0:self.Np]
         ni = Uin[self.Np:2*self.Np]
-        Te = Uin[2*self.Np:]
+        nT = Uin[2*self.Np:]
+        Te = nT/ne
 
         # solve poisson equation for phi
         # now have self.phi
@@ -268,22 +269,22 @@ class timeDomainCollocationSolver:
         # form state at collocation points
         ne1 = self.U1[0:self.Np]
         ni1 = self.U1[self.Np:2*self.Np]
-        Te1 = self.U1[2*self.Np:]
+        nT1 = self.U1[2*self.Np:]
 
         ne0 = self.U0[0:self.Np]
         ni0 = self.U0[self.Np:2*self.Np]
-        Te0 = self.U0[2*self.Np:]
+        nT0 = self.U0[2*self.Np:]
 
 
         # form fluxes at grid points
         ne_x  = self.Dp @ ne
         ni_x  = self.Dp @ ni
-        Te_x  = self.Dp @ Te
+        nT_x  = self.Dp @ nT
         phi_x = self.Dp @ self.phi
 
         fe = -self.params.eleMobility()*ne*(-phi_x) - self.params.eleDiffusivity()*ne_x
         fi =  self.params.ionMobility()*ni*(-phi_x) - self.params.ionDiffusivity()*ni_x
-        fT = (5./3.)*(-self.params.eleMobility()*ne*Te*(-phi_x) - self.params.eleDiffusivity()*(ne_x*Te + ne*Te_x))
+        fT = (5./3.)*(-self.params.eleMobility()*nT*(-phi_x) - self.params.eleDiffusivity()*nT_x)
 
         # overwrite endpoints in fi (weakly impose BC)
         fi[ 0] = -self.params.ksion*ni[ 0] + self.params.ionMobility()*ni[ 0]*(-phi_x[ 0])
@@ -316,17 +317,17 @@ class timeDomainCollocationSolver:
             res[self.Np:2*self.Np]   += 1.5*ni - 2.0*ni1 + 0.5*ni0
             res[2*self.Np:3*self.Np] += 1.5*ne*Te - 2.0*ne1*Te1 + 0.5*ne0*Te0
         else: # BDF1 = backward Euler
-            res[0:self.Np]           += ne    - ne1
-            res[self.Np:2*self.Np]   += ni    - ni1
-            res[2*self.Np:3*self.Np] += ne*Te - ne1*Te1
+            res[0:self.Np]           += ne - ne1
+            res[self.Np:2*self.Np]   += ni - ni1
+            res[2*self.Np:3*self.Np] += nT - nT1
 
         # boundary conditions (strongly enforced)
         res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
         res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
 
         # Dirichlet on temperature
-        res[2*self.Np  ] = (Te[ 0] - 0.75)
-        res[3*self.Np-1] = (Te[-1] - 0.75)
+        res[2*self.Np  ] = (nT[ 0] - 0.75*ne[0])
+        res[3*self.Np-1] = (nT[-1] - 0.75*ne[-1])
 
         return res
 
@@ -346,7 +347,11 @@ class timeDomainCollocationSolver:
         # pull off state
         ne = Uin[0:self.Np]
         ni = Uin[self.Np:2*self.Np]
-        Te = Uin[2*self.Np:]
+        nT = Uin[2*self.Np:]
+
+        Te = nT/ne
+        Te_ne = -np.multiply(Te/ne,np.identity(self.Np))
+        Te_nT = np.multiply(np.identity(self.Np),1./ne)
 
         # solve poisson equation for phi
         # now have self.phi
@@ -358,7 +363,7 @@ class timeDomainCollocationSolver:
         # form fluxes at grid points
         ne_x  = self.Dp @ ne
         ni_x  = self.Dp @ ni
-        Te_x  = self.Dp @ Te
+        nT_x  = self.Dp @ nT
         phi_x = self.Dp @ self.phi
         phi_x_ne = self.Dp @ phi_ne
         phi_x_ni = self.Dp @ phi_ni
@@ -372,11 +377,10 @@ class timeDomainCollocationSolver:
         fi_ni = ( +self.params.ionMobility()*(np.multiply(ni,-phi_x_ni) + np.multiply(np.identity(self.Np), -phi_x))
                   -self.params.ionDiffusivity()*self.Dp )
 
-        fT_ne = (5./3.)*(-self.params.eleMobility()*(np.multiply(np.identity(self.Np),Te*(-phi_x))+np.multiply(ne*Te,(-phi_x_ne)))
-                          - self.params.eleDiffusivity()*(np.multiply(self.Dp,Te) + np.multiply(np.identity(self.Np),Te_x)))
-        fT_ni = (5./3.)*(-self.params.eleMobility()*np.multiply(ne*Te,(-phi_x_ni)))
-        fT_Te = (5./3.)*(-self.params.eleMobility()*np.multiply(ne*(-phi_x),np.identity(self.Np))
-                          - self.params.eleDiffusivity()*(np.multiply(ne_x,np.identity(self.Np)) + np.multiply(ne,self.Dp)))
+        fT_ne = (5./3.)*(-self.params.eleMobility()*np.multiply(nT,(-phi_x_ne)))
+        fT_ni = (5./3.)*(-self.params.eleMobility()*np.multiply(nT,(-phi_x_ni)))
+        fT_Te = (5./3.)*(-self.params.eleMobility()*np.multiply(np.identity(self.Np),(-phi_x))
+                         -self.params.eleDiffusivity()*self.Dp)
 
 
         fi_ne[0,:] = self.params.ionMobility()*ni[ 0]*(-phi_x_ne[ 0,:])
@@ -400,9 +404,12 @@ class timeDomainCollocationSolver:
 
         # form source terms at collocation points
         ki = self.params.rxnRateCoefficient(Te)
-        ki_Te = np.multiply(self.params.rxnRateCoefficientJac(Te), np.identity(self.Np))
-        ome_ne = np.multiply(ki, np.identity(self.Np))
-        ome_Te = np.multiply(ki_Te, ne)
+        #ki_Te = np.multiply(self.params.rxnRateCoefficientJac(Te), np.identity(self.Np))
+        #print(self.params.rxnRateCoefficientJac(Te).shape)
+        ki_ne = np.diag(self.params.rxnRateCoefficientJac(Te)[:,0]) @ Te_ne #np.multiply(self.params.rxnRateCoefficientJac(Te), Te_ne)
+        ki_nT = np.diag(self.params.rxnRateCoefficientJac(Te)[:,0]) @ Te_nT #np.multiply(self.params.rxnRateCoefficientJac(Te), Te_nT)
+        ome_ne = np.multiply(ki_ne, ne) + np.multiply(ki, np.identity(self.Np))
+        ome_Te = np.multiply(ki_nT, ne)
 
         omE_ne = -self.params.dH*ome_ne
         omE_Te = -self.params.dH*ome_Te
@@ -431,8 +438,8 @@ class timeDomainCollocationSolver:
         else: # BDF1 = backward Euler
             self.jac[0:self.Np,0:self.Np] += np.identity(self.Np)
             self.jac[self.Np:2*self.Np,self.Np:2*self.Np] += np.identity(self.Np)
-            self.jac[2*self.Np:,0:self.Np ] += np.multiply(np.identity(self.Np),Te)
-            self.jac[2*self.Np:,2*self.Np:] += np.multiply(ne,np.identity(self.Np))
+            #self.jac[2*self.Np:,0:self.Np ] += np.multiply(np.identity(self.Np),Te)
+            self.jac[2*self.Np:,2*self.Np:] += np.identity(self.Np) #np.multiply(ne,np.identity(self.Np))
 
         # boundary conditions (strongly enforced)
         #res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
@@ -459,10 +466,12 @@ class timeDomainCollocationSolver:
         #res[2*self.Np  ] = (Te[ 0] - 0.75)
         self.jac[2*self.Np,:] = np.zeros((1,3*self.Np))
         self.jac[2*self.Np,2*self.Np] = 1.0
+        self.jac[2*self.Np,0] = -0.75
 
         #res[3*self.Np-1] = (Te[-1] - 0.75)
         self.jac[3*self.Np-1,:] = np.zeros((1,3*self.Np))
         self.jac[3*self.Np-1,3*self.Np-1] = 1.0
+        self.jac[3*self.Np-1,self.Np-1] = -0.75
 
         # #res[2*self.Np  ] = fT[ 0] - ((5./3.)*fe[0]*Te[ 0])
         # self.jac[2*self.Np,:] = np.zeros((1,3*self.Np))
@@ -495,7 +504,7 @@ class timeDomainCollocationSolver:
         # form state at previous step at collocation points
         ne1 = self.U1[0:self.Np]
         ni1 = self.U1[self.Np:2*self.Np]
-        Te1 = self.U1[2*self.Np:]
+        nT1 = self.U1[2*self.Np:]
 
 
         if (not first_step): # BDF2
@@ -504,8 +513,8 @@ class timeDomainCollocationSolver:
         else: # BDF1 = backward Euler
             self.jac0[0:self.Np,0:self.Np]                     = -np.identity(self.Np)
             self.jac0[self.Np:2*self.Np,self.Np:2*self.Np]     = -np.identity(self.Np)
-            self.jac0[2*self.Np:3*self.Np,0:self.Np]           = -np.multiply(np.identity(self.Np),Te1)
-            self.jac0[2*self.Np:3*self.Np,2*self.Np:3*self.Np] = -np.multiply(ne1,np.identity(self.Np))
+            #self.jac0[2*self.Np:3*self.Np,0:self.Np]           = -np.multiply(np.identity(self.Np),Te1)
+            self.jac0[2*self.Np:3*self.Np,2*self.Np:3*self.Np] = -np.identity(self.Np) #-np.multiply(ne1,np.identity(self.Np))
 
         # for boundary conditions that are strongly enforced,
         # corresponding residual has no dependence on previous state
@@ -786,7 +795,7 @@ if __name__ == "__main__":
     # Default IC (may be overwritten below if we are restarting)
     tds.U1[0:tds.Np] = 1e-4
     tds.U1[tds.Np:2*tds.Np] = 1e-4
-    tds.U1[2*tds.Np:] = 0.75
+    tds.U1[2*tds.Np:] = 0.75*tds.U1[0:tds.Np]
 
     # If restart file provided, read it.
     # NOTE: currently we do a lazy restart in that only the final
