@@ -8,7 +8,7 @@ from psaapProperties import setPsaapProperties
 class modelClosures:
     """Class providing model parameters."""
 
-    def __init__(self):
+    def __init__(self, Ns):
         """Set model parameter values.  These values are non-dimensionalized
         using the following quantities:
 
@@ -50,39 +50,41 @@ class modelClosures:
             \alpha = \frac{q_e n_p L^2}{V_0 \epsilon_0}
             (where \epsilon_0 is permittivity of free space)
         """
-        self.mue = 1.47
-        self.mui = 7.07e-3
+        self.Ns = Ns
 
-        self.De = 5.86e-2
-        self.Di = 3.15e-6
+        # charge number
+        self.Z = np.zeros(Ns)
+        self.Z[0] = -1 # electrons are always 0
+        self.Z[1] =  1 # ions are always 1
 
+        # mobility
+        self.mu = np.zeros(Ns)
+
+        # diffusivity
+        self.D = np.zeros(Ns)
+
+        # reaction rate data
         self.Ck = 272.0
         self.A = 18.687*(3./2.);
         self.dH = 15.7
 
+        # other non-dimensional parameters
         self.qStar = 100.0
-
         self.alpha = 2.33e3
 
+        # boundary condition parameters
         self.gam = 0.01
         self.ks = 6.89e-1
         self.ksion = 0.0
 
-    def eleMobility(self):
-        """Returns electron mobility"""
-        return self.mue
+    def charge(self,i):
+        return self.Z[i]
 
-    def ionMobility(self):
-        """Returns ion mobility"""
-        return self.mui
+    def mobility(self,i):
+        return self.mu[i]
 
-    def eleDiffusivity(self):
-        """Returns electron diffusivity"""
-        return self.De
-
-    def ionDiffusivity(self):
-        """Returns electron diffusivity"""
-        return self.Di
+    def diffusivity(self,i):
+        return self.D[i]
 
     def rxnRateCoefficient(self, energy):
         """Returns ionization reaction rate constant"""
@@ -97,10 +99,10 @@ class modelClosures:
     def print(self):
         """Print parameters to the screen"""
         print("# The non-dimensional transport and chemstry properties are")
-        print("#   De    = {0:.6e}".format(self.De))
-        print("#   Di    = {0:.6e}".format(self.Di))
-        print("#   mue   = {0:.6e}".format(self.mue))
-        print("#   mui   = {0:.6e}".format(self.mui))
+        print("#   De    = {0:.6e}".format(self.D[0]))
+        print("#   Di    = {0:.6e}".format(self.D[1]))
+        print("#   mue   = {0:.6e}".format(self.mu[0]))
+        print("#   mui   = {0:.6e}".format(self.mu[1]))
         print("#   Ck    = {0:.6e}".format(self.Ck))
         print("#   A     = {0:.6e}".format(self.A))
         print("#   dH    = {0:.6e}".format(self.dH))
@@ -160,7 +162,7 @@ class timeDomainCollocationSolver:
         self.phi = np.zeros((self.Np,1))
 
         # closures
-        self.params = modelClosures()
+        self.params = modelClosures(self.Ns)
         #setLiu2014Properties(gam, self.params)
         setPsaapProperties(gam, self.params)
 
@@ -279,20 +281,20 @@ class timeDomainCollocationSolver:
 
 
         fspec = np.ndarray((self.Np, self.Ns),dtype=np.float)
-        # TODO: Generalize params s.t. we can do the following
-        #for i in range(0,self.Ns):
-        #    fspec[:,i] = (   self.charge[i]*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
-        #                   - self.params.diffusivity(i)*dens_x[:,i] )
+        for i in range(0,self.Ns):
+            fspec[:,i] = (   self.params.charge(i)*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
+                           - self.params.diffusivity(i)*dens_x[:,i] )
 
-        # TODO: Eliminate this code (use above in place)
-        fspec[:,0] = -self.params.eleMobility()*dens[:,0]*(-phi_x[:,0]) - self.params.eleDiffusivity()*dens_x[:,0]
-        fspec[:,1] =  self.params.ionMobility()*dens[:,1]*(-phi_x[:,0]) - self.params.ionDiffusivity()*dens_x[:,1]
+        ## TODO: Eliminate this code (use above in place)
+        #fspec[:,0] = -self.params.eleMobility()*dens[:,0]*(-phi_x[:,0]) - self.params.eleDiffusivity()*dens_x[:,0]
+        #fspec[:,1] =  self.params.ionMobility()*dens[:,1]*(-phi_x[:,0]) - self.params.ionDiffusivity()*dens_x[:,1]
 
-        fT = (5./3.)*(-self.params.eleMobility()*nT*(-phi_x) - self.params.eleDiffusivity()*nT_x)
+        #fT = (5./3.)*(-self.params.eleMobility()*nT*(-phi_x) - self.params.eleDiffusivity()*nT_x)
+        fT = (5./3.)*(-self.params.mobility(0)*nT*(-phi_x) - self.params.diffusivity(0)*nT_x)
 
         # overwrite endpoints in fi (weakly impose BC)
-        fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.ionMobility()*dens[ 0,iion]*(-phi_x[ 0])
-        fspec[-1,1] =  self.params.ksion*dens[-1,iion] + self.params.ionMobility()*dens[-1,iion]*(-phi_x[-1])
+        fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.mobility(1)*dens[ 0,iion]*(-phi_x[ 0])
+        fspec[-1,1] =  self.params.ksion*dens[-1,iion] + self.params.mobility(1)*dens[-1,iion]*(-phi_x[-1])
 
         # form derivatives of fluxes at collocation points
         fspec_x = self.Dp @ fspec
@@ -371,28 +373,28 @@ class timeDomainCollocationSolver:
         phi_x_ne = self.Dp @ phi_ne
         phi_x_ni = self.Dp @ phi_ni
 
-        fe = -self.params.eleMobility()*ne*(-phi_x) - self.params.eleDiffusivity()*ne_x
-        fe_ne = ( -self.params.eleMobility()*(np.multiply(np.identity(self.Np),-phi_x) + np.multiply(ne,-phi_x_ne))
-                  -self.params.eleDiffusivity()*self.Dp )
-        fe_ni =   -self.params.eleMobility()*np.multiply(ne,-phi_x_ni)
+        fe = -self.params.mobility(0)*ne*(-phi_x) - self.params.diffusivity(0)*ne_x
+        fe_ne = ( -self.params.mobility(0)*(np.multiply(np.identity(self.Np),-phi_x) + np.multiply(ne,-phi_x_ne))
+                  -self.params.diffusivity(0)*self.Dp )
+        fe_ni =   -self.params.mobility(0)*np.multiply(ne,-phi_x_ni)
 
-        fi_ne = self.params.ionMobility()*np.multiply(ni,-phi_x_ne)
-        fi_ni = ( +self.params.ionMobility()*(np.multiply(ni,-phi_x_ni) + np.multiply(np.identity(self.Np), -phi_x))
-                  -self.params.ionDiffusivity()*self.Dp )
+        fi_ne = self.params.mobility(1)*np.multiply(ni,-phi_x_ne)
+        fi_ni = ( +self.params.mobility(1)*(np.multiply(ni,-phi_x_ni) + np.multiply(np.identity(self.Np), -phi_x))
+                  -self.params.diffusivity(1)*self.Dp )
 
-        fT_ne = (5./3.)*(-self.params.eleMobility()*np.multiply(nT,(-phi_x_ne)))
-        fT_ni = (5./3.)*(-self.params.eleMobility()*np.multiply(nT,(-phi_x_ni)))
-        fT_Te = (5./3.)*(-self.params.eleMobility()*np.multiply(np.identity(self.Np),(-phi_x))
-                         -self.params.eleDiffusivity()*self.Dp)
+        fT_ne = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,(-phi_x_ne)))
+        fT_ni = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,(-phi_x_ni)))
+        fT_Te = (5./3.)*(-self.params.mobility(0)*np.multiply(np.identity(self.Np),(-phi_x))
+                         -self.params.diffusivity(0)*self.Dp)
 
 
-        fi_ne[0,:] = self.params.ionMobility()*ni[ 0]*(-phi_x_ne[ 0,:])
-        fi_ni[0,:] = self.params.ionMobility()*ni[ 0]*(-phi_x_ni[ 0,:])
-        fi_ni[0,0] += -self.params.ksion + self.params.ionMobility()*(-phi_x[ 0])
+        fi_ne[0,:] = self.params.mobility(1)*ni[ 0]*(-phi_x_ne[ 0,:])
+        fi_ni[0,:] = self.params.mobility(1)*ni[ 0]*(-phi_x_ni[ 0,:])
+        fi_ni[0,0] += -self.params.ksion + self.params.mobility(1)*(-phi_x[ 0])
 
-        fi_ne[-1,:] = self.params.ionMobility()*ni[-1]*(-phi_x_ne[-1,:])
-        fi_ni[-1,:] = self.params.ionMobility()*ni[-1]*(-phi_x_ni[-1,:])
-        fi_ni[-1,-1] += self.params.ksion + self.params.ionMobility()*(-phi_x[-1])
+        fi_ne[-1,:] = self.params.mobility(1)*ni[-1]*(-phi_x_ne[-1,:])
+        fi_ni[-1,:] = self.params.mobility(1)*ni[-1]*(-phi_x_ni[-1,:])
+        fi_ni[-1,-1] += self.params.ksion + self.params.mobility(1)*(-phi_x[-1])
 
         # form derivatives of fluxes at collocation points
         fe_x_ne = self.Dp @ fe_ne

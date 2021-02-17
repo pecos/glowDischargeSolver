@@ -79,10 +79,10 @@ def setPsaapProperties(gam, params):
     ks    = ks*tau/L
 
     # 4) Set values in params class
-    params.De    = De
-    params.Di    = Di
-    params.mue   = mue
-    params.mui   = mui
+    params.D[0]  = De
+    params.D[1]  = Di
+    params.mu[0] = mue
+    params.mu[1] = mui
     params.Ck    = Ck
     params.A     = A
     params.dH    = dH
