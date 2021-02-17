@@ -256,78 +256,81 @@ class timeDomainCollocationSolver:
         Notes:
           This function currently assumes that Ns=2 and NT=1
         """
+        # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
+        iele = [0]
+        iion = [1]
+
         # pull off state for convenience
-        ne = Uin[0:self.Np]
-        ni = Uin[self.Np:2*self.Np]
-        nT = Uin[2*self.Np:]
-        Te = nT/ne
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        for i in range(0,self.Ns):
+            dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
+
+        nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
+        Te = nT/dens[:,iele]
 
         # solve poisson equation for phi
         # now have self.phi
-        self.solve_poisson(ne,ni,time)
-
-        # form state at collocation points
-        ne1 = self.U1[0:self.Np]
-        ni1 = self.U1[self.Np:2*self.Np]
-        nT1 = self.U1[2*self.Np:]
-
-        ne0 = self.U0[0:self.Np]
-        ni0 = self.U0[self.Np:2*self.Np]
-        nT0 = self.U0[2*self.Np:]
-
+        self.solve_poisson(dens[:,iele],dens[:,iion],time)
 
         # form fluxes at grid points
-        ne_x  = self.Dp @ ne
-        ni_x  = self.Dp @ ni
-        nT_x  = self.Dp @ nT
-        phi_x = self.Dp @ self.phi
+        dens_x = self.Dp @ dens
+        nT_x   = self.Dp @ nT
+        phi_x  = self.Dp @ self.phi
 
-        fe = -self.params.eleMobility()*ne*(-phi_x) - self.params.eleDiffusivity()*ne_x
-        fi =  self.params.ionMobility()*ni*(-phi_x) - self.params.ionDiffusivity()*ni_x
+
+        fspec = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        # TODO: Generalize params s.t. we can do the following
+        #for i in range(0,self.Ns):
+        #    fspec[:,i] = (   self.charge[i]*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
+        #                   - self.params.diffusivity(i)*dens_x[:,i] )
+
+        # TODO: Eliminate this code (use above in place)
+        fspec[:,0] = -self.params.eleMobility()*dens[:,0]*(-phi_x[:,0]) - self.params.eleDiffusivity()*dens_x[:,0]
+        fspec[:,1] =  self.params.ionMobility()*dens[:,1]*(-phi_x[:,0]) - self.params.ionDiffusivity()*dens_x[:,1]
+
         fT = (5./3.)*(-self.params.eleMobility()*nT*(-phi_x) - self.params.eleDiffusivity()*nT_x)
 
         # overwrite endpoints in fi (weakly impose BC)
-        fi[ 0] = -self.params.ksion*ni[ 0] + self.params.ionMobility()*ni[ 0]*(-phi_x[ 0])
-        fi[-1] =  self.params.ksion*ni[-1] + self.params.ionMobility()*ni[-1]*(-phi_x[-1])
+        fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.ionMobility()*dens[ 0,iion]*(-phi_x[ 0])
+        fspec[-1,1] =  self.params.ksion*dens[-1,iion] + self.params.ionMobility()*dens[-1,iion]*(-phi_x[-1])
 
         # form derivatives of fluxes at collocation points
-        fe_x = self.Dp @ fe
-        fi_x = self.Dp @ fi
+        fspec_x = self.Dp @ fspec
         fT_x = self.Dp @ fT
 
         # form source terms at collocation points
+        omega = np.ndarray((self.Np, self.Ns),dtype=np.float)
+
+        # TODO: Generalize chemistry
         ki = self.params.rxnRateCoefficient(Te)
-        ome = ki*ne
-        omi = ome
+        omega[:,iele] = ki*dens[:,iele]
+        omega[:,iion] = omega[:,iele]
 
-        omE = -self.params.dH*ome
-        SJ = -self.params.qStar*fe*(-phi_x)
+        omE = -self.params.dH*omega[:,iele]
+        SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
+        # form full residual
         res = np.zeros((3*self.Np,1))
 
-        # spatial part of residual
-        res[0:self.Np]         = dt*(fe_x - ome)
-        res[self.Np:2*self.Np] = dt*(fi_x - ome)
-        res[2*self.Np:]        = dt*(fT_x - omE - SJ)
+        # spatial part
+        for i in range(0,self.Ns):
+            res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
+
+        res[self.Ns*self.Np:]        = dt*(fT_x - omE - SJ)
 
 
-        # time derivative part of residual
-        if (not first_step): # BDF2
-            res[0:self.Np]           += 1.5*ne - 2.0*ne1 + 0.5*ne0
-            res[self.Np:2*self.Np]   += 1.5*ni - 2.0*ni1 + 0.5*ni0
-            res[2*self.Np:3*self.Np] += 1.5*ne*Te - 2.0*ne1*Te1 + 0.5*ne0*Te0
-        else: # BDF1 = backward Euler
-            res[0:self.Np]           += ne - ne1
-            res[self.Np:2*self.Np]   += ni - ni1
-            res[2*self.Np:3*self.Np] += nT - nT1
+        # time derivative part (backward Euler)
+        res += Uin - self.U1
 
         # boundary conditions (strongly enforced)
-        res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
-        res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
 
-        # Dirichlet on temperature
-        res[2*self.Np  ] = (nT[ 0] - 0.75*ne[0])
-        res[3*self.Np-1] = (nT[-1] - 0.75*ne[-1])
+        # electron flux
+        res[0]           = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
+        res[self.Np-1]   = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+
+        # electron temperature
+        res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
+        res[(self.Ns+1)*self.Np-1] = (nT[-1] - 0.75*dens[-1,iele])
 
         return res
 
