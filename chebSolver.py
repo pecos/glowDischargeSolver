@@ -8,7 +8,7 @@ from psaapProperties import setPsaapProperties
 class modelClosures:
     """Class providing model parameters."""
 
-    def __init__(self, Ns):
+    def __init__(self, Ns, Nr):
         """Set model parameter values.  These values are non-dimensionalized
         using the following quantities:
 
@@ -50,7 +50,8 @@ class modelClosures:
             \alpha = \frac{q_e n_p L^2}{V_0 \epsilon_0}
             (where \epsilon_0 is permittivity of free space)
         """
-        self.Ns = Ns
+        self.Ns = Ns # number of species
+        self.Nr = Nr # number of reactions
 
         # charge number
         self.Z = np.zeros(Ns)
@@ -64,9 +65,31 @@ class modelClosures:
         self.D = np.zeros(Ns)
 
         # reaction rate data
-        self.Ck = 272.0
-        self.A = 18.687*(3./2.);
-        self.dH = 15.7
+
+        # Modified Arrhenius rxn rate coefficients for now
+        # kf(T) = A*(T**B)*exp(-C/T)
+        self.A = np.zeros(Nr) #self.Ck = 272.0
+        self.B = np.zeros(Nr)
+        self.C = np.zeros(Nr) #18.687*(3./2.);
+
+        # energy gain/loss in electrons
+        self.dH = np.zeros(Nr) #15.7
+
+        # stoichiometric coefficients (Ns+1 b/c we store coefficient
+        # for the background gas... it is only used for
+        # non-dimensionalization purposes)
+        self.beta = np.zeros((Ns+1,Nr),dtype=np.int) # products
+        self.alfa = np.zeros((Ns+1,Nr),dtype=np.int) # reactants
+
+        # this represents a single rxn: Ar+e -> Ar+ + e + e
+        self.beta[0,0] = 2
+        self.beta[1,0] = 1
+        self.beta[2,0] = 0
+
+        self.alfa[0,0] = 1
+        self.alfa[1,0] = 0
+        self.alfa[2,0] = 1
+
 
         # other non-dimensional parameters
         self.qStar = 100.0
@@ -86,15 +109,45 @@ class modelClosures:
     def diffusivity(self,i):
         return self.D[i]
 
-    def rxnRateCoefficient(self, energy):
-        """Returns ionization reaction rate constant"""
-        return self.Ck*np.exp(-self.A/energy)
+    def rxnSourceTerm(self, energy, density):
+        G = self.progressRate(energy,density)
 
-    def rxnRateCoefficientJac(self, energy):
+        omega = np.zeros((energy.shape[0], self.Ns+1),dtype=np.float)
+        for i in range(0,self.Ns):
+            for j in range(0,self.Nr):
+                omega[:,i] += (self.beta[i,j] - self.alfa[i,j])*G[:,j]
+
+        for j in range(0,self.Nr):
+            omega[:,self.Ns] += self.dH[j]*G[:,j]
+
+        return omega
+
+    def progressRate(self, energy, density):
+        G = np.zeros((energy.shape[0],self.Nr))
+        for i in range(0,self.Nr):
+            kf = self.rxnRateCoefficient(energy, i)
+            G[:,i] = kf[:,0]
+            for j in range(0,self.Ns):
+                G[:,i] *= density[:,j]**self.alfa[j,i]
+
+        return G
+
+    def rxnRateCoefficient(self, energy, i):
+        """Returns ionization reaction rate constant"""
+        a  = self.A[i]
+        b  = self.B[i]
+        Ea = self.C[i]
+        return a * (energy**b) * np.exp(-Ea/energy)
+
+    def rxnRateCoefficientJac(self, energy, i):
         """Returns derivative of ionization reaction rate constant wrt
         energy
         """
-        return self.Ck*np.exp(-self.A/energy)*(self.A/(energy*energy))
+        a  = self.A[i]
+        b  = self.B[i]
+        Ea = self.C[i]
+        return a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
+
 
     def print(self):
         """Print parameters to the screen"""
@@ -103,9 +156,10 @@ class modelClosures:
         print("#   Di    = {0:.6e}".format(self.D[1]))
         print("#   mue   = {0:.6e}".format(self.mu[0]))
         print("#   mui   = {0:.6e}".format(self.mu[1]))
-        print("#   Ck    = {0:.6e}".format(self.Ck))
-        print("#   A     = {0:.6e}".format(self.A))
-        print("#   dH    = {0:.6e}".format(self.dH))
+        print("#   A[0]  = {0:.6e}".format(self.A[0]))
+        print("#   B[0]  = {0:.6e}".format(self.B[0]))
+        print("#   C[0]  = {0:.6e}".format(self.C[0]))
+        print("#   dH[0] = {0:.6e}".format(self.dH[0]))
         print("#   qStar = {0:.6e}".format(self.qStar))
         print("#   alpha = {0:.6e}".format(self.alpha))
         print("#   ks    = {0:.6e}".format(self.ks))
@@ -162,7 +216,7 @@ class timeDomainCollocationSolver:
         self.phi = np.zeros((self.Np,1))
 
         # closures
-        self.params = modelClosures(self.Ns)
+        self.params = modelClosures(self.Ns, 1)
         #setLiu2014Properties(gam, self.params)
         setPsaapProperties(gam, self.params)
 
@@ -279,17 +333,11 @@ class timeDomainCollocationSolver:
         nT_x   = self.Dp @ nT
         phi_x  = self.Dp @ self.phi
 
-
         fspec = np.ndarray((self.Np, self.Ns),dtype=np.float)
         for i in range(0,self.Ns):
             fspec[:,i] = (   self.params.charge(i)*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
                            - self.params.diffusivity(i)*dens_x[:,i] )
 
-        ## TODO: Eliminate this code (use above in place)
-        #fspec[:,0] = -self.params.eleMobility()*dens[:,0]*(-phi_x[:,0]) - self.params.eleDiffusivity()*dens_x[:,0]
-        #fspec[:,1] =  self.params.ionMobility()*dens[:,1]*(-phi_x[:,0]) - self.params.ionDiffusivity()*dens_x[:,1]
-
-        #fT = (5./3.)*(-self.params.eleMobility()*nT*(-phi_x) - self.params.eleDiffusivity()*nT_x)
         fT = (5./3.)*(-self.params.mobility(0)*nT*(-phi_x) - self.params.diffusivity(0)*nT_x)
 
         # overwrite endpoints in fi (weakly impose BC)
@@ -301,14 +349,7 @@ class timeDomainCollocationSolver:
         fT_x = self.Dp @ fT
 
         # form source terms at collocation points
-        omega = np.ndarray((self.Np, self.Ns),dtype=np.float)
-
-        # TODO: Generalize chemistry
-        ki = self.params.rxnRateCoefficient(Te)
-        omega[:,iele] = ki*dens[:,iele]
-        omega[:,iion] = omega[:,iele]
-
-        omE = -self.params.dH*omega[:,iele]
+        omega = self.params.rxnSourceTerm(Te, dens)
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
         # form full residual
@@ -318,7 +359,7 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns):
             res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
 
-        res[self.Ns*self.Np:]        = dt*(fT_x - omE - SJ)
+        res[self.Ns*self.Np:]        = dt*(fT_x + omega[:,[self.Ns]] - SJ)
 
 
         # time derivative part (backward Euler)
@@ -408,16 +449,14 @@ class timeDomainCollocationSolver:
         fT_x_Te = self.Dp @ fT_Te
 
         # form source terms at collocation points
-        ki = self.params.rxnRateCoefficient(Te)
-        #ki_Te = np.multiply(self.params.rxnRateCoefficientJac(Te), np.identity(self.Np))
-        #print(self.params.rxnRateCoefficientJac(Te).shape)
-        ki_ne = np.diag(self.params.rxnRateCoefficientJac(Te)[:,0]) @ Te_ne #np.multiply(self.params.rxnRateCoefficientJac(Te), Te_ne)
-        ki_nT = np.diag(self.params.rxnRateCoefficientJac(Te)[:,0]) @ Te_nT #np.multiply(self.params.rxnRateCoefficientJac(Te), Te_nT)
+        ki = self.params.rxnRateCoefficient(Te,0)
+        ki_ne = np.diag(self.params.rxnRateCoefficientJac(Te,0)[:,0]) @ Te_ne
+        ki_nT = np.diag(self.params.rxnRateCoefficientJac(Te,0)[:,0]) @ Te_nT
         ome_ne = np.multiply(ki_ne, ne) + np.multiply(ki, np.identity(self.Np))
         ome_Te = np.multiply(ki_nT, ne)
 
-        omE_ne = -self.params.dH*ome_ne
-        omE_Te = -self.params.dH*ome_Te
+        omE_ne = -self.params.dH[0]*ome_ne
+        omE_Te = -self.params.dH[0]*ome_Te
 
         SJ_ne = -self.params.qStar*( np.multiply(fe_ne,-phi_x) + np.multiply(fe,-phi_x_ne))
         SJ_ni = -self.params.qStar*( np.multiply(fe_ni,-phi_x) + np.multiply(fe,-phi_x_ni))

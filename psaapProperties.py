@@ -83,9 +83,10 @@ def setPsaapProperties(gam, params):
     params.D[1]  = Di
     params.mu[0] = mue
     params.mu[1] = mui
-    params.Ck    = Ck
-    params.A     = A
-    params.dH    = dH
+    params.A[0]  = Ck
+    params.B[0]  = 0.0
+    params.C[0]  = A
+    params.dH[0] = dH
     params.qStar = qStar
     params.alpha = alpha
     params.ks    = ks
