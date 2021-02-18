@@ -122,6 +122,19 @@ class modelClosures:
 
         return omega
 
+    def rxnSourceTermJac(self, energy, density):
+        G_U = self.progressRateJac(energy,density)
+
+        omega_U = np.zeros((energy.shape[0], self.Ns+1,self.Ns+1),dtype=np.float)
+        for i in range(0,self.Ns):
+            for j in range(0,self.Nr):
+                omega_U[:,i,:] += (self.beta[i,j] - self.alfa[i,j])*G_U[:,j,:]
+
+        for j in range(0,self.Nr):
+            omega_U[:,self.Ns,:] += self.dH[j]*G_U[:,j,:]
+
+        return omega_U
+
     def progressRate(self, energy, density):
         G = np.zeros((energy.shape[0],self.Nr))
         for i in range(0,self.Nr):
@@ -131,6 +144,24 @@ class modelClosures:
                 G[:,i] *= density[:,j]**self.alfa[j,i]
 
         return G
+
+    def progressRateJac(self, energy, density):
+        G_U = np.zeros((energy.shape[0],self.Nr,self.Ns+1))
+        for i in range(0,self.Nr):
+            kf = self.rxnRateCoefficient(energy, i)
+            kf_T = self.rxnRateCoefficientJac(energy, i)
+
+            G_U[:,i,0:self.Ns] = np.multiply(kf_T[:,0],np.ones(self.Ns))
+            G_U[:,i,self.Ns] = kf_T[:,0]
+
+            for j in range(0,self.Ns):
+                G_U[:,i,self.Ns] *= density[:,j]**self.alfa[j,i]
+                for k in range(0,self.Ns):
+                    if (k==j):
+                        G_U[:,i,k] *= self.alfa[k,i]*density[:,j]**(self.alfa[j,i]-1)
+                    else:
+                        G_U[:,i,k] *= density[:,j]**self.alfa[j,i]
+        return G_U
 
     def rxnRateCoefficient(self, energy, i):
         """Returns ionization reaction rate constant"""
