@@ -421,146 +421,132 @@ class timeDomainCollocationSolver:
         Notes:
           This function currently assumes that Ns=2 and NT=1
         """
-        # pull off state
-        ne = Uin[0:self.Np]
-        ni = Uin[self.Np:2*self.Np]
-        nT = Uin[2*self.Np:]
+        # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
+        iele = [0]
+        iion = [1]
 
-        Te = nT/ne
-        Te_ne = -np.multiply(Te/ne,np.identity(self.Np))
-        Te_nT = np.multiply(np.identity(self.Np),1./ne)
+        # pull off state for convenience
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        for i in range(0,self.Ns):
+            dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
-        # solve poisson equation for phi
-        # now have self.phi
+        nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
+        Te = nT/dens[:,iele]
+
+        Te_ne = -np.multiply(Te/dens[:,iele],np.identity(self.Np))
+        Te_nT = np.multiply(np.identity(self.Np),1./dens[:,iele])
+
+        # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
         ident0[0,0] = ident0[-1,-1] = 0.0
         phi_ni = np.linalg.solve(self.LpD, -self.params.alpha*ident0)
         phi_ne = -phi_ni
 
-        # form fluxes at grid points
-        ne_x  = self.Dp @ ne
-        ni_x  = self.Dp @ ni
-        nT_x  = self.Dp @ nT
-        phi_x = self.Dp @ self.phi
+        # form flux Jacobians
+        dens_x = self.Dp @ dens
+        nT_x   = self.Dp @ nT
+        phi_x  = self.Dp @ self.phi
+
         phi_x_ne = self.Dp @ phi_ne
         phi_x_ni = self.Dp @ phi_ni
 
-        fe = -self.params.mobility(0)*ne*(-phi_x) - self.params.diffusivity(0)*ne_x
-        fe_ne = ( -self.params.mobility(0)*(np.multiply(np.identity(self.Np),-phi_x) + np.multiply(ne,-phi_x_ne))
-                  -self.params.diffusivity(0)*self.Dp )
-        fe_ni =   -self.params.mobility(0)*np.multiply(ne,-phi_x_ni)
+        # must have electron flux for use in Jacobian of Joule heating
+        fe = -self.params.mobility(0)*dens[:,iele]*(-phi_x) - self.params.diffusivity(0)*dens_x[:,iele]
 
-        fi_ne = self.params.mobility(1)*np.multiply(ni,-phi_x_ne)
-        fi_ni = ( +self.params.mobility(1)*(np.multiply(ni,-phi_x_ni) + np.multiply(np.identity(self.Np), -phi_x))
-                  -self.params.diffusivity(1)*self.Dp )
+        # species equations
+        fspec_U = np.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=np.float)
+        for i in range(0,self.Ns):
+            fspec_U[i,i,:,:] = (  self.params.charge(i)*self.params.mobility(i)*np.multiply(np.identity(self.Np),-phi_x)
+                                - self.params.diffusivity(i)*self.Dp )
 
-        fT_ne = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,(-phi_x_ne)))
-        fT_ni = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,(-phi_x_ni)))
-        fT_Te = (5./3.)*(-self.params.mobility(0)*np.multiply(np.identity(self.Np),(-phi_x))
-                         -self.params.diffusivity(0)*self.Dp)
+            fspec_U[i,0,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ne)
+            fspec_U[i,1,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ni)
 
 
-        fi_ne[0,:] = self.params.mobility(1)*ni[ 0]*(-phi_x_ne[ 0,:])
-        fi_ni[0,:] = self.params.mobility(1)*ni[ 0]*(-phi_x_ni[ 0,:])
-        fi_ni[0,0] += -self.params.ksion + self.params.mobility(1)*(-phi_x[ 0])
+        # energy equations
+        fT_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float)
+        fT_U[0,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ne))
+        fT_U[1,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ni))
+        fT_U[self.Ns,:,:] = (5./3.)*( -self.params.mobility(0)*np.multiply(np.identity(self.Np),-phi_x)
+                                      -self.params.diffusivity(0)*self.Dp )
 
-        fi_ne[-1,:] = self.params.mobility(1)*ni[-1]*(-phi_x_ne[-1,:])
-        fi_ni[-1,:] = self.params.mobility(1)*ni[-1]*(-phi_x_ni[-1,:])
-        fi_ni[-1,-1] += self.params.ksion + self.params.mobility(1)*(-phi_x[-1])
+        # overwrite endpoints in fi (weakly impose BC)
+        fspec_U[1,0,0,:] = self.params.mobility(1)*dens[0,1]*(-phi_x_ne[ 0,:])
+        fspec_U[1,1,0,:] = self.params.mobility(1)*dens[0,1]*(-phi_x_ni[ 0,:])
+        fspec_U[1,1,0,0] += -self.params.ksion + self.params.mobility(1)*(-phi_x[ 0])
 
-        # form derivatives of fluxes at collocation points
-        fe_x_ne = self.Dp @ fe_ne
-        fe_x_ni = self.Dp @ fe_ni
+        fspec_U[1,0,-1,:] = self.params.mobility(1)*dens[-1,1]*(-phi_x_ne[-1,:])
+        fspec_U[1,1,-1,:] = self.params.mobility(1)*dens[-1,1]*(-phi_x_ni[-1,:])
+        fspec_U[1,1,-1,-1] += self.params.ksion + self.params.mobility(1)*(-phi_x[-1])
 
-        fi_x_ne = self.Dp @ fi_ne
-        fi_x_ni = self.Dp @ fi_ni
+        # form Jacobians of derivatives of fluxes at collocation points
+        fspec_x_U = np.ndarray((self.Ns, self.Ns+1, self.Np, self.Np),dtype=np.float)
 
-        fT_x_ne = self.Dp @ fT_ne
-        fT_x_ni = self.Dp @ fT_ni
-        fT_x_Te = self.Dp @ fT_Te
+        for i in range(0,self.Ns):
+            for j in range(0,self.Ns+1):
+                fspec_x_U[i,j,:,:] = self.Dp @ fspec_U[i,j,:,:]
 
-        # form source terms at collocation points
+        fT_x_U = np.ndarray((self.Ns+1, self.Np, self.Np),dtype=np.float)
+        for j in range(0,self.Ns+1):
+            fT_x_U[j, :,:] = self.Dp @ fT_U[j,:,:]
+
+
+        # form source terms Jacobians
+        # TODO: Generalize me!
         ki = self.params.rxnRateCoefficient(Te,0)
         ki_ne = np.diag(self.params.rxnRateCoefficientJac(Te,0)[:,0]) @ Te_ne
         ki_nT = np.diag(self.params.rxnRateCoefficientJac(Te,0)[:,0]) @ Te_nT
-        ome_ne = np.multiply(ki_ne, ne) + np.multiply(ki, np.identity(self.Np))
-        ome_Te = np.multiply(ki_nT, ne)
+        ome_ne = np.multiply(ki_ne, dens[:,iele]) + np.multiply(ki, np.identity(self.Np))
+        ome_Te = np.multiply(ki_nT, dens[:,iele])
 
         omE_ne = -self.params.dH[0]*ome_ne
         omE_Te = -self.params.dH[0]*ome_Te
 
-        SJ_ne = -self.params.qStar*( np.multiply(fe_ne,-phi_x) + np.multiply(fe,-phi_x_ne))
-        SJ_ni = -self.params.qStar*( np.multiply(fe_ni,-phi_x) + np.multiply(fe,-phi_x_ni))
+        SJ_ne = -self.params.qStar*( np.multiply(fspec_U[0,0,:,:],-phi_x) + np.multiply(fe,-phi_x_ne))
+        SJ_ni = -self.params.qStar*( np.multiply(fspec_U[0,1,:,:],-phi_x) + np.multiply(fe,-phi_x_ni))
 
-        # spatial part of residual
-        self.jac[0:self.Np,0:self.Np]         = dt*(fe_x_ne - ome_ne)
-        self.jac[0:self.Np,self.Np:2*self.Np] = dt*(fe_x_ni         )
-        self.jac[0:self.Np,2*self.Np:]        = dt*(        - ome_Te)
+        self.jac = np.zeros((self.Ndof,self.Ndof))
 
-        self.jac[self.Np:2*self.Np,0:self.Np]         = dt*(fi_x_ne - ome_ne)
-        self.jac[self.Np:2*self.Np,self.Np:2*self.Np] = dt*(fi_x_ni         )
-        self.jac[self.Np:2*self.Np,2*self.Np:]        = dt*(        - ome_Te)
+        # spatial part
+        for i in range(0,self.Ns):
+            for j in range(0,self.Ns):
+                self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fspec_x_U[i,j,:,:])
 
-        self.jac[2*self.Np:,0:self.Np]         = dt*(fT_x_ne - omE_ne - SJ_ne)
-        self.jac[2*self.Np:,self.Np:2*self.Np] = dt*(fT_x_ni          - SJ_ni)
-        self.jac[2*self.Np:,2*self.Np:]        = dt*(fT_x_Te - omE_Te        )
+        for j in range(0,self.Ns+1):
+            self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fT_x_U[j,:,:])
 
+        # chemistry (TODO: roll this into above
+        self.jac[0:self.Np,0:self.Np]         += dt*( - ome_ne)
+        self.jac[self.Np:2*self.Np,0:self.Np] += dt*( - ome_ne)
+        self.jac[2*self.Np:,0:self.Np]        += dt*( - omE_ne - SJ_ne)
+
+        self.jac[2*self.Np:,self.Np:2*self.Np] += dt*(         - SJ_ni)
+
+        self.jac[0:self.Np,2*self.Np:]        += dt*( - ome_Te)
+        self.jac[self.Np:2*self.Np,2*self.Np:]+= dt*( - ome_Te)
+        self.jac[2*self.Np:,2*self.Np:]       += dt*( - omE_Te)
 
         # time derivative part of residual
-        if (not first_step): # BDF2
-            print("Shouldn't be here!")
-            exit(-1)
-        else: # BDF1 = backward Euler
-            self.jac[0:self.Np,0:self.Np] += np.identity(self.Np)
-            self.jac[self.Np:2*self.Np,self.Np:2*self.Np] += np.identity(self.Np)
-            #self.jac[2*self.Np:,0:self.Np ] += np.multiply(np.identity(self.Np),Te)
-            self.jac[2*self.Np:,2*self.Np:] += np.identity(self.Np) #np.multiply(ne,np.identity(self.Np))
+        self.jac += np.identity(self.Ndof)
 
         # boundary conditions (strongly enforced)
-        #res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
-        self.jac[0,:] = np.zeros((1,3*self.Np))
-        self.jac[0,0:self.Np] = fe_ne[0,:] - (- self.params.gam*fi_ne[ 0,:])
-        self.jac[0,self.Np:2*self.Np] = fe_ni[0,:] - (- self.params.gam*fi_ni[ 0,:])
+        self.jac[0,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
+        self.jac[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
         self.jac[0,0] += self.params.ks
 
-        #res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
-        self.jac[self.Np-1,:] = np.zeros((1,3*self.Np))
-        self.jac[self.Np-1,0:self.Np] = fe_ne[-1,:] - (- self.params.gam*fi_ne[-1,:])
-        self.jac[self.Np-1,self.Np:2*self.Np] = fe_ni[-1,:] - (- self.params.gam*fi_ni[-1,:])
+        self.jac[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[self.Np-1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
+        self.jac[self.Np-1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
         self.jac[self.Np-1,self.Np-1] -= self.params.ks
 
-        ## # boundary conditions (strongly enforced)
-        ##res[0]           = fe[ 0]  - (-self.params.ks*ne[ 0] - self.params.gam*fi[ 0])
-        #self.jac[0,:] = np.zeros((1,3*self.Np))
-        #self.jac[0,0] = 1.0
+        self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
+        self.jac[self.Ns*self.Np,0] = -0.75
 
-        # #res[self.Np-1]   = fe[-1]  - ( self.params.ks*ne[-1] - self.params.gam*fi[-1])
-        # self.jac[self.Np-1,:] = np.zeros((1,3*self.Np))
-        # self.jac[self.Np-1,self.Np-1] = 1.0
-
-        #res[2*self.Np  ] = (Te[ 0] - 0.75)
-        self.jac[2*self.Np,:] = np.zeros((1,3*self.Np))
-        self.jac[2*self.Np,2*self.Np] = 1.0
-        self.jac[2*self.Np,0] = -0.75
-
-        #res[3*self.Np-1] = (Te[-1] - 0.75)
-        self.jac[3*self.Np-1,:] = np.zeros((1,3*self.Np))
-        self.jac[3*self.Np-1,3*self.Np-1] = 1.0
-        self.jac[3*self.Np-1,self.Np-1] = -0.75
-
-        # #res[2*self.Np  ] = fT[ 0] - ((5./3.)*fe[0]*Te[ 0])
-        # self.jac[2*self.Np,:] = np.zeros((1,3*self.Np))
-        # self.jac[2*self.Np,0:self.Np] = fT_ne[0,:] - ((5./3.)*fe_ne[0,:]*Te[0])
-        # self.jac[2*self.Np,self.Np:2*self.Np] = fT_ni[0,:] - ((5./3.)*fe_ni[0,:]*Te[0])
-        # self.jac[2*self.Np,2*self.Np:] = fT_Te[0,:]
-        # self.jac[2*self.Np,2*self.Np] += - (5./3.)*fe[0]
-
-        # #res[3*self.Np-1] = fT[-1] - ((5./3.)*fe[-1]*Te[-1])
-        # self.jac[3*self.Np-1,:] = np.zeros((1,3*self.Np))
-        # self.jac[3*self.Np-1,0:self.Np] = fT_ne[-1,:] - ((5./3.)*fe_ne[-1,:]*Te[-1])
-        # self.jac[3*self.Np-1,self.Np:2*self.Np] = fT_ni[-1,:] - ((5./3.)*fe_ni[-1,:]*Te[-1])
-        # self.jac[3*self.Np-1,2*self.Np:] = fT_Te[-1,:]
-        # self.jac[3*self.Np-1,3*self.Np-1] += - (5./3.)*fe[-1]
+        self.jac[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
+        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
 
     def jacobian0(self, dt, first_step=False):
         """Evaluate the Jacobian of the residual with respect to the state at
@@ -576,28 +562,15 @@ class timeDomainCollocationSolver:
 
         """
 
-        # form state at previous step at collocation points
-        ne1 = self.U1[0:self.Np]
-        ni1 = self.U1[self.Np:2*self.Np]
-        nT1 = self.U1[2*self.Np:]
-
-
-        if (not first_step): # BDF2
-            print("Shouldn't be here!")
-            exit(-1)
-        else: # BDF1 = backward Euler
-            self.jac0[0:self.Np,0:self.Np]                     = -np.identity(self.Np)
-            self.jac0[self.Np:2*self.Np,self.Np:2*self.Np]     = -np.identity(self.Np)
-            #self.jac0[2*self.Np:3*self.Np,0:self.Np]           = -np.multiply(np.identity(self.Np),Te1)
-            self.jac0[2*self.Np:3*self.Np,2*self.Np:3*self.Np] = -np.identity(self.Np) #-np.multiply(ne1,np.identity(self.Np))
+        self.jac0 = np.identity(self.Ndof)
 
         # for boundary conditions that are strongly enforced,
         # corresponding residual has no dependence on previous state
-        self.jac0[0        ,:] = np.zeros((1,3*self.Np))
-        self.jac0[self.Np-1,:] = np.zeros((1,3*self.Np))
+        self.jac0[0        ,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac0[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
-        self.jac0[2*self.Np  ,:] = np.zeros((1,3*self.Np))
-        self.jac0[3*self.Np-1,:] = np.zeros((1,3*self.Np))
+        self.jac0[self.Ns*self.Np  ,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac0[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
 
     def jacobianFD(self, Uin, time, dt, first_step=False):
