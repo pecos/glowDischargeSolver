@@ -118,20 +118,20 @@ class modelClosures:
                 omega[:,i] += (self.beta[i,j] - self.alfa[i,j])*G[:,j]
 
         for j in range(0,self.Nr):
-            omega[:,self.Ns] += self.dH[j]*G[:,j]
+            omega[:,self.Ns] -= self.dH[j]*G[:,j]
 
         return omega
 
     def rxnSourceTermJac(self, energy, density):
         G_U = self.progressRateJac(energy,density)
 
-        omega_U = np.zeros((energy.shape[0], self.Ns+1,self.Ns+1),dtype=np.float)
+        omega_U = np.zeros((self.Ns+1,self.Ns+1,energy.shape[0]),dtype=np.float)
         for i in range(0,self.Ns):
             for j in range(0,self.Nr):
-                omega_U[:,i,:] += (self.beta[i,j] - self.alfa[i,j])*G_U[:,j,:]
+                omega_U[i,:,:] += (self.beta[i,j] - self.alfa[i,j])*G_U[j,:,:]
 
         for j in range(0,self.Nr):
-            omega_U[:,self.Ns,:] += self.dH[j]*G_U[:,j,:]
+            omega_U[self.Ns,:,:] -= self.dH[j]*G_U[j,:,:]
 
         return omega_U
 
@@ -146,21 +146,17 @@ class modelClosures:
         return G
 
     def progressRateJac(self, energy, density):
-        G_U = np.zeros((energy.shape[0],self.Nr,self.Ns+1))
+        G = self.progressRate(energy,density)
+        G_U = np.zeros((self.Nr,self.Ns+1, energy.shape[0]))
         for i in range(0,self.Nr):
             kf = self.rxnRateCoefficient(energy, i)
             kf_T = self.rxnRateCoefficientJac(energy, i)
 
-            G_U[:,i,0:self.Ns] = np.multiply(kf_T[:,0],np.ones(self.Ns))
-            G_U[:,i,self.Ns] = kf_T[:,0]
+            for k in range(0,self.Ns):
+                G_U[i,k,:] = self.alfa[k,i]*G[:,i]/density[:,k]
 
-            for j in range(0,self.Ns):
-                G_U[:,i,self.Ns] *= density[:,j]**self.alfa[j,i]
-                for k in range(0,self.Ns):
-                    if (k==j):
-                        G_U[:,i,k] *= self.alfa[k,i]*density[:,j]**(self.alfa[j,i]-1)
-                    else:
-                        G_U[:,i,k] *= density[:,j]**self.alfa[j,i]
+            G_U[i,self.Ns,:] = kf_T[:,0]*G[:,i]/kf[:,0]
+
         return G_U
 
     def rxnRateCoefficient(self, energy, i):
@@ -390,7 +386,7 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns):
             res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
 
-        res[self.Ns*self.Np:]        = dt*(fT_x + omega[:,[self.Ns]] - SJ)
+        res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ)
 
 
         # time derivative part (backward Euler)
@@ -490,24 +486,29 @@ class timeDomainCollocationSolver:
         for j in range(0,self.Ns+1):
             fT_x_U[j, :,:] = self.Dp @ fT_U[j,:,:]
 
+        # form source terms at collocation points
+        # omega_V returns derivatives of chemical src terms wrt ne, ni, ..., Te
+        omega_V = self.params.rxnSourceTermJac(Te, dens)
 
-        # form source terms Jacobians
-        # TODO: Generalize me!
-        ki = self.params.rxnRateCoefficient(Te,0)
-        ki_ne = np.diag(self.params.rxnRateCoefficientJac(Te,0)[:,0]) @ Te_ne
-        ki_nT = np.diag(self.params.rxnRateCoefficientJac(Te,0)[:,0]) @ Te_nT
-        ome_ne = np.multiply(ki_ne, dens[:,iele]) + np.multiply(ki, np.identity(self.Np))
-        ome_Te = np.multiply(ki_nT, dens[:,iele])
+        # chain rule to get derivatives wrt ne, ni, ..., nT
+        omega_U = np.ndarray(np.shape(omega_V))
+        for i in range(0,self.Ns+1):
+            omega_U[i,0,:] = omega_V[i,0,:] + omega_V[i,self.Ns,:]*np.diag(Te_ne)
+            omega_U[i,self.Ns,:] = omega_V[i,self.Ns,:]*np.diag(Te_nT)
 
-        omE_ne = -self.params.dH[0]*ome_ne
-        omE_Te = -self.params.dH[0]*ome_Te
+        omega_U[:,1:self.Ns,:] = omega_V[:,1:self.Ns,:]
 
+        # joule heating
         SJ_ne = -self.params.qStar*( np.multiply(fspec_U[0,0,:,:],-phi_x) + np.multiply(fe,-phi_x_ne))
         SJ_ni = -self.params.qStar*( np.multiply(fspec_U[0,1,:,:],-phi_x) + np.multiply(fe,-phi_x_ni))
 
+
+        # form the full jacobian
         self.jac = np.zeros((self.Ndof,self.Ndof))
 
         # spatial part
+
+        # fluxes: involve spatial derivatives, leading to dense matrices
         for i in range(0,self.Ns):
             for j in range(0,self.Ns):
                 self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fspec_x_U[i,j,:,:])
@@ -515,16 +516,16 @@ class timeDomainCollocationSolver:
         for j in range(0,self.Ns+1):
             self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fT_x_U[j,:,:])
 
-        # chemistry (TODO: roll this into above
-        self.jac[0:self.Np,0:self.Np]         += dt*( - ome_ne)
-        self.jac[self.Np:2*self.Np,0:self.Np] += dt*( - ome_ne)
-        self.jac[2*self.Np:,0:self.Np]        += dt*( - omE_ne - SJ_ne)
+        # chemistry: spatially local, coupling across species and energy
+        # use np.einsum to extract diagonal of each Jacobian block for updating
+        for i in range(0,self.Ns+1):
+            for j in range(0,self.Ns+1):
+                jac_diag = np.einsum('ii->i', self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np])
+                jac_diag -= dt*omega_U[i,j,:]
 
-        self.jac[2*self.Np:,self.Np:2*self.Np] += dt*(         - SJ_ni)
-
-        self.jac[0:self.Np,2*self.Np:]        += dt*( - ome_Te)
-        self.jac[self.Np:2*self.Np,2*self.Np:]+= dt*( - ome_Te)
-        self.jac[2*self.Np:,2*self.Np:]       += dt*( - omE_Te)
+        # Joule heating
+        self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
+        self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
 
         # time derivative part of residual
         self.jac += np.identity(self.Ndof)
