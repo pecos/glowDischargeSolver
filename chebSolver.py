@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from Liu2014Properties import setLiu2014Properties
 from psaapProperties import setPsaapProperties
+from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 
 class modelClosures:
     """Class providing model parameters."""
@@ -90,7 +91,6 @@ class modelClosures:
         self.alfa[1,0] = 0
         self.alfa[2,0] = 1
 
-
         # other non-dimensional parameters
         self.qStar = 100.0
         self.alpha = 2.33e3
@@ -141,7 +141,8 @@ class modelClosures:
             kf = self.rxnRateCoefficient(energy, i)
             G[:,i] = kf[:,0]
             for j in range(0,self.Ns):
-                G[:,i] *= density[:,j]**self.alfa[j,i]
+                if (self.alfa[j,i]>0):
+                    G[:,i] *= density[:,j]**self.alfa[j,i]
 
         return G
 
@@ -152,10 +153,24 @@ class modelClosures:
             kf = self.rxnRateCoefficient(energy, i)
             kf_T = self.rxnRateCoefficientJac(energy, i)
 
-            for k in range(0,self.Ns):
-                G_U[i,k,:] = self.alfa[k,i]*G[:,i]/density[:,k]
+            #G[:,i] *= density[:,j]**self.alfa[j,i]
+            G_U[i,self.Ns,:] = kf_T[:,0]
 
-            G_U[i,self.Ns,:] = kf_T[:,0]*G[:,i]/kf[:,0]
+            for k in range(0,self.Ns):
+                #G_U[i,k,:] = self.alfa[k,i]*G[:,i]/density[:,k]
+                if (self.alfa[k,i]==0):
+                    G_U[i,k] = 0
+                else:
+                    G_U[i,k,:] = kf[:,0]
+                    for j in range(0,self.Ns):
+                        if (j==k):
+                            G_U[i,k,:] *= self.alfa[k,i]*density[:,k]**(self.alfa[j,i]-1)
+                        else:
+                            G_U[i,k,:] *= density[:,j]**self.alfa[j,i]
+
+                G_U[i,self.Ns,:] *= density[:,k]**self.alfa[k,i]
+
+            #G_U[i,self.Ns,:] = kf_T[:,0]*G[:,i]/kf[:,0]
 
         return G_U
 
@@ -164,6 +179,12 @@ class modelClosures:
         a  = self.A[i]
         b  = self.B[i]
         Ea = self.C[i]
+        if(np.any(energy<=0.0)):
+            print("Detected 0 or negative energy")
+            plt.figure()
+            plt.plot(energy)
+            plt.grid()
+            plt.show()
         return a * (energy**b) * np.exp(-Ea/energy)
 
     def rxnRateCoefficientJac(self, energy, i):
@@ -243,9 +264,12 @@ class timeDomainCollocationSolver:
         self.phi = np.zeros((self.Np,1))
 
         # closures
-        self.params = modelClosures(self.Ns, 1)
+        #self.params = modelClosures(self.Ns, 1)
         #setLiu2014Properties(gam, self.params)
-        setPsaapProperties(gam, self.params)
+        #setPsaapProperties(gam, self.params)
+
+        self.params = modelClosures(self.Ns, 5)
+        setPsaapPropertiesTestArm(gam, self.params)
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -371,6 +395,10 @@ class timeDomainCollocationSolver:
         fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.mobility(1)*dens[ 0,iion]*(-phi_x[ 0])
         fspec[-1,1] =  self.params.ksion*dens[-1,iion] + self.params.mobility(1)*dens[-1,iion]*(-phi_x[-1])
 
+        #if (self.Ns>2):
+        #    fspec[ 0,2:self.Ns] = 0.0
+        #    fspec[-1,2:self.Ns] = 0.0
+
         # form derivatives of fluxes at collocation points
         fspec_x = self.Dp @ fspec
         fT_x = self.Dp @ fT
@@ -380,7 +408,7 @@ class timeDomainCollocationSolver:
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
         # form full residual
-        res = np.zeros((3*self.Np,1))
+        res = np.zeros((self.Nv*self.Np,1))
 
         # spatial part
         for i in range(0,self.Ns):
@@ -397,6 +425,10 @@ class timeDomainCollocationSolver:
         # electron flux
         res[0]           = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
         res[self.Np-1]   = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+
+        if (self.Ns>2):
+            res[2*self.Np  ] = dens[ 0,2] - 0.0
+            res[3*self.Np-1] = dens[-1,2] - 0.0
 
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
@@ -475,6 +507,11 @@ class timeDomainCollocationSolver:
         fspec_U[1,1,-1,:] = self.params.mobility(1)*dens[-1,1]*(-phi_x_ni[-1,:])
         fspec_U[1,1,-1,-1] += self.params.ksion + self.params.mobility(1)*(-phi_x[-1])
 
+        #if (self.Ns>2):
+        #    fspec_U[2:self.Ns,:, 0,:] = 0.0
+        #    fspec_U[2:self.Ns,:,-1,:] = 0.0
+
+
         # form Jacobians of derivatives of fluxes at collocation points
         fspec_x_U = np.ndarray((self.Ns, self.Ns+1, self.Np, self.Np),dtype=np.float)
 
@@ -541,6 +578,13 @@ class timeDomainCollocationSolver:
         self.jac[self.Np-1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
         self.jac[self.Np-1,self.Np-1] -= self.params.ks
 
+        if (self.Ns>2):
+            self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[2*self.Np,2*self.Np] = 1.0
+
+            self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[3*self.Np-1,3*self.Np-1] = 1.0
+
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
         self.jac[self.Ns*self.Np,0] = -0.75
@@ -563,12 +607,16 @@ class timeDomainCollocationSolver:
 
         """
 
-        self.jac0 = np.identity(self.Ndof)
+        self.jac0 = -np.identity(self.Ndof)
 
         # for boundary conditions that are strongly enforced,
         # corresponding residual has no dependence on previous state
         self.jac0[0        ,:] = np.zeros((1,self.Nv*self.Np))
         self.jac0[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+
+        if (self.Ns>2):
+            self.jac0[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
         self.jac0[self.Ns*self.Np  ,:] = np.zeros((1,self.Nv*self.Np))
         self.jac0[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
@@ -697,14 +745,14 @@ class timeDomainCollocationSolver:
             "Time", "min ne", "max ne", "min Te", "max Te"))
         print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
             time0, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
-            self.U2[2*self.Np:].min(), self.U2[2*self.Np:].max()))
+            self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max()))
 
         # assume initial condition has been set in U1!
         time = time0+dt
         self.step(time, dt, first_step=True, verbose=verbose, rtol=rtol)
         print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
             time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
-            self.U2[2*self.Np:].min(), self.U2[2*self.Np:].max()))
+            self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max()))
 
         if(computeSensitivity):
             self.stepSensitivity(time, dt, first_step=True, verbose=verbose)
@@ -728,7 +776,7 @@ class timeDomainCollocationSolver:
             #self.filter()
             print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
                 time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
-                self.U2[2*self.Np:].min(), self.U2[2*self.Np:].max()), flush=True)
+                self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max()), flush=True)
 
             if(savedata!=None):
                 Usave[istep+1,:] = self.U2[:,0]
@@ -747,9 +795,10 @@ class timeDomainCollocationSolver:
         fig = plt.figure(num=1,figsize=(16,27))
         if (create):
             ax = []
-            ax.append(plt.subplot(3,1,1,label='ne'))
-            ax.append(plt.subplot(3,1,2,label='ne',sharex=ax[0]))
-            ax.append(plt.subplot(3,1,3,label='Te',sharex=ax[0]))
+            for i in range(0,self.Ns):
+                ax.append(plt.subplot(self.Ns+1,1,i+1,label='n_{0:d}'.format(i)))
+
+            ax.append(plt.subplot(self.Ns+1,1,self.Ns+1,label='Te',sharex=ax[0]))
         else:
             ax = fig.get_axes()
 
@@ -759,19 +808,19 @@ class timeDomainCollocationSolver:
         plt.setp(ax[0].get_yticklabels(),fontsize=14)
         ax[0].set_ylabel(r'$n_e$',fontsize=16)
 
+        for i in range(1,self.Ns):
+            ax[i].plot(xplot, cheb.chebval(xplot, (self.V0pinv @ self.U2[i*self.Np:(i+1)*self.Np])[:,0]), col, lw=3)
+            ax[i].grid(True)
+            plt.setp(ax[i].get_xticklabels(),visible=False)
+            plt.setp(ax[i].get_yticklabels(),fontsize=14)
+            ax[i].set_ylabel(r'$n_{0:d}$'.format(i),fontsize=16)
 
-        ax[1].plot(xplot, cheb.chebval(xplot, (self.V0pinv @ self.U2[self.Np:2*self.Np])[:,0]), col, lw=3)
-        ax[1].grid(True)
-        plt.setp(ax[1].get_xticklabels(),visible=False)
-        plt.setp(ax[1].get_yticklabels(),fontsize=14)
-        ax[1].set_ylabel(r'$n_i$',fontsize=16)
-
-        ax[2].plot(xplot, cheb.chebval(xplot, (self.V0pinv @ self.U2[2*self.Np:])[:,0]), col, lw=3)
-        ax[2].grid(True)
-        plt.setp(ax[2].get_xticklabels(),fontsize=14)
-        plt.setp(ax[2].get_yticklabels(),fontsize=14)
-        ax[2].set_ylabel(r'$T_e$',fontsize=16)
-        ax[2].set_xlabel(r'$x$',fontsize=16)
+        ax[self.Ns].plot(xplot, cheb.chebval(xplot, (self.V0pinv @ self.U2[self.Ns*self.Np:])[:,0]), col, lw=3)
+        ax[self.Ns].grid(True)
+        plt.setp(ax[self.Ns].get_xticklabels(),fontsize=14)
+        plt.setp(ax[self.Ns].get_yticklabels(),fontsize=14)
+        ax[self.Ns].set_ylabel(r'$T_e$',fontsize=16)
+        ax[self.Ns].set_xlabel(r'$x$',fontsize=16)
 
 
 
@@ -840,11 +889,14 @@ if __name__ == "__main__":
 
     # Instantiate solver class
     tds = timeDomainCollocationSolver(2,1,args.Np)
+    #tds = timeDomainCollocationSolver(3,1,args.Np)
 
     # Default IC (may be overwritten below if we are restarting)
-    tds.U1[0:tds.Np] = 1e-4
-    tds.U1[tds.Np:2*tds.Np] = 1e-4
-    tds.U1[2*tds.Np:] = 0.75*tds.U1[0:tds.Np]
+    tds.U1[0:tds.Ns*tds.Np] = 1e-4
+    #tds.U1[tds.Np:2*tds.Np] = 1e-4
+    #tds.U1[2*tds.Np] = 0.0
+    #tds.U1[3*tds.Np-1] = 0.0
+    tds.U1[tds.Ns*tds.Np:] = 0.75*tds.U1[0:tds.Np]
 
     # If restart file provided, read it.
     # NOTE: currently we do a lazy restart in that only the final
