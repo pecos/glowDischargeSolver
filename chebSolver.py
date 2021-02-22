@@ -159,7 +159,7 @@ class modelClosures:
             for k in range(0,self.Ns):
                 #G_U[i,k,:] = self.alfa[k,i]*G[:,i]/density[:,k]
                 if (self.alfa[k,i]==0):
-                    G_U[i,k] = 0
+                    G_U[i,k,:] = 0
                 else:
                     G_U[i,k,:] = kf[:,0]
                     for j in range(0,self.Ns):
@@ -179,13 +179,11 @@ class modelClosures:
         a  = self.A[i]
         b  = self.B[i]
         Ea = self.C[i]
-        if(np.any(energy<=0.0)):
-            print("Detected 0 or negative energy")
-            plt.figure()
-            plt.plot(energy)
-            plt.grid()
-            plt.show()
-        return a * (energy**b) * np.exp(-Ea/energy)
+        indFix = (energy[:,0]<=0.0)
+        energy[indFix,0] = 1.0
+        kf = a * (energy**b) * np.exp(-Ea/energy)
+        kf[indFix,0] = 0
+        return kf #a * (energy**b) * np.exp(-Ea/energy)
 
     def rxnRateCoefficientJac(self, energy, i):
         """Returns derivative of ionization reaction rate constant wrt
@@ -194,7 +192,12 @@ class modelClosures:
         a  = self.A[i]
         b  = self.B[i]
         Ea = self.C[i]
-        return a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
+        indFix = (energy[:,0]<=0.0)
+        energy[indFix,0] = 1.0
+        kf_T = a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
+        kf_T[indFix,0] = 0
+
+        return kf_T #a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
 
 
     def print(self):
@@ -204,10 +207,12 @@ class modelClosures:
         print("#   Di    = {0:.6e}".format(self.D[1]))
         print("#   mue   = {0:.6e}".format(self.mu[0]))
         print("#   mui   = {0:.6e}".format(self.mu[1]))
-        print("#   A[0]  = {0:.6e}".format(self.A[0]))
-        print("#   B[0]  = {0:.6e}".format(self.B[0]))
-        print("#   C[0]  = {0:.6e}".format(self.C[0]))
-        print("#   dH[0] = {0:.6e}".format(self.dH[0]))
+        print("#   A  = {}".format(self.A))
+        print("#   B  = {}".format(self.B))
+        print("#   C  = {}".format(self.C))
+        print("#   dH = {}".format(self.dH))
+        print("# alfa = {}".format(self.alfa))
+        print("# beta = {}".format(self.beta))
         print("#   qStar = {0:.6e}".format(self.qStar))
         print("#   alpha = {0:.6e}".format(self.alpha))
         print("#   ks    = {0:.6e}".format(self.ks))
@@ -268,7 +273,8 @@ class timeDomainCollocationSolver:
         #setLiu2014Properties(gam, self.params)
         #setPsaapProperties(gam, self.params)
 
-        self.params = modelClosures(self.Ns, 5)
+        #self.params = modelClosures(self.Ns, 5)
+        self.params = modelClosures(self.Ns, 8)
         setPsaapPropertiesTestArm(gam, self.params)
 
         # Points used to define state and collocation
@@ -888,8 +894,8 @@ if __name__ == "__main__":
     print("#")
 
     # Instantiate solver class
-    tds = timeDomainCollocationSolver(2,1,args.Np)
-    #tds = timeDomainCollocationSolver(3,1,args.Np)
+    #tds = timeDomainCollocationSolver(2,1,args.Np)
+    tds = timeDomainCollocationSolver(3,1,args.Np)
 
     # Default IC (may be overwritten below if we are restarting)
     tds.U1[0:tds.Ns*tds.Np] = 1e-4
