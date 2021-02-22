@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import chebSolver as cs
 
 class timePeriodicSolver:
@@ -113,7 +114,8 @@ if __name__ == "__main__":
     print("#   Save final state to {0:s}".format(args.outfile))
     print("#")
 
-    tps = timePeriodicSolver(2, 1, args.Np, args.gam, restart=args.restart)
+    #tps = timePeriodicSolver(2, 1, args.Np, args.gam, restart=args.restart)
+    tps = timePeriodicSolver(3, 1, args.Np, args.gam, restart=args.restart)
 
 
     # Get the IC, for use in computing the residual below
@@ -129,6 +131,12 @@ if __name__ == "__main__":
     niter = 0
     while ( (rnorm/rnorm0 > args.rtol) and (rnorm > args.atol) and (niter<args.Nn) ):
         tps.solveNewtonStep(Uic, args.Nt)
+
+        if (args.plot):
+            tps.tds.U2 = np.copy(Uic)
+            tps.tds.plot('r-',create=True)
+            plt.show()
+            
         rnorm = tps.periodicityResidual(Uic, args.Nt)
         niter += 1
         print(resPrint.format(niter,rnorm,rnorm/rnorm0))
