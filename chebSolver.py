@@ -921,7 +921,7 @@ if __name__ == "__main__":
     print("#")
 
     # Instantiate solver class
-    tds = timeDomainCollocationSolver(Ns,1,args.Np,args.scenario)
+    tds = timeDomainCollocationSolver(Ns,1,args.Np,gam=0.01,scenario=args.scenario)
 
     # Default IC (overwritten below if we are restarting)
     tds.U1[0:tds.Ns*tds.Np] = 1e-4
