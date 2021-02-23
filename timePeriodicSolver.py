@@ -4,8 +4,8 @@ import chebSolver as cs
 
 class timePeriodicSolver:
 
-    def __init__(self, Ns, NT, Np, gam, restart=None):
-        self.tds = cs.timeDomainCollocationSolver(Ns,NT,Np,gam)
+    def __init__(self, Ns, NT, Np, gam, restart=None, scenario=0):
+        self.tds = cs.timeDomainCollocationSolver(Ns,NT,Np,gam,scenario)
         self.res = np.zeros((self.tds.Ndof,1))
         self.jac = np.zeros((self.tds.Ndof,self.tds.Ndof))
 
@@ -83,6 +83,8 @@ if __name__ == "__main__":
                         type=float, help="Relative tolerance for non-linear solve")
     parser.add_argument('--atol',metavar='atol', default=1e-14,
                         type=float, help="Absolute tolerance for non-linear solve")
+    parser.add_argument('--scenario', metavar='scenario', default=0,
+                        type=int, help='Scenario index')
     parser.add_argument('--restart', metavar='rst.npy', default=None,
                         help='Restart file (*.npy format, must have same Np)')
     parser.add_argument('--outfile', metavar='out.npy', default='result.npy',
@@ -112,10 +114,25 @@ if __name__ == "__main__":
         print("#   Using uniform IC with ne = ni = 1e-4, Te = 0.5.")
 
     print("#   Save final state to {0:s}".format(args.outfile))
+
+    Ns = 2
+    if(args.scenario==0):
+        print("#   Running scenario = 0 (2 species, 1 rxn, Liu 2014)")
+        Ns = 2
+    elif(args.scenario==1):
+        print("#   Running scenario = 1 (2 species, 1 rxn, PSAAP config)")
+        Ns = 2
+    elif(args.scenario==2):
+        print("#   Running scenario = 2 (3 species, 8 rxn, Liu 2017)")
+        Ns = 3
+    else:
+        print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, or 2.  Exiting.")
+        exit(-1)
+
     print("#")
 
-    #tps = timePeriodicSolver(2, 1, args.Np, args.gam, restart=args.restart)
-    tps = timePeriodicSolver(3, 1, args.Np, args.gam, restart=args.restart)
+    tps = timePeriodicSolver(Ns, 1, args.Np, args.gam,
+                             restart=args.restart, scenario=args.scenario)
 
 
     # Get the IC, for use in computing the residual below
@@ -136,11 +153,15 @@ if __name__ == "__main__":
             tps.tds.U2 = np.copy(Uic)
             tps.tds.plot('r-',create=True)
             plt.show()
-            
+
         rnorm = tps.periodicityResidual(Uic, args.Nt)
         niter += 1
         print(resPrint.format(niter,rnorm,rnorm/rnorm0))
 
+    if (args.plot):
+        tps.tds.U2 = np.copy(Uic)
+        tps.tds.plot('r-',create=True)
+        plt.show()
 
     # save final state
     np.save(args.outfile, Uic)

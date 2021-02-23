@@ -246,7 +246,7 @@ class timeDomainCollocationSolver:
         xc -- Collocation points (allowed to different from xp for now)
     """
 
-    def __init__(self, Ns, NT, Np, gam=0.01):
+    def __init__(self, Ns, NT, Np, gam=0.01, scenario=0):
         """Initializes storage and operaters required for solve."""
 
         self.Ns = Ns    # Number of species
@@ -269,13 +269,24 @@ class timeDomainCollocationSolver:
         self.phi = np.zeros((self.Np,1))
 
         # closures
-        #self.params = modelClosures(self.Ns, 1)
-        #setLiu2014Properties(gam, self.params)
-        #setPsaapProperties(gam, self.params)
+        if(scenario==0):
+            Nr = 1
+        elif(scenario==1):
+            Nr = 1
+        elif(scenario==2):
+            Nr = 8
+        else:
+            print("ERROR: scenario = {} not understood.".format(scenario))
+            exit(-1)
 
-        #self.params = modelClosures(self.Ns, 5)
-        self.params = modelClosures(self.Ns, 8)
-        setPsaapPropertiesTestArm(gam, self.params)
+        self.params = modelClosures(self.Ns, Nr)
+
+        if(scenario==0):
+            setLiu2014Properties(gam, self.params)
+        elif(scenario==1):
+            setPsaapProperties(gam, self.params)
+        elif(scenario==2):
+            setPsaapPropertiesTestArm(gam, self.params)
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -851,6 +862,8 @@ if __name__ == "__main__":
                         type=float, help='Size of time step')
     parser.add_argument('--t0', metavar='t0', default=0.0,
                         type=float, help='Initial time')
+    parser.add_argument('--scenario', metavar='scenario', default=0,
+                        type=int, help='Scenario index')
     parser.add_argument('--rtol',metavar='rtol', default=1e-6,
                         type=float, help="Relative tolerance for non-linear solve")
     parser.add_argument('--restart', metavar='rst.npy', default=None,
@@ -884,6 +897,20 @@ if __name__ == "__main__":
 
     print("#   Save file time step to {0:s}".format(args.outfile))
 
+    Ns = 2
+    if(args.scenario==0):
+        print("#   Running scenario = 0 (2 species, 1 rxn, Liu 2014)")
+        Ns = 2
+    elif(args.scenario==1):
+        print("#   Running scenario = 1 (2 species, 1 rxn, PSAAP config)")
+        Ns = 2
+    elif(args.scenario==2):
+        print("#   Running scenario = 2 (3 species, 8 rxn, Liu 2017)")
+        Ns = 3
+    else:
+        print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, or 2.  Exiting.")
+        exit(-1)
+
     if(args.savedata!=None):
         print("#")
         print("#   Saving every time step to {0:s}".format(args.savedata))
@@ -894,14 +921,10 @@ if __name__ == "__main__":
     print("#")
 
     # Instantiate solver class
-    #tds = timeDomainCollocationSolver(2,1,args.Np)
-    tds = timeDomainCollocationSolver(3,1,args.Np)
+    tds = timeDomainCollocationSolver(Ns,1,args.Np,args.scenario)
 
-    # Default IC (may be overwritten below if we are restarting)
+    # Default IC (overwritten below if we are restarting)
     tds.U1[0:tds.Ns*tds.Np] = 1e-4
-    #tds.U1[tds.Np:2*tds.Np] = 1e-4
-    #tds.U1[2*tds.Np] = 0.0
-    #tds.U1[3*tds.Np-1] = 0.0
     tds.U1[tds.Ns*tds.Np:] = 0.75*tds.U1[0:tds.Np]
 
     # If restart file provided, read it.
