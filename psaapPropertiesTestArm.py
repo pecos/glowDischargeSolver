@@ -48,13 +48,14 @@ def setPsaapPropertiesTestArm(gam, params):
     #dH = np.array([15.7,0.0,0.0,0.0,0.0])        # energy lost per electron due to ionization rxn [eV]
 
     # nominal
-    #Ck = np.array([1.235e-7,3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
+    Ck = np.array([1.235e-7,3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
 
     # slow excitation rate
     #Ck = np.array([1.235e-7,0.5*3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
 
-    # fast excitation rate
-    Ck = np.array([1.235e-7,2.0*3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
+    ## fast excitation rate
+    #Ck = np.array([1.235e-7,2.0*3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
+
     A  = np.array([18.687,15.06,4.95,2.14,0.0,0.0,0.0,0.0]) # activation temperature [eV]
     dH = np.array([15.7,11.56,4.14,-11.56,0.0,0.0,0.0,0.0]) # energy lost per electron due to ionization rxn [eV]
 
