@@ -12,7 +12,7 @@ We consider three classes of collision:
 \end{enumerate}
 %
 
-\subsubsection{Electron-Neutral Elastic Scattering}
+\subsubsection{Electron-Neutral Elastic Scattering} \label{sec:en-scattering}
 Let $()_e$ denote electron quantities---e.g., $f_e$ is the electron
 distribution function, $m_e$ is the mass of an electron---and let
 $()_N$ denote the analogous quantities for the neutral particle.
@@ -210,8 +210,146 @@ discussed previously.
 
 
 
-\subsubsection{Electron-Neutral Excitation Reactions}
+\subsubsection{Electron-Neutral Excitation Reactions}\label{sec:en-excitation}
+Consider the following reaction:
+%
+\begin{equation*}
+\ce{A + e <=> B + e},
+\end{equation*}
+%
+which has the form of, for example, electron impact excitation of
+argon ($\ce{Ar + e <=> Ar^{\ast} + e}$).  Two particle reactive
+collisions are treated by many authors~\cite{}, but special care must
+be taken here since the electron appears on both sides of the
+reaction.  To be clear, we first consider the forward and reverse
+reactions separately.
 
+\paragraph{Forward}
+The forward process is $\ce{A + e -> B + e}$.  At a given point in
+velocity space $\mbf{v}_e$, this leads to both destruction and
+creation of electrons.  The destruction term is given by integrating
+over all interactions that consume electrons at $\mbf{v}_e$, weighted
+by the transition probability:
+%
+\begin{equation*}
+Q_{f, D}(\mbf{v}_e)
+=
+-\int_{\mbb{R}^3}\int_{\mbb{R}^3}\int_{\mbb{R}^3}
+f_e(\mbf{v}_e) f_A(\mbf{v}_A) W_f(\mbf{v}_0, \mbf{v}_e; \mbf{v}_B, \mbf{v}_e^{\prime})
+\, d^3\mbf{v}_A \, d^3\mbf{v}_B \, d^3 \mbf{v}_e^{\prime},
+\end{equation*}
+%
+where $W_f(\mbf{v}_0, \mbf{v}_e; \mbf{v}_B, \mbf{v}_e^{\prime})$ is
+the ``transition probability'' for the forward process taking an
+$\ce{A}$ particle at $\mbf{v}_A$ and an electron at $\mbf{v}_e$ and
+producing a $\ce{B}$ particle at $\mbf{v}_B$ and an electron at
+$\mbf{v}_e^{\prime}$.
+
+Similarly, the creation term is given by integrating over all
+interactions that produce electrons at $\mbf{v}_e$:
+%
+\begin{equation*}
+Q_{f, C}(\mbf{v}_e)
+=
+\int_{\mbb{R}^3}\int_{\mbb{R}^3}\int_{\mbb{R}^3}
+f_e(\mbf{v}_e^{\prime}) f_A(\mbf{v}_A) W_f(\mbf{v}_0, \mbf{v}_e^{\prime}; \mbf{v}_B, \mbf{v}_e)
+\, d^3\mbf{v}_A \, d^3\mbf{v}_B \, d^3 \mbf{v}_e^{\prime}.
+\end{equation*}
+%
+
+\paragraph{Backward}
+Analogously, the backward process ($\ce{B + e -> A + e}$) also leads
+to both destruction and creation of electrons at a given velocity:
+%
+\begin{gather*}
+Q_{b, D}(\mbf{v}_e)
+=
+-\int_{\mbb{R}^3}\int_{\mbb{R}^3}\int_{\mbb{R}^3}
+f_e(\mbf{v}_e) f_B(\mbf{v}_B) W_b(\mbf{v}_B, \mbf{v}_e; \mbf{v}_A, \mbf{v}_e^{\prime})
+\, d^3\mbf{v}_A \, d^3\mbf{v}_B \, d^3 \mbf{v}_e^{\prime}, \\
+%
+Q_{b, C}(\mbf{v}_e)
+=
+\int_{\mbb{R}^3}\int_{\mbb{R}^3}\int_{\mbb{R}^3}
+f_e(\mbf{v}_e^{\prime}) f_B(\mbf{v}_B) W_b(\mbf{v}_B, \mbf{v}_e^{\prime}; \mbf{v}_A, \mbf{v}_e)
+\, d^3\mbf{v}_A \, d^3\mbf{v}_B \, d^3 \mbf{v}_e^{\prime},
+\end{gather*}
+%
+where $W_b$ denotes the transition probability of the backward process.
+
+\paragraph{Detailed Baland and Net Creation}
+Following~\cite{}, we observe that, to satisfy detailed balance, the
+foward and backward transition probablities are related as follows:
+%
+\begin{equation*}
+W_b(\mbf{v}_B, \mbf{v}_e^{\prime}; \mbf{v}_A, \mbf{v}_e)
+=
+\alpha W_f(\mbf{v}_A, \mbf{v}_e; \mbf{v}_B, \mbf{v}_e^{\prime})
+\end{equation*}
+%
+where $\alpha$ is a constant given by\todo{figure this out}.
+
+Thus, the forward and backward expressions above may be combined to
+for the net production rate as follows:
+%
+\begin{align*}
+Q(\mbf{v}_e) = & \int_{\mbb{R}^3}\int_{\mbb{R}^3}\int_{\mbb{R}^3}
+\left[ \alpha f_e(\mbf{v}_e^{\prime}) f_B(\mbf{v}_B) - f_e(\mbf{v}_e) f_A(\mbf{v}_A) \right]
+W_f(\mbf{v}_0, \mbf{v}_e; \mbf{v}_B, \mbf{v}_e^{\prime})
+\, d^3\mbf{v}_A \, d^3\mbf{v}_B \, d^3 \mbf{v}_e^{\prime} \\
+%
+& +
+\int_{\mbb{R}^3}\int_{\mbb{R}^3}\int_{\mbb{R}^3}
+\left[ f_e(\mbf{v}_e^{\prime}) f_A(\mbf{v}_A) - \alpha f_e(\mbf{v}_e) f_B(\mbf{v}_B) \right]
+W_f(\mbf{v}_A, \mbf{v}_e^{\prime}; \mbf{v}_B, \mbf{v}_e)
+\, d^3\mbf{v}_A \, d^3\mbf{v}_B \, d^3 \mbf{v}_e^{\prime}.
+\end{align*}
+%
+As in~\S\ref{sec:en-scattering} the nine dimensional integrals above
+may be reduced to five dimensional integrals by imposing conservation
+of mass, momentum, and energy.  The first term on the right hand side
+is particularly similar because, as in the scattering case, we may
+take the ``pre-collision'' velocities $\mbf{v}_A$ and $\mbf{v}_e$ as
+given.  Then, conservation of momentum and energy require that
+%
+\begin{gather*}
+\mbf{v}_B
+=
+m_A \mbf{v}_A + m_e \mbf{v}_e + \frac{m_e}{m_B+m_e} g^{\prime} \mbf{\hat{e}},\\
+%
+\mbf{v}_e^{\prime}
+=
+m_A \mbf{v}_A + m_e \mbf{v}_e - \frac{m_B}{m_B+m_e} g^{\prime} \mbf{\hat{e}},
+\end{gather*}
+%
+where $\mbf{\hat{e}}$ the direction of the ``post-collision'' relative
+velocity and $g^{\prime}$ is ``post-collision'' relative speed, given
+by
+%
+\begin{equation*}
+g^{\prime} = \left( g^2 - \frac{2 m_A m_e}{m_A + m_e} \Delta E \right)^2,
+\end{equation*}
+%
+where $g$ is the precollision relative speed (i.e., $g = |\mbf{v}_A -
+\mbf{v}_e|$) and $\Delta E$ is the change in internal energy
+associated with the reaction.  Thus,
+%
+\begin{align*}
+\int_{\mbb{R}^3}\int_{\mbb{R}^3}\int_{\mbb{R}^3} &
+\left[ \alpha f_e(\mbf{v}_e^{\prime}) f_B(\mbf{v}_B) - f_e(\mbf{v}_e) f_A(\mbf{v}_A) \right]
+W_f(\mbf{v}_0, \mbf{v}_e; \mbf{v}_B, \mbf{v}_e^{\prime})
+\, d^3\mbf{v}_A \, d^3\mbf{v}_B \, d^3 \mbf{v}_e^{\prime}
+= \\
+& \int_{\mbb{R}^3}\int_{S^2}
+\left[ \alpha f_e(\mbf{v}_e^{\prime}) f_B(\mbf{v}_B) - f_e(\mbf{v}_e) f_A(\mbf{v}_A) \right]
+g \sigma(g, \mbf{\hat{e}})
+\, d\mbf{\hat{e}} \, d^3\mbf{v}_A,
+\end{align*}
+%
+where $\sigma$ is the forward reaction differential cross section.
+
+In principle, one may reduce the second 9D integral to 5D in an
+analogous way, but the details are more complicated. \todo{finish}
 
 \subsubsection{Electron-Neutral Ionization Reactions}
 
