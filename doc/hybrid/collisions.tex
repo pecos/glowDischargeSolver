@@ -1,0 +1,217 @@
+\subsection{Collision Notes} \label{sec:col-notes}
+NOTE:
+\emph{This is a place for making notes about the collision integrals.
+  Eventually it will replace or be combined with the previous section.}
+
+We consider three classes of collision:
+%
+\begin{enumerate}
+\item Electron-neutral elastic collisions, e.g., $\ce{ Ar + e -> Ar + e}$;
+\item Electron-neutral excitation reactions, e.g., $\ce{ Ar + e <=> Ar^{\ast} + e}$;
+\item Electron-neutral ionization reactions, e.g., $\ce{ Ar^{\ast} + e <=> Ar^+ + e + e}$.
+\end{enumerate}
+%
+
+\subsubsection{Electron-Neutral Elastic Scattering}
+Let $()_e$ denote electron quantities---e.g., $f_e$ is the electron
+distribution function, $m_e$ is the mass of an electron---and let
+$()_N$ denote the analogous quantities for the neutral particle.
+Then, the net rate of production of particles (per unit volume in
+state space) is given by
+%
+\begin{equation}
+Q_{EL}(\mbf{v}_e)
+=
+\int_{\mbb{R}^3} \int_{\mbb{R}^3}\int_{\mbb{R}^3}
+\left(
+f_e(\mbf{v}_e^{\prime}) f_N(\mbf{v}_N^{\prime})
+-
+f_e(\mbf{v}_e) f_N(\mbf{v}_N)
+\right) W_{EL}(\mbf{v}_e, \mbf{v}_N; \mbf{v}_e^{\prime}, \mbf{v}_N^{\prime})
+\,
+d^3\mbf{v}_N \, d^3\mbf{v}_e^{\prime} \, d^3\mbf{v}_N^{\prime}
+\label{eqn:elastic-collision-9d}
+\end{equation}
+%
+where $\mbf{v}_e$ and $\mbf{v}_N$ denote the ``pre-collision''
+velocities, $\mbf{v}_e^{\prime}$ and $\mbf{v}_N^{\prime}$ denote the
+``post-collision'' velocities, and $W_{EL}$ denotes the elastic
+collision transition probability, which encodes both constraints
+(conservation of momentum and energy) \emph{and} information about the
+relative likelihood of allowable transitions.
+
+The nine dimensional integral in~\eqref{eqn:elastic-collision-9d} can
+be reduced to a five dimensional integral by imposing conservation of
+momentum and energy.  To do so in the simplest possible way, let
+$()_0$ denote the quantities associated with the center of mass of the
+two-particle system.  Specifically, the pre-collision position and
+velocity of the center of mass are given by
+%
+\begin{equation*}
+\mbf{x}_0 = \frac{m_N \mbf{x}_N + m_e \mbf{x}_e}{m_N + m_e},
+\quad
+\mbf{v}_0 = \frac{m_N \mbf{v}_N + m_e \mbf{v}_e}{m_N + m_e}
+\end{equation*}
+%
+Conservation of momentum requires that
+%
+\begin{gather*}
+m_N \mbf{v}_N + m_e \mbf{v}_e = m_N \mbf{v}_N^{\prime} + m_e \mbf{v}_e^{\prime}\\
+(m_N +m_e) \mbf{v}_0 = (m_N + m_e) \mbf{v}_0^{\prime}.
+\end{gather*}
+%
+That is, the velocity of the center of mass is not altered by the
+collision.  Thus, letting $\mbf{u}$ denote velocities measured in a
+frame attached to the center of mass, one may write
+%
+\begin{equation*}
+m_N \mbf{u}_N^{\prime} + m_e \mbf{u}_e^{\prime}
+=
+m_N \mbf{v}_N^{\prime} + m_e \mbf{v}_e^{\prime} - (m_N + m_e) \mbf{v}_0
+= 0.
+\end{equation*}
+%
+Thus, conservation of momentum implies the following relationship
+between the post-collision relative velocities:
+%
+\begin{equation*}
+\mbf{u}_N^{\prime} = -\,\frac{m_e}{m_N} \mbf{u}_e^{\prime}.
+\end{equation*}
+%
+To continue, let $\mbf{\hat{e}}$ a unit vector in the direction of the
+relative velocity between the post-collision particles.  Then, the
+relative post-collision velocity may be written as
+%
+\begin{equation*}
+\mbf{u}_N^{\prime} - \mbf{u}_e^{\prime} = g^{\prime} \mbf{\hat{e}},
+\end{equation*}
+%
+where $g'$ denotes the the magnitude of the post-collision relative
+velocity.  To continue, we use conservation of energy to determine
+$g^{\prime}$.
+
+In the frame moving with the center of mass, conservation of energy requires that
+%
+\begin{equation*}
+\frac{1}{2} m_N |\mbf{u}_N|^2 + \frac{1}{2} m_e |\mbf{u}_e|^2
+=
+\frac{1}{2} m_N |\mbf{u}_N^{\prime}|^2 + \frac{1}{2} m_e |\mbf{u}_e^{\prime}|^2.
+\end{equation*}
+%
+In order to solve for $g^{\prime}$, we express the post-collision
+velocities in terms of $g^{\prime}$ and $\mbf{\hat{e}}$.  By
+definitions and previous results, one can show that
+%
+\begin{gather*}
+\mbf{u}_N^{\prime} = \frac{m_e}{m_N + m_e} g^{\prime} \mbf{\hat{e}},\\
+\mbf{u}_e^{\prime} = \frac{-m_N}{m_N + m_e} g^{\prime} \mbf{\hat{e}}.
+\end{gather*}
+%
+Substituting into conservation of energy gives
+%
+\begin{equation*}
+\frac{1}{2} m_N |\mbf{u}_N|^2 + \frac{1}{2} m_e |\mbf{u}_e|^2
+=
+\frac{1}{2} m_N \frac{m_e^2}{(m_N+m_e)^2} (g^{\prime})^2
++
+\frac{1}{2} m_e \frac{m_N^2}{(m_N+m_e)^2} (g^{\prime})^2
+=
+\frac{1}{2} \frac{m_e m_N}{m_e + m_N} (g^{\prime})^2.
+\end{equation*}
+%
+Thus,
+%
+\begin{equation*}
+g^{\prime} = \left( \frac{m_e + m_N}{m_e m_N} \left( m_N |\mbf{u}_N|^2 + m_e |\mbf{u}_e|^2 \right) \right)^{1/2}.
+\end{equation*}
+%
+This expression can be further simplified by introducing the
+pre-collision relative speed $g$:
+%
+\begin{equation*}
+g = | \mbf{u}_N - \mbf{u}_e |
+\end{equation*}
+%
+Then,
+\begin{equation*}
+\frac{1}{2} m_N |\mbf{u}_N|^2 + \frac{1}{2} m_e |\mbf{u}_e|^2
+=
+\frac{1}{2} \frac{m_e m_N}{m_e + m_N} g^2,
+\end{equation*}
+%
+which implies that $g^{\prime} = g$.
+
+Thus, given the pre-collision velocities $\mbf{v}_N$ and $\mbf{v}_e$
+and the post-collision relative velocity direction $\mbf{\hat{e}}$,
+the post-collision velocities are completely determined:
+%
+\begin{gather*}
+\mbf{v}_N^{\prime}
+=
+\mbf{v}_0 + \mbf{u}_N^{\prime}
+=
+m_N \mbf{v}_N + m_e \mbf{v}_e + \frac{m_e}{m_N+m_e} g \mbf{\hat{e}},\\
+%
+\mbf{v}_N^{\prime}
+=
+\mbf{v}_0 + \mbf{u}_N^{\prime}
+=
+m_N \mbf{v}_N + m_e \mbf{v}_e - \frac{m_N}{m_N+m_e} g \mbf{\hat{e}}.
+\end{gather*}
+%
+Using these constraints, the collision integral
+in~\eqref{eqn:elastic-collision-9d} may be rewritten as follows:
+%
+\begin{equation}
+Q_{EL}(\mbf{v}_e)
+=
+\int_{\mbb{R}^3} \int_{S^2}
+\left(
+f_e(\mbf{v}_e^{\prime}) f_N(\mbf{v}_N^{\prime})
+-
+f_e(\mbf{v}_e) f_N(\mbf{v}_N)
+\right) B(\mbf{v}_e, \mbf{v}_N; \mbf{\hat{e}})
+\,
+d\mbf{\hat{e}} \, d^3\mbf{v}_N,
+\label{eqn:elastic-collision-5d}
+\end{equation}
+%
+where we integrate only over transitions allowed by conservation of
+momentum and energy and $B(\mbf{v}_e, \mbf{v}_N; \mbf{\hat{e}})$ has
+taken the place of $W_{EL}$ for these allowable transitions.  It is
+common to formulate $B$ as follows
+%
+\begin{equation*}
+B(\mbf{v}_e, \mbf{v}_N; \mbf{\hat{e}}) = g \sigma(g,\mbf{\hat{e}}),
+\end{equation*}
+%
+where $\sigma$ is the differential collision cross section.
+Substituting this into~\eqref{eqn:elastic-collision-5d} gives the
+typical form:
+%
+\begin{equation}
+Q_{EL}(\mbf{v}_e)
+=
+\int_{\mbb{R}^3} \int_{S^2}
+\left(
+f_e(\mbf{v}_e^{\prime}) f_N(\mbf{v}_N^{\prime})
+-
+f_e(\mbf{v}_e) f_N(\mbf{v}_N)
+\right) g \sigma(g, \mbf{\hat{e}})
+\,
+d\mbf{\hat{e}} \, d^3\mbf{v}_N,
+\label{eqn:elastic-collision-5d}
+\end{equation}
+%
+where, when evaluating the integral (e.g., using quadrature), the
+quantities $\mbf{v}_e^{\prime}$, $\mbf{v}_N^{\prime}$, and $g$ are
+determined from $\mbf{v}_e$, $\mbf{v}_N$, and $\mbf{\hat{e}}$ as
+discussed previously.
+
+
+
+\subsubsection{Electron-Neutral Excitation Reactions}
+
+
+\subsubsection{Electron-Neutral Ionization Reactions}
+
