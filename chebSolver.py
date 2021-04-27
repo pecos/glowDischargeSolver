@@ -366,7 +366,7 @@ class timeDomainCollocationSolver:
         r[-1] = np.sin(2*np.pi*time)
         self.phi = np.linalg.solve(self.LpD, r)
 
-    def residual(self, Uin, time, dt, first_step=False, weak_bc=False):
+    def spatial_residual(self, Uin, time, dt, first_step=False, weak_bc=False):
         """Evaluates the residual.
 
         Inputs:
@@ -438,6 +438,35 @@ class timeDomainCollocationSolver:
 
         res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ)
 
+        return res
+
+    def residual(self, Uin, time, dt, first_step=False, weak_bc=False):
+        """Evaluates the residual.
+
+        Inputs:
+          Uin  : Current state
+          time : Current time
+          dt   : Time step
+
+        Outputs:
+          returns residual vector
+
+        Notes:
+          This function currently assumes that Ns=2 and NT=1
+        """
+        res = self.spatial_residual(Uin, time, dt, first_step, weak_bc)
+
+        # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
+        iele = [0]
+        iion = [1]
+
+        # pull off state for convenience
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        for i in range(0,self.Ns):
+            dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
+
+        nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
+        Te = nT/dens[:,iele]
 
         # time derivative part (backward Euler)
         res += Uin - self.U1
@@ -459,7 +488,7 @@ class timeDomainCollocationSolver:
 
         return res
 
-    def jacobian(self, Uin, time, dt, first_step=False, weak_bc=False):
+    def spatial_jacobian(self, Uin, time, dt, first_step=False, weak_bc=False):
         """Evaluates the residual.
 
         Inputs:
@@ -596,6 +625,22 @@ class timeDomainCollocationSolver:
         # Joule heating
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
+
+
+    def jacobian(self, Uin, time, dt, first_step=False, weak_bc=False):
+        """Evaluates the residual.
+
+        Inputs:
+          Uin  : Current state
+          time : Current time
+          dt   : Time step
+
+        Outputs: None (sets self.jac)
+
+        Notes:
+          This function currently assumes that Ns=2 and NT=1
+        """
+        self.spatial_jacobian(Uin, time, dt, first_step, weak_bc)
 
         # time derivative part of residual
         self.jac += np.identity(self.Ndof)
