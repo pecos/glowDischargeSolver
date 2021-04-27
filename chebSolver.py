@@ -366,7 +366,7 @@ class timeDomainCollocationSolver:
         r[-1] = np.sin(2*np.pi*time)
         self.phi = np.linalg.solve(self.LpD, r)
 
-    def residual(self, Uin, time, dt, first_step=False):
+    def residual(self, Uin, time, dt, first_step=False, weak_bc=False):
         """Evaluates the residual.
 
         Inputs:
@@ -412,6 +412,11 @@ class timeDomainCollocationSolver:
         fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.mobility(1)*dens[ 0,iion]*(-phi_x[ 0])
         fspec[-1,1] =  self.params.ksion*dens[-1,iion] + self.params.mobility(1)*dens[-1,iion]*(-phi_x[-1])
 
+        # overwrite endpoints in fe (weakly impose BC)
+        if (weak_bc):
+            fspec[ 0,0] = (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
+            fspec[-1,0] = ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+
         #if (self.Ns>2):
         #    fspec[ 0,2:self.Ns] = 0.0
         #    fspec[-1,2:self.Ns] = 0.0
@@ -440,8 +445,9 @@ class timeDomainCollocationSolver:
         # boundary conditions (strongly enforced)
 
         # electron flux
-        res[0]           = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
-        res[self.Np-1]   = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+        if (not weak_bc):
+            res[0]           = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
+            res[self.Np-1]   = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
 
         if (self.Ns>2):
             res[2*self.Np  ] = dens[ 0,2] - 0.0
@@ -453,7 +459,7 @@ class timeDomainCollocationSolver:
 
         return res
 
-    def jacobian(self, Uin, time, dt, first_step=False):
+    def jacobian(self, Uin, time, dt, first_step=False, weak_bc=False):
         """Evaluates the residual.
 
         Inputs:
@@ -524,6 +530,16 @@ class timeDomainCollocationSolver:
         fspec_U[1,1,-1,:] = self.params.mobility(1)*dens[-1,1]*(-phi_x_ni[-1,:])
         fspec_U[1,1,-1,-1] += self.params.ksion + self.params.mobility(1)*(-phi_x[-1])
 
+        if (weak_bc):
+            fspec_U[0,0,0,:] = (- self.params.gam*fspec_U[ 1,0,0,:])
+            fspec_U[0,1,0,:] = (- self.params.gam*fspec_U[ 1,1,0,:])
+            fspec_U[0,0,0,0] -= self.params.ks
+
+            fspec_U[0,0,-1,:] = (- self.params.gam*fspec_U[1,0,-1,:])
+            fspec_U[0,1,-1,:] = (- self.params.gam*fspec_U[1,1,-1,:])
+            fspec_U[0,0,-1,-1] += self.params.ks
+
+
         #if (self.Ns>2):
         #    fspec_U[2:self.Ns,:, 0,:] = 0.0
         #    fspec_U[2:self.Ns,:,-1,:] = 0.0
@@ -585,15 +601,16 @@ class timeDomainCollocationSolver:
         self.jac += np.identity(self.Ndof)
 
         # boundary conditions (strongly enforced)
-        self.jac[0,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
-        self.jac[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
-        self.jac[0,0] += self.params.ks
+        if (not weak_bc):
+            self.jac[0,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
+            self.jac[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
+            self.jac[0,0] += self.params.ks
 
-        self.jac[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac[self.Np-1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
-        self.jac[self.Np-1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
-        self.jac[self.Np-1,self.Np-1] -= self.params.ks
+            self.jac[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[self.Np-1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
+            self.jac[self.Np-1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
+            self.jac[self.Np-1,self.Np-1] -= self.params.ks
 
         if (self.Ns>2):
             self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
@@ -610,7 +627,7 @@ class timeDomainCollocationSolver:
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
         self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
 
-    def jacobian0(self, dt, first_step=False):
+    def jacobian0(self, dt, first_step=False, weak_bc=False):
         """Evaluate the Jacobian of the residual with respect to the state at
         the previous time step
 
@@ -628,8 +645,9 @@ class timeDomainCollocationSolver:
 
         # for boundary conditions that are strongly enforced,
         # corresponding residual has no dependence on previous state
-        self.jac0[0        ,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac0[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        if (not weak_bc):
+            self.jac0[0        ,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac0[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
         if (self.Ns>2):
             self.jac0[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
@@ -668,7 +686,7 @@ class timeDomainCollocationSolver:
 
 
     def step(self, time, dt, iter_max=10, rtol=1e-6, atol=1e-12,
-             first_step=False, verbose=False):
+             first_step=False, verbose=False, weak_bc=False):
         """Take a single time step.
 
         Inputs
@@ -682,7 +700,7 @@ class timeDomainCollocationSolver:
 
         Outputs: None (self.U2 is set to solution for this time step)
         """
-        r = self.residual(self.U2, time, dt, first_step)
+        r = self.residual(self.U2, time, dt, first_step, weak_bc)
 
         normr = normr0 = np.linalg.norm(r)
         count = 0
@@ -692,7 +710,7 @@ class timeDomainCollocationSolver:
                 count, normr, normr/normr0))
         while( not converged and (count < iter_max) ):
             #self.jacobianFD(self.U2, time, dt, first_step)
-            self.jacobian(self.U2, time, dt, first_step)
+            self.jacobian(self.U2, time, dt, first_step, weak_bc)
 
             try:
                 dU = np.linalg.solve(self.jac, -r)
@@ -709,7 +727,7 @@ class timeDomainCollocationSolver:
                 print("Solve failed!", flush=True)
                 exit(-1)
 
-            r = self.residual(self.U2, time, dt, first_step)
+            r = self.residual(self.U2, time, dt, first_step, weak_bc)
             normr = np.linalg.norm(r)
             count += 1
             if (verbose):
@@ -727,7 +745,7 @@ class timeDomainCollocationSolver:
             print("Step did not converge")
             exit(-1)
 
-    def stepSensitivity(self, time, dt, first_step=False, verbose=False):
+    def stepSensitivity(self, time, dt, first_step=False, verbose=False, weak_bc=False):
         """Advance the sensitivity matrix
 
         Inputs
@@ -739,8 +757,8 @@ class timeDomainCollocationSolver:
         Outputs: None (self.A1 is set to sensitivity at the end of the time step)
         """
         # evaluate the required Jacobians
-        self.jacobian(self.U2, time, dt, first_step)
-        self.jacobian0(dt, first_step)
+        self.jacobian(self.U2, time, dt, first_step, weak_bc)
+        self.jacobian0(dt, first_step, weak_bc)
 
         self.rhsSens = -(self.jac0 @ self.A0)
 
@@ -751,7 +769,8 @@ class timeDomainCollocationSolver:
             print("# Advancing sensitivity system.")
 
 
-    def solve(self, time0, dt, Nstep, savedata=None, verbose=False, rtol=1e-6, computeSensitivity=False):
+    def solve(self, time0, dt, Nstep, savedata=None, verbose=False,
+              rtol=1e-6, computeSensitivity=False, weak_bc=False):
 
         if(savedata!=None):
             Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float)
@@ -766,13 +785,13 @@ class timeDomainCollocationSolver:
 
         # assume initial condition has been set in U1!
         time = time0+dt
-        self.step(time, dt, first_step=True, verbose=verbose, rtol=rtol)
+        self.step(time, dt, first_step=True, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
         print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
             time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
             self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max()))
 
         if(computeSensitivity):
-            self.stepSensitivity(time, dt, first_step=True, verbose=verbose)
+            self.stepSensitivity(time, dt, first_step=True, verbose=verbose, weak_bc=weak_bc)
 
 
         if(savedata!=None):
@@ -789,7 +808,7 @@ class timeDomainCollocationSolver:
                 self.A0 = np.copy(self.A1)
 
             # advance
-            self.step(time, dt, first_step=True, verbose=verbose, rtol=rtol)
+            self.step(time, dt, first_step=True, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
             #self.filter()
             print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
                 time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
@@ -799,7 +818,7 @@ class timeDomainCollocationSolver:
                 Usave[istep+1,:] = self.U2[:,0]
 
             if(computeSensitivity):
-                self.stepSensitivity(time, dt, first_step=True, verbose=verbose)
+                self.stepSensitivity(time, dt, first_step=True, verbose=verbose, weak_bc=weak_bc)
 
         if(savedata!=None):
             np.save(savedata,Usave)
@@ -874,6 +893,8 @@ if __name__ == "__main__":
                         help='Filename to save every time step')
     parser.add_argument('--verbose',default=False,
                         action='store_true', help='Be extra chatty')
+    parser.add_argument('--weakbc',default=False,
+                        action='store_true', help='Enforce electron flux BC weakly')
     parser.add_argument('--plot', default=False,
                         action='store_true', help="Plot the final state for inspection.")
     args = parser.parse_args()
@@ -886,6 +907,10 @@ if __name__ == "__main__":
     print("#   Size of time step (dt)          = {0:.6e}".format(args.dt))
     print("#   Initial time (t0)               = {0:.6e}".format(args.t0))
     print("#   Relative tolerance (rtol)       = {0:.6e}".format(args.rtol))
+
+    if(args.weakbc):
+        print("#")
+        print("#   Imposing electron flux BC weakly.")
 
     if(args.restart!=None):
         print("#")
@@ -939,7 +964,7 @@ if __name__ == "__main__":
 
     # Run for desired number of time steps
     tds.solve(args.t0, args.dt, args.Nt,
-              args.savedata, args.verbose, args.rtol)
+              args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
     # Save the result
     np.save(args.outfile, tds.U2)
