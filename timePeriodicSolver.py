@@ -4,8 +4,8 @@ import chebSolver as cs
 
 class timePeriodicSolver:
 
-    def __init__(self, Ns, NT, Np, gam, restart=None, scenario=0):
-        self.tds = cs.timeDomainCollocationSolver(Ns,NT,Np,gam,scenario)
+    def __init__(self, Ns, NT, Np, gam, restart=None, scenario=0, scheme='BE'):
+        self.tds = cs.timeDomainCollocationSolver(Ns,NT,Np,gam,scenario,scheme)
         self.res = np.zeros((self.tds.Ndof,1))
         self.jac = np.zeros((self.tds.Ndof,self.tds.Ndof))
 
@@ -42,7 +42,9 @@ class timePeriodicSolver:
         self.tds.A1 = np.copy(np.identity(self.tds.Ndof))
 
         # Run from IC for 1 period
-        self.tds.solve(0.0, 1.0/Nt, Nt, savedata=None, verbose=False, rtol=1e-8, computeSensitivity=True)
+        self.tds.solve(0.0, 1.0/Nt, Nt,
+                       savedata=None, verbose=False, rtol=1e-8,
+                       computeSensitivity=True, weak_bc=True)
 
         # Compute difference between final state and Uic
         self.res = self.tds.U2 - Uic
@@ -87,6 +89,8 @@ if __name__ == "__main__":
                         type=int, help='Scenario index')
     parser.add_argument('--restart', metavar='rst.npy', default=None,
                         help='Restart file (*.npy format, must have same Np)')
+    parser.add_argument('--tscheme', metavar='time_disc',default="BE",
+                        help='Temporal scheme indicator [BE or CN]')
     parser.add_argument('--outfile', metavar='out.npy', default='result.npy',
                         help='Filename to save restart file')
     parser.add_argument('--verbose',default=False,
@@ -98,6 +102,7 @@ if __name__ == "__main__":
     # Dump inputs to the screen for posterity
     print("# Input parameters:")
 
+    print("#   Temporal scheme (tscheme)       = {0:s}".format(args.tscheme))
     print("#   Number of Chebyshev points (Np) = {0:d}".format(args.Np))
     print("#   Number of time steps (Nt)       = {0:d}".format(args.Nt))
     print("#   Maximum Newton iterationss (Nn) = {0:d}".format(args.Nn))
@@ -132,7 +137,7 @@ if __name__ == "__main__":
     print("#")
 
     tps = timePeriodicSolver(Ns, 1, args.Np, args.gam,
-                             restart=args.restart, scenario=args.scenario)
+                             restart=args.restart, scenario=args.scenario, scheme=args.tscheme)
 
 
     # Get the IC, for use in computing the residual below
