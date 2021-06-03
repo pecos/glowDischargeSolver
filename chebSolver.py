@@ -420,9 +420,13 @@ class timeDomainCollocationSolver:
         fspec[-1,1] =  self.params.ksion*dens[-1,iion] + self.params.mobility(1)*dens[-1,iion]*(-phi_x[-1])
 
         # overwrite endpoints in fe (weakly impose BC)
+        rstrg = np.zeros(2)
         if (weak_bc):
             fspec[ 0,0] = (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
             fspec[-1,0] = ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+        else:
+            rstrg[0] = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
+            rstrg[1] = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
 
         #if (self.Ns>2):
         #    fspec[ 0,2:self.Ns] = 0.0
@@ -445,7 +449,7 @@ class timeDomainCollocationSolver:
 
         res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ)
 
-        return res
+        return res, rstrg
 
     def residual(self, Uin, time, dt, weak_bc=False):
         """Evaluates the residual.
@@ -477,7 +481,7 @@ class timeDomainCollocationSolver:
         """Evaluates the residual for backward Euler.  See
         timeDomainCollocationSolver.residua() for additional documentation.
         """
-        res = self.spatial_residual(Uin, time, dt, weak_bc)
+        res, rstrg = self.spatial_residual(Uin, time, dt, weak_bc)
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]
@@ -498,8 +502,8 @@ class timeDomainCollocationSolver:
 
         # electron flux
         if (not weak_bc):
-            res[0]           = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
-            res[self.Np-1]   = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+            res[0]           = rstrg[0] #fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
+            res[self.Np-1]   = rstrg[1] #fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
 
         if (self.Ns>2):
             res[2*self.Np  ] = dens[ 0,2] - 0.0
@@ -515,8 +519,9 @@ class timeDomainCollocationSolver:
         """Evaluates the residual for Crank-Nicolson.  See
         timeDomainCollocationSolver.residua() for additional documentation.
         """
-        res  = 0.5*self.spatial_residual(self.U1, time-dt, dt, weak_bc)
-        res += 0.5*self.spatial_residual(    Uin, time   , dt, weak_bc)
+        res0, rstrgold = self.spatial_residual(self.U1, time-dt, dt, weak_bc)
+        res1, rstrg    = self.spatial_residual(    Uin, time   , dt, weak_bc)
+        res = 0.5*(res0+res1)
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]
@@ -537,8 +542,8 @@ class timeDomainCollocationSolver:
 
         # electron flux
         if (not weak_bc):
-            res[0]           = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
-            res[self.Np-1]   = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+            res[0]           = rstrg[0] #fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
+            res[self.Np-1]   = rstrg[1] #fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
 
         if (self.Ns>2):
             res[2*self.Np  ] = dens[ 0,2] - 0.0
@@ -554,8 +559,9 @@ class timeDomainCollocationSolver:
         """Evaluates the residual for linearized Crank-Nicolson.  See
         timeDomainCollocationSolver.residua() for additional documentation.
         """
-        res  = 0.5*self.spatial_residual(self.U1, time-dt, dt, weak_bc)
-        res += 0.5*self.spatial_residual(self.U1, time   , dt, weak_bc)
+        res0, rstrgold = self.spatial_residual(self.U1, time-dt, dt, weak_bc)
+        res1, rstrg    = self.spatial_residual(    Uin, time   , dt, weak_bc)
+        res = 0.5*(res0+res1)
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]
@@ -593,7 +599,7 @@ class timeDomainCollocationSolver:
 
         return res
 
-    def spatial_jacobian(self, Uin, time, dt, weak_bc=False):
+    def spatial_jacobian(self, Uin, time, dt, weak_bc=False, solve_poisson=False):
         """Evaluates the residual.
 
         Inputs:
@@ -620,6 +626,11 @@ class timeDomainCollocationSolver:
 
         Te_ne = -np.multiply(Te/dens[:,iele],np.identity(self.Np))
         Te_nT = np.multiply(np.identity(self.Np),1./dens[:,iele])
+
+
+        # force solving poisson equation again
+        if (solve_poisson):
+            self.solve_poisson(dens[:,iele],dens[:,iion],time)
 
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
@@ -664,6 +675,7 @@ class timeDomainCollocationSolver:
         fspec_U[1,1,-1,:] = self.params.mobility(1)*dens[-1,1]*(-phi_x_ni[-1,:])
         fspec_U[1,1,-1,-1] += self.params.ksion + self.params.mobility(1)*(-phi_x[-1])
 
+        rstrg_U = np.zeros((2,self.Nv*self.Np))
         if (weak_bc):
             fspec_U[0,0,0,:] = (- self.params.gam*fspec_U[ 1,0,0,:])
             fspec_U[0,1,0,:] = (- self.params.gam*fspec_U[ 1,1,0,:])
@@ -672,12 +684,14 @@ class timeDomainCollocationSolver:
             fspec_U[0,0,-1,:] = (- self.params.gam*fspec_U[1,0,-1,:])
             fspec_U[0,1,-1,:] = (- self.params.gam*fspec_U[1,1,-1,:])
             fspec_U[0,0,-1,-1] += self.params.ks
+        else:
+            rstrg_U[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
+            rstrg_U[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
+            rstrg_U[0,0] += self.params.ks
 
-
-        #if (self.Ns>2):
-        #    fspec_U[2:self.Ns,:, 0,:] = 0.0
-        #    fspec_U[2:self.Ns,:,-1,:] = 0.0
-
+            rstrg_U[1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
+            rstrg_U[1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
+            rstrg_U[1,self.Np-1] -= self.params.ks
 
         # form Jacobians of derivatives of fluxes at collocation points
         fspec_x_U = np.ndarray((self.Ns, self.Ns+1, self.Np, self.Np),dtype=np.float)
@@ -731,8 +745,10 @@ class timeDomainCollocationSolver:
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
 
+        return rstrg_U
 
-    def jacobian(self, Uin, time, dt, weak_bc=False):
+
+    def jacobian(self, Uin, time, dt, weak_bc=False, solve_poisson=False):
         """Evaluates the Jacobian.
 
         Inputs:
@@ -744,35 +760,28 @@ class timeDomainCollocationSolver:
         Outputs: None (sets self.jac)
         """
         if (self.temporal_scheme=="BE"):
-            self.jacobianBE(Uin, time, dt, weak_bc)
+            self.jacobianBE(Uin, time, dt, weak_bc, solve_poisson)
         elif (self.temporal_scheme=="CN"):
-            self.jacobianCN(Uin, time, dt, weak_bc)
+            self.jacobianCN(Uin, time, dt, weak_bc, solve_poisson)
         else:
             print("Time marching scheme not recognized")
             exit(-1)
 
 
-    def jacobianBE(self, Uin, time, dt, weak_bc=False):
+    def jacobianBE(self, Uin, time, dt, weak_bc=False, solve_poisson=False):
         """Evaluates the Jacobian for backward Euler time marching.
         See timeDomainCollocationSolver.jacobian() for further documentaion.
         """
         # Jacobian of spatial contribution to residual
-        self.spatial_jacobian(Uin, time, dt, weak_bc)
+        rstrg_U = self.spatial_jacobian(Uin, time, dt, weak_bc, solve_poisson)
 
         # Jacobian of unsteady contribution to residual
         self.jac += np.identity(self.Ndof)
 
         # boundary condition modifications (for strongly enforced BCs)
         if (not weak_bc):
-            self.jac[0,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
-            self.jac[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
-            self.jac[0,0] += self.params.ks
-
-            self.jac[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[self.Np-1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
-            self.jac[self.Np-1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
-            self.jac[self.Np-1,self.Np-1] -= self.params.ks
+            self.jac[0,:] = rstrg_U[0,:]
+            self.jac[self.Np-1,:] = rstrg_U[1,:]
 
         if (self.Ns>2):
             self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
@@ -790,12 +799,12 @@ class timeDomainCollocationSolver:
         self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
 
 
-    def jacobianCN(self, Uin, time, dt, weak_bc=False):
+    def jacobianCN(self, Uin, time, dt, weak_bc=False, solve_poisson=False):
         """Evaluates the Jacobian for Crank-Nicolson time marching.
         See timeDomainCollocationSolver.jacobian() for further documentaion.
         """
         # Jacobian of spatial contribution to residual
-        self.spatial_jacobian(Uin, time, dt, weak_bc)
+        rstrg_U = self.spatial_jacobian(Uin, time, dt, weak_bc, solve_poisson)
         self.jac *= 0.5
 
         # Jacobian of unsteady contribution to residual
@@ -803,15 +812,8 @@ class timeDomainCollocationSolver:
 
         # boundary condition modifications (for strongly enforced BCs)
         if (not weak_bc):
-            self.jac[0,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
-            self.jac[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
-            self.jac[0,0] += self.params.ks
-
-            self.jac[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[self.Np-1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
-            self.jac[self.Np-1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
-            self.jac[self.Np-1,self.Np-1] -= self.params.ks
+            self.jac[0,:] = rstrg_U[0,:]
+            self.jac[self.Np-1,:] = rstrg_U[1,:]
 
         if (self.Ns>2):
             self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
@@ -860,7 +862,7 @@ class timeDomainCollocationSolver:
         self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
 
 
-    def jacobian0(self, dt, weak_bc=False):
+    def jacobian0(self, time, dt, weak_bc=False):
         """Evaluate the Jacobian of the residual with respect to the state at
         the previous time step
 
@@ -871,7 +873,19 @@ class timeDomainCollocationSolver:
         Outputs: None (sets self.jac0)
         """
 
-        self.jac0 = -np.identity(self.Ndof)
+        if (self.temporal_scheme=="BE"):
+            self.jac0 = -np.identity(self.Ndof)
+
+        elif (self.temporal_scheme=="CN"):
+            self.spatial_jacobian(self.U1, time-dt, dt, weak_bc, solve_poisson=True)
+            self.jac *= 0.5
+
+            self.jac0 = np.copy(self.jac)
+
+            self.jac0 -= np.identity(self.Ndof)
+        else:
+            print("Time marching scheme not recognized")
+            exit(-1)
 
         # boundary condition modifications (for strongly enforced BCs)
         # NB: For BCs that are strongly enforced, corresponding
@@ -1001,12 +1015,16 @@ class timeDomainCollocationSolver:
 
         Outputs: None (self.A1 is set to sensitivity at the end of the time step)
         """
-        # TODO: Update this method to support CN time marching!
+        # do this first b/c it may modify self.jac!
+        # TODO: should probably change this design...
+        #       storing a single jacobian as a member makes things confusing
+        self.jacobian0(time, dt, weak_bc)
 
         # evaluate the required Jacobians
-        self.jacobian(self.U2, time, dt, weak_bc)
-        self.jacobian0(dt, weak_bc)
+        self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
 
+
+        # for the RHS
         self.rhsSens = -(self.jac0 @ self.A0)
 
         # solve the sensitivity update system
@@ -1215,6 +1233,8 @@ if __name__ == "__main__":
     if(args.weakbc):
         print("#")
         print("#   Imposing electron flux BC weakly.")
+        print("# ***** WARNING: This is an experimental feature that may not work *****")
+        print("# *****          and is not fully supported.  Please beware.       *****")
 
     if(args.restart!=None):
         print("#")
@@ -1269,6 +1289,10 @@ if __name__ == "__main__":
 
     # Run for desired number of time steps
     if (args.tscheme=="LCN"):
+        print("# ***** WARNING: Linearized Crank-Nicolson time marching is   *****")
+        print("# *****          an experimental feature that may not work    *****")
+        print("# *****          and is not fully supported.  Please beware.  *****")
+
         tds.solveLCN(args.t0, args.dt, args.Nt,
                      args.savedata, args.verbose, weak_bc=args.weakbc)
     else:

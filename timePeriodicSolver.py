@@ -44,7 +44,7 @@ class timePeriodicSolver:
         # Run from IC for 1 period
         self.tds.solve(0.0, 1.0/Nt, Nt,
                        savedata=None, verbose=False, rtol=1e-8,
-                       computeSensitivity=True, weak_bc=True)
+                       computeSensitivity=True, weak_bc=False)
 
         # Compute difference between final state and Uic
         self.res = self.tds.U2 - Uic
