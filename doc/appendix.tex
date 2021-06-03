@@ -1,0 +1,77 @@
+\appendix
+\chapter{Non-dimensionalization}
+
+For the non-dimensionalization of the system of equations, the following dimensionless variables are used
+%
+\begin{align*}
+t' = \frac{t}{\tau}, \quad \phi' = \frac{\phi}{V_0}, \quad x' = \frac{x}{L},  \quad n_{i,e}' = \frac{n_{i,e}}{n_{p0}}, \quad n_{\alpha}' = \frac{n_{\alpha}}{n_{p0}}, \quad \left(n_{e}e_{e}\right)' = \frac{n_{e}e_{e}}{n_{p0} e_0}, \quad ne_t' = \frac{ne_t}{n_{Ar} e_0}.
+\end{align*}
+%
+The Poisson equation governing the
+electric potential $\phi$ takes the following form:
+%
+\begin{align*}
+-\pp{^2\phi}{x^2} = \frac{\rho_c}{\epsilon_0} = \frac{q_e}{\epsilon_0} \left(n_i - n_e\right) \quad &\Rightarrow \quad \pp{^2\phi}{x^2} = - \frac{q_e}{\epsilon_0} \left(n_i - n_e\right) \quad \Rightarrow \quad \frac{V_0}{L^2}\pp{^2\phi'}{x'^2} = - \frac{q_e}{\epsilon_0} \left(n_i' - n_e'\right) n_{p0} \\
+\quad &\Rightarrow \quad \pp{^2\phi'}{x'^2} = \color{red}\boxed{\color{black} - \frac{q_e n_{p0} L^2}{\epsilon_0 V_0}} \color{black}\left(n_i' - n_e'\right) .
+\end{align*}
+%
+The species transport equations can be non-dimensionalized as follows:
+%
+\begin{align*}
+\pp{n_{\alpha}}{t} + \pp{}{x} \left( - z_{\alpha} \mu_{\alpha} n_{\alpha} \pp{\phi}{x} - D_{\alpha} \pp{n_{\alpha}}{x}\right)= k n_{Ar} n_{e}  \ &\Rightarrow \ \frac{1}{\tau}\pp{n_{\alpha}'}{t'} +  \frac{1}{L}\pp{}{x'} \left( - z_{\alpha} \mu_{\alpha} n_{\alpha}' \frac{V_0}{L}\pp{\phi'}{x'} - D_{\alpha} \frac{1}{L} \pp{n_{\alpha}'}{x'}\right) = k n_{Ar} n_{e}' \\
+\ &\Rightarrow \ \pp{n_{\alpha}'}{t'} - \pp{}{x'} \left( z_{\alpha} \color{red}\boxed{\color{black} \mu_{\alpha} \frac{\tau V_0}{L^2} } \color{black} n_{\alpha}'\pp{\phi'}{x'} + \color{red}\boxed{\color{black} D_{\alpha} \frac{\tau}{L^2}} \color{black}  \pp{n_{\alpha}'}{x'}\right) = \color{red}\boxed{\color{black} k n_{Ar} \tau } \color{black} n_{e}' .
+\label{eqn:species}
+\end{align*}
+%
+The electron energy equation can be non-dimensionalized as below:
+%
+\begin{align*}
+\pp{}{t} \left( n_e e_e \right)
++
+\pp{}{x} \left( - \frac{5}{3} D_e \pp{\left(n_e e_e\right)}{x} \right. \\
+\left. - \frac{5}{3}  z_e \mu_e \pp{\phi}{x} \left(n_e e_e\right) \right)
+&=
+\underbrace{q_e \left(-z_{e} \mu_{e} n_{e} \pp{\phi}{x} - D_{e} \pp{n_{e}}{x} \right) \pp{\phi}{x}}_{\textrm{Joule heating}} \\
+&-
+\underbrace{\frac{3}{2} k_B n_e \frac{2 m_e}{m_b} \left( T_e - T_g \right) \bar{\nu}_{e,b}}_{\textrm{Elastic}} \\
+&-
+\underbrace{q_e \sum_{j=1}^{N_r} \Delta E^e_j G_j}_{\textrm{Inelastic}} \ \Rightarrow
+\end{align*}
+\begin{align*}
+{\color{blue}\frac{n_{p0} e_0}{\tau}} \pp{}{t'} \left( n_e e_e \right)' 
++
+{\color{blue}\frac{1}{L}} \pp{}{x} \left( - \frac{5}{3} D_e {\color{blue}\frac{n_{p0} e_0}{L}} \pp{\left(n_e e_e\right)'}{x'}  \right. \\
+\left. - \frac{5}{3}  z_e \mu_e {\color{blue}\frac{V_{0}}{L}} \pp{\phi'}{x'} {\color{blue}n_{p0} e_0} \left(n_e e_e\right)' \right)
+&=
+\underbrace{q_e \left(-z_{e} \mu_{e}  {\color{blue}\frac{V_{0} n_{p0}}{L}} n_{e}' \pp{\phi'}{x'} - D_{e}  {\color{blue}\frac{n_{p0}}{L}} \pp{n_{e}'}{x'} \right) {\color{blue}\frac{V_{0}}{L}} \pp{\phi'}{x'}}_{\textrm{Joule heating}} \\
+&-
+\underbrace{\frac{3}{2} k_B n_e \frac{2 m_e}{m_b} \left( T_e - T_g \right) \bar{\nu}_{e,b}}_{\textrm{Elastic}} \\
+&-
+\underbrace{q_e \sum_{j=1}^{N_r} \Delta E^e_j G_j}_{\textrm{Inelastic}} \ \Rightarrow
+\end{align*}
+\begin{align*}
+\pp{}{t'} \left( n_e e_e \right)' 
++
+\pp{}{x} \left( - \frac{5}{3} {\color{red}\boxed{\color{black} D_e \frac{\tau}{L^2}}} \color{black}\pp{\left(n_e e_e\right)'}{x'}  \right. \\
+\left. - \frac{5}{3}  z_e  {\color{red}\boxed{\color{black} \mu_e \frac{\tau V_{0}}{L^2}}} \color{black}\pp{\phi'}{x'} \left(n_e e_e\right)' \right)
+&=
+\underbrace{q_e \left(-z_{e} {\color{red}\boxed{\color{black} \mu_{e} \frac{V_{0} \tau}{L^2}}} \color{black}n_{e}' \pp{\phi'}{x'} - {\color{red}\boxed{\color{black} D_{e} \frac{\tau}{L^2}}} \color{black} \pp{n_{e}'}{x'} \right) {\color{red}\boxed{\color{black} V_{0}}} \color{black} \pp{\phi'}{x'}}_{\textrm{Joule heating}} \\
+&-
+\underbrace{\frac{3}{2} {\color{blue}\frac{\tau}{n_{p0} e_0}} k_B n_e \frac{2 m_e}{m_b} \left( T_e - T_g \right) \bar{\nu}_{e,b}}_{\textrm{Elastic}} \\
+&-
+\underbrace{q_e {\color{blue}\frac{\tau}{n_{p0} e_0}} \sum_{j=1}^{N_r} \Delta E^e_j G_j}_{\textrm{Inelastic}} \ \Rightarrow
+\end{align*}
+%
+The non-dimensionalization of the ideal gas law is presented below:
+%
+\begin{align*}
+p = n_e k_B T_e + k_B T_g \sum_{\alpha \in h} n_{\alpha}  \quad \Rightarrow \quad {\color{blue} n_{Ar} k_B T_0} \ p' = {\color{blue} n_{p0} e_0} \frac{2}{3} \left(n_e e_e\right)' + {\color{blue} n_{p0} e_0}  \frac{2}{3} \left(k_B T_g \sum_{\alpha \in h} n_{\alpha} \right)'.
+\end{align*}
+%
+\begin{align*}
+\pp{ne_t}{t} = &- \frac{5}{3} \left( D_{e}\pp{n_e e_e}{x} + z_{e}\mu_{e} \pp{V}{x} n_e e_e \right) \\
+ &- \frac{5}{3} \sum_{\alpha \in h} \left\{ \left( D_{a}\pp{\left( \frac{3}{2} k_B  n_a T_g\right)}{x} + z_{a} \mu_{a} \pp{V}{x} \left( \frac{3}{2} k_B n_a T_g\right) \right)  \right\} \\
+ &+ \sum_{\alpha \in h} \left\{ \varepsilon_{\alpha} \left( - z_{\alpha} \mu_{\alpha} n_{\alpha} \pp{V}{x} - D_{\alpha} \pp{n_{\alpha}}{x} \right) \right\} +
+\underbrace{\sum_{\alpha} q_e z_{\alpha} F_{\alpha} E}_{\textrm{Joule heating}}
+\end{align*}
+%

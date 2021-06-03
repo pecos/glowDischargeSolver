@@ -65,7 +65,7 @@ heavy species share a single temperature $T_g$, such that the ideal
 gas law becomes
 %
 \begin{equation*}
-p = n_e k_B T_e + k_B T_g \sum_{\alpha \in h} n_{\alpha},
+p = n_e k_B T_e + k_B T_g \sum_{\alpha \in h} n_{\alpha}.
 \end{equation*}
 %
 where $\alpha \in h$ indicates that $\alpha$ ranges over the heavy
@@ -168,7 +168,7 @@ The total energy is governed by the following PDE:
 \label{eqn:totalE}
 \end{equation}
 %
-where the heat flux $q$ is given by
+where the heat flux $q$ is given by 
 %
 \begin{equation}
 q
@@ -181,7 +181,22 @@ q
 and the radiative heating is modeled in $\dot{Q}_{rad}$.  To start, we
 set $\dot{Q}_{rad} = 0$, but this assumption will be replaced once the
 initial implementation is complete.
-
+%
+The heat flux $q$ in~\eqref{eqn:totalE_flux} can be simplified as
+\begin{align*}
+q 
+=
+&+ \frac{5}{2} k_B T_e F_e - \kappa_e \pp{T_e}{x} +
+\sum_{\alpha \in h} \left\{ \left( \frac{5}{2} k_B T_g + \varepsilon_{\alpha} \right) F_{\alpha} - \kappa_{\alpha} \pp{T_g}{x} \right\} \\
+= &- \frac{5}{3} \left( D_{e}\pp{\left( \frac{3}{2} k_B n_e T_e\right)}{x} + z_{e}\mu_{e} \pp{V}{x} \left( \frac{3}{2} k_B n_e T_e\right) \right) \\
+   &- \frac{5}{3} \sum_{\alpha \in h} \left\{ \left( D_{a}\pp{\left( \frac{3}{2} k_B  n_a T_g\right)}{x} + z_{a} \mu_{a} \pp{V}{x} \left( \frac{3}{2} k_B n_a T_g\right) \right)  \right\} \\
+   &+ \sum_{\alpha \in h} \left\{ \varepsilon_{\alpha} \left( - z_{\alpha} \mu_{\alpha} n_{\alpha} \pp{V}{x} - D_{\alpha} \pp{n_{\alpha}}{x} \right) \right\} \\
+= &- \frac{5}{3} \left( D_{e}\pp{n_e e_e}{x} + z_{e}\mu_{e} \pp{V}{x} n_e e_e \right) \\
+   &- \frac{5}{3} \sum_{\alpha \in h} \left\{ \left( D_{a}\pp{\left( \frac{3}{2} k_B  n_a T_g\right)}{x} + z_{a} \mu_{a} \pp{V}{x} \left( \frac{3}{2} k_B n_a T_g\right) \right)  \right\} \\
+   &+ \sum_{\alpha \in h} \left\{ \varepsilon_{\alpha} \left( - z_{\alpha} \mu_{\alpha} n_{\alpha} \pp{V}{x} - D_{\alpha} \pp{n_{\alpha}}{x} \right) \right\} 
+\label{eqn:totalE_fluxSimplified}
+\end{align*}
+%
 
 \subsubsection{Total Energy Sanity Check}
 As a check on our total energy equation, we derive it from previously
