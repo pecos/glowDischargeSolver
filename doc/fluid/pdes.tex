@@ -7,9 +7,10 @@ but this is not expected to be necessary for the envisioned model
 validation relevant to the torch simulations.
 
 \section{PDEs}
-We require PDEs for the species densities, temperatures, and electric potential.
+We require equations governing for the species densities,
+temperatures, and electric potential.
 
-\subsection{Species Continuity}
+\subsection{Species Continuity} \label{sec:species-continuity}
 The species transport equations are as follows:
 %
 \begin{equation}
@@ -35,9 +36,23 @@ potential, $E = -\pp{\phi}{x}$, which is governed by a Poisson
 equation (\S\ref{sec:pdes-poisson}).
 
 For a mixture of $N_s$ species, $N_s - 1$ species densities are
-evolved according to~\eqref{eqn:species}.  The density of the dominant
-background species (e.g., argon) is determined from the pressure,
-which is assumed known, and the ideal gas law:
+evolved according to~\eqref{eqn:species}.  Alternatively, the density
+of the dominant background species (e.g., argon) is determined either
+by assuming it to be constant or by assuming that the pressure is
+constant.  We denote these as the ``constant $n_b$'' and ``constant
+$p$'' cases.  In the latter case, the background specie density,
+denoted $n_b$, is evolved according to
+%
+\begin{equation*}
+\pp{n_b}{t} = S,
+\end{equation*}
+%
+where the field $S$ is determined by imposing the constraint that the
+pressure remains constant, as detailed in~\S\ref{sec:pconstraint}.
+
+\subsection{Ideal Gas Law}
+In either case (constant $n_b$ or constant $p$), the ideal gas law is
+used to relate the pressure to the species densities and temperatures:
 %
 \begin{equation*}
 p = \sum_{\alpha = 1}^{N_s} n_{\alpha} k_B T_{\alpha},
@@ -45,21 +60,27 @@ p = \sum_{\alpha = 1}^{N_s} n_{\alpha} k_B T_{\alpha},
 %
 where $k_B$ is the Boltzmann constant and $T_{\alpha}$ is the
 temperature of species $\alpha$.  As discussed in
-\S\ref{sec:pdes-energy}, a two temperature model is adopted where the
+\S\ref{sec:pdes-energy}, a two temperature model is adopted here.  In this model, the
 heavy species share a single temperature $T_g$, such that the ideal
 gas law becomes
-
+%
 \begin{equation*}
-p = n_e k_B T_e + k_B T_g \sum_{\alpha \neq e} n_{\alpha}.
+p = n_e k_B T_e + k_B T_g \sum_{\alpha \in h} n_{\alpha},
 \end{equation*}
-
-
+%
+where $\alpha \in h$ indicates that $\alpha$ ranges over the heavy
+species only (i.e., all species except the electrons).
 
 \subsection{Energy Equations} \label{sec:pdes-energy}
 A two-temperature model is adopted.  We assume a common temperature
 $T_g$ for the heavy species and a separate temperature for the
-electrons.  The electron energy equation is given by
+electrons.  In this section, we formulate three energy equations.  Any
+combination of two of these is sufficient to describe the system.
 
+\subsubsection{Electron Energy}
+Letting $n_e e_e = \frac{3}{2} k_B n_e T_e$, the electron energy
+equation is given by
+%
 \begin{gather*}
 \pp{}{t} \left( \frac{3}{2} k_B n_e T_e \right)
 +
@@ -71,7 +92,7 @@ electrons.  The electron energy equation is given by
 -
 \underbrace{q_e \sum_{j=1}^{N_r} \Delta E^e_j G_j}_{\textrm{Inelastic}},
 \end{gather*}
-
+%
 where $m_e$ and $m_b$ denote the molecular mass of electron and the
 background species, respectively, $\kappa_e$ is the electron thermal
 conductivity, $\Delta E^e_j$ is the energy lost per electron in the
@@ -80,34 +101,44 @@ of progress of reaction $j$.  The thermal conductivity $\kappa_e$ and
 chemistry related quantities $\Delta E_j$ and $G_j$ are described more
 in \S\ref{sec:fluid-closures}.
 
-The gas energy equation is given by
-
-\begin{gather*}
+\subsubsection{Heavy Species Energy}
+The heavy species energy equation is given by
+%
+\begin{align*}
 \pp{}{t} \left( \sum_{\alpha \in h} C_{v,\alpha} n_\alpha T_g \right)
-+
++&
 \pp{}{x} \left( \sum_{\alpha \in h} C_{p,\alpha} F_\alpha T_g - \sum_{\alpha \in h} \kappa_\alpha \pp{T_g}{x} \right)
-=
+= \\
+&
 \underbrace{C_{\textrm{inc}} \sum_{\alpha \in h} q_e z_{\alpha} F_\alpha E}_{\textrm{Joule heating}}
 +
 \underbrace{\frac{3}{2} k_B n_e \frac{2 m_e}{m_b} \left( T_e - T_g \right) \bar{\nu}_{e,b}}_{\textrm{Elastic}}
 -
 \underbrace{q_e \sum_{j=1}^{N_r} \Delta E^g_j G_j}_{\textrm{Inelastic}},
-\end{gather*}
-
+\end{align*}
+%
 where the notation $\sum_{\alpha \in h}$ denotes the summation over
 the heavy species, $C_{v,\alpha}$ and $C_{p,\alpha}$ are the specific
 heat at constant volume and pressure, respectively, for species
-$\alpha$.  Finally, $C_{\textrm{inc}}$ is a constant that may be used
-to account for incomplete conversion of the kinetic energy gained by
-the electrons into heat due to the fact that the ion mean free path
-can be of the same order of the sheath thickness~\cite{}.
+$\alpha$.  From here forward, we assume that only monatomic species
+are included, such that $C_{v,\alpha} = \frac{3}{2} k_B$ and
+$C_{p,\alpha} = \frac{5}{2} k_B$.  This assumption is true for the
+argon-related species we include in year 1 ($\ce{Ar}$,
+$\ce{Ar^{\ast}}$ and $\ce{Ar^+}$), but will need to be relaxed to
+model air (or even more complex argon chemistry).  Similarly to
+$\Delta E^e_j$, the constants $\Delta E^g_j$ represent the energy lost
+per heavy species particle in reaction $j$.  Finally,
+$C_{\textrm{inc}}$ is a constant that may be used to account for
+incomplete conversion of the kinetic energy gained (by the ions from
+the electric field) into heat due to the fact that the ion mean free
+path can be of the same order of the sheath thickness~\cite{}.
 
-\subsection{Total Energy} \label{sec:pdes-energy}
+\subsubsection{Total Energy}
 Rather than solving the electron energy and heavy species thermal
 energy equations, it is also possible to formulate the model in terms
 of the total energy.  Specifically, let $n e_t$ denote the total
 energy per unit volume:
-
+%
 \begin{equation*}
 n e_t
 =
@@ -115,30 +146,20 @@ n_e e_e + \sum_{\alpha \in h} n_{\alpha} e_{\alpha}
 =
 n_e \frac{3}{2} k_B T_e + \sum_{\alpha \in h} n_{\alpha} \left( \frac{3}{2} k_B T_g + \varepsilon_{\alpha} \right),
 \end{equation*}
-
+%
 where $\varepsilon_{\alpha}$ denotes the internal energy of species
 $\alpha$ (i.e., energy not associated with thermal motion).  To begin,
 we assume that the heavy species are monatomic, such that the internal
-energy is associated with electronic excitation.  Since these excited
-states are explicitly tracked as separate species, $\varepsilon_{\alpha}$
-is a given constant number, not a function requiring additional state
-information or assumptions.
+energy is associated only with electronic excitation or ionization.
+That is for excited state species, $\varepsilon_{\alpha}$ is the
+excitation energy, and for ions, $\varepsilon_{\alpha}$ is the
+ionization energy.  For electrons and ground state argon,
+$\varepsilon_{\alpha} = 0$.  Finally, we have assumed that the bulk
+motion of the fluid is negligible, such that there is no contribution
+from the kinetic energy associated with the bulk velocity.
 
-\todo{How will this go with more complex gases, e.g., diatomics, where
-  there are more ways to store internal energy other than electronic
-  excitation (vibration, rotation)?  Still track explicitly or
-  introduce addtional temperatures or assume some kind of
-  equilibrium?}
-
-Further, for monatomics, $C_v = \frac{3}{2} k_B$.  As before, the
-heavy species have been assumed to have the same temperature $T_g$.
-Finally, we have assumed that the bulk motion of the fluid is
-negligible, such that there is no contribution from the kinetic energy
-associated with the bulk velocity.
-
-
-This energy is governed by the following PDE:
-
+The total energy is governed by the following PDE:
+%
 \begin{equation}
 \pp{ne_t}{t} =
 \underbrace{-\,\pp{q}{x}}_{\mathrm{transport}} +
@@ -146,9 +167,9 @@ This energy is governed by the following PDE:
 \underbrace{\dot{Q}_{rad}}_{\textrm{Radiative heating}},
 \label{eqn:totalE}
 \end{equation}
-
+%
 where the heat flux $q$ is given by
-
+%
 \begin{equation}
 q
 =
@@ -156,27 +177,23 @@ q
 \sum_{\alpha \in h} \left\{ \left( \frac{5}{2} k_B T_g + \varepsilon_{\alpha} \right) F_{\alpha} - \kappa_{\alpha} \pp{T_g}{x} \right\},
 \label{eqn:totalE_flux}
 \end{equation}
-
-and the radiative heating is given by
-
-\begin{equation}
-\dot{Q}_{rad} = I dunno yet
-\label{eqn:totalE_rad}
-\end{equation}
-\todo{Fill this in, but... we can get going assuming it is zero}
+%
+and the radiative heating is modeled in $\dot{Q}_{rad}$.  To start, we
+set $\dot{Q}_{rad} = 0$, but this assumption will be replaced once the
+initial implementation is complete.
 
 
 \subsubsection{Total Energy Sanity Check}
 As a check on our total energy equation, we derive it from previously
 introduced equations.  We have
-
+%
 \begin{align*}
 \pp{ne_t}{t} &=
 \underbrace{\pp{}{t} \left( n_e \frac{3}{2} k_B T_e \right)}_{\textrm{Electron energy}} +
 \underbrace{\pp{}{t} \left( \sum_{\alpha \in h} \frac{3}{2} k_B n_\alpha T_g \right)}_{\textrm{Heavy energy}} +
 \underbrace{\sum_{\alpha \in h} \pp{n_{\alpha}}{t} \varepsilon_{\alpha}}_{\textrm{Species continuity}},
 \end{align*}
-
+%
 where the underbraces denote the previous equations that each term is
 associated with.  Collecting the transport terms from these equations,
 it is straightforward to show that $q$ defined
@@ -187,7 +204,7 @@ term in~\eqref{eqn:totalE}.  Clearly, we may allow $C_{\mathrm{inc}}
 \neq 1$ in~\eqref{eqn:totalE} by a simple modification.
 
 From the remaining source terms we have
-
+%
 \begin{equation*}
 -
 \underbrace{\frac{3}{2} k_B n_e \frac{2 m_e}{m_b} \left( T_e - T_g \right) \bar{\nu}_{e,b}}_{\textrm{Elastic}}
@@ -200,12 +217,12 @@ From the remaining source terms we have
 +
 \sum_{\alpha} \dot{\omega}_{\alpha} \varepsilon_{\alpha}.
 \end{equation*}
-
+%
 As expected, the elastic terms simply exchange thermal energy between
 the electrons and heavies and thus cancel each other.  The remaining
 (inelastic) terms represent exchanges between thermal and internal
 energy:
-
+%
 \begin{equation*}
 -
 \underbrace{q_e \sum_{j=1}^{N_r} \Delta E^e_j G_j}_{\textrm{Inelastic}},
@@ -214,57 +231,57 @@ energy:
 +
 \sum_{\alpha} \dot{\omega}_{\alpha} \varepsilon_{\alpha}.
 \end{equation*}
-
+%
 To the extent that these do not balance, it must be because the
 mismatch is radiated away.  For instance, we can imagine a
 de-excitation event where part of the excess energy is radiated away
 rather than being converted into thermal energy.  This must be
-accounted for in the radiation model $\dot{Q}_{rad}$.
-
-If we assert that $\dot{Q}_{rad} = 0$, this implies that
-
+accounted for in the radiation model $\dot{Q}_{rad}$. If we assert
+that $\dot{Q}_{rad} = 0$, this implies that
+%
 \begin{equation*}
 \sum_{\alpha} \dot{\omega}_{\alpha} \varepsilon_{\alpha}
 =
 q_e \sum_{j=1}^{N_r} ( \Delta E^e_j + \Delta E^g_j) G_j
 \end{equation*}
-
+%
 To assess this, we rewrite $\dot{\omega}_{\alpha}$ in terms of the
 contribution from each reaction:
-
+%
 \begin{equation*}
 \sum_{\alpha} \dot{\omega}_{\alpha} \varepsilon_{\alpha}
 =
 \sum_{j=1}^{N_r} \left\{ \sum_{\alpha} \left( \nu_{\alpha j}^{\prime \prime} - \nu_{\alpha j}^{\prime} \right) \varepsilon_{\alpha} \right\} G_j,
 \end{equation*}
-
+%
 where $\nu_{\alpha j}^{\prime \prime}$ and $\nu_{\alpha j}^{\prime}$
-are stoichiometric coefficients (see~\ref{sec:fluid-closures}).  Thus,
+are stoichiometric coefficients (see~\S\ref{sec:fluid-closures}).  Thus,
 for $\dot{Q}_{rad} = 0$, it is sufficient to have
-
+%
 \begin{equation*}
 \sum_{\alpha} \left( \nu_{\alpha j}^{\prime \prime} - \nu_{\alpha j}^{\prime} \right) \varepsilon_{\alpha}
 =
 \Delta E^e_j + \Delta E^g_j
 \end{equation*}
-
+%
 for all reactions $j$.
 
-\subsection{Pressure Constraint}
-As noted previously, the pressure is assumed constant, which imposes
-an additional constraint on the system.  There are potentially
-multiple methods to implement this constraint.  Here, we assume that
-the background gas (argon) is locally added or removed in order to
-maintain the fixed pressure.  This results in both mass and energy
-source terms in the governing PDEs.  Letting $n_b$ denote the number
+\subsection{Pressure Constraint} \label{sec:pconstraint}
+As noted in~\S\ref{sec:species-continuity}, in the ``constant $p$''
+mode, we assume constant pressure is maintained by adding or
+subtracting the background species.  Letting $n_b$ denote the number
 density of the background species, then
 %
 \begin{equation*}
 \pp{n_b}{t} = S,
 \end{equation*}
 %
-where $s$ is determined by requiring constant pressure.  For a mixture
-of monatomic gases,
+where $S$ is determined by requiring constant pressure.  Assuming this
+mass is introduced at the local gas temperature, this also introduces
+a source term on the righthand side of the heavy species and total
+energy equations.  This source term is given by $\frac{3}{2} S k_B
+T_g$ (again assuming only monatomic species).  Then, to determine $S$,
+we may use the relationship between the total energy and the pressure.  Specifically,
 %
 \begin{equation*}
 ne_t = \frac{3}{2} p + \sum_{\alpha} n_{\alpha} \varepsilon_{\alpha}.
@@ -278,10 +295,9 @@ Thus, since the pressure is fixed,
 = \sum_{\alpha} \pp{n_{\alpha}}{t} \varepsilon_{\alpha}.
 \end{equation*}
 %
-Using the total energy equation from before, plus a source term
-imposed by addition of the background species at the rate $S$ with the
-local temperature $T_g$, this imposes a constraint that determines
-$S$.  Specifically,
+Using the total energy equation~\eqref{eqn:totalE}, with the addition of the
+source term imposed by addition of the background specie, this result
+imposes a constraint that determines $S$:
 %
 \begin{equation*}
 \sum_{\alpha} \pp{n_{\alpha}}{t} \varepsilon_{\alpha}
@@ -295,7 +311,31 @@ $S$.  Specifically,
 \frac{3}{2} S k_B T_g.
 \end{equation*}
 %
-This is an algebraic constraint that can be used to eliminate $S$.
+Thus,
+%
+\begin{equation*}
+S
+=
+\frac{
+-\sum_{\alpha} \pp{n_{\alpha}}{t} \varepsilon_{\alpha}
+-
+\pp{q}{x}
++
+\sum_{\alpha} q_e z_{\alpha} F_{\alpha} E
++
+\dot{Q}_{rad}
+}
+{\frac{3}{2} k_B T_g}
+\end{equation*}
+%
+Thus, using the ideal gas law to determine $T_g$ from the species
+densities and electron energy,
+%
+\begin{equation*}
+\frac{3}{2} k_B T_g = \frac{ \frac{3}{2} p - n_e e_e }{\sum_{\alpha \in h} n_{\alpha}},
+\end{equation*}
+%
+$S$ may be determined given the state and its spatial derivatives.
 
 \subsection{Electromagnetics} \label{sec:pdes-poisson}
 A quasi-static model is used for the electromagnetics.  In this case,
@@ -354,3 +394,5 @@ additional constraints:
 %
 -\pp{^2\phi}{x^2} =  \frac{1}{\epsilon_0} \sum_{\alpha=1}^{N_s} z_{\alpha} q_e n_{\alpha}.
 \end{gather*}
+%
+
