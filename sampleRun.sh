@@ -31,9 +31,9 @@ Nt=6400
 Nt1=128
 dt=0.0078125
 scenario=2
-baseFile="restart_3spec_Np${Np}_"
-newtFile="newton_3spec_Np${Np}.npy"
-saveFile="newton_3spec_Np${Np}_fullsoln.npy"
+baseFile="restart_4spec_Np${Np}_"
+newtFile="newton_4spec_Np${Np}.npy"
+saveFile="newton_4spec_Np${Np}_fullsoln.npy"
 
 baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario"
 newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 10 --scenario $scenario"

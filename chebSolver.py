@@ -399,6 +399,25 @@ class timeDomainCollocationSolver:
         nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
         Te = nT/dens[:,iele]
 
+        # compute the gas temperature (actually 1.5*kB*Tg)
+        p0 = 15566.0
+        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
+
+        ntot = np.zeros(self.Np)
+
+        # all but background
+        for i in range(0, self.Ns-1):
+            ntot += dens[:,i]
+
+        # background contribution
+        ntot += nAronp0 * dens[:,self.Ns-1]
+
+        # Temperature (from ideal gas law)
+        Tg = (p0 - nT)/ntot
+        #print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
+
+        Tg_x = self.Dp @ Tg
+
         # solve poisson equation for phi
         # now have self.phi
         self.solve_poisson(dens[:,iele],dens[:,iion],time)
