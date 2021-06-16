@@ -444,9 +444,15 @@ class timeDomainCollocationSolver:
         res = np.zeros((self.Nv*self.Np,1))
 
         # spatial part
-        for i in range(0,self.Ns):
+
+        # standard species
+        for i in range(0,self.Ns-1):
             res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
 
+        # background specie (fixed at IC for now)
+        res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] = 0.0
+
+        # energy
         res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ)
 
         return res, rstrg
@@ -1246,16 +1252,16 @@ if __name__ == "__main__":
 
     print("#   Save file time step to {0:s}".format(args.outfile))
 
-    Ns = 2
+    Ns = 3
     if(args.scenario==0):
         print("#   Running scenario = 0 (2 species, 1 rxn, Liu 2014)")
-        Ns = 2
+        Ns = 3
     elif(args.scenario==1):
         print("#   Running scenario = 1 (2 species, 1 rxn, PSAAP config)")
-        Ns = 2
+        Ns = 3
     elif(args.scenario==2):
         print("#   Running scenario = 2 (3 species, 8 rxn, Liu 2017)")
-        Ns = 3
+        Ns = 4
     else:
         print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, or 2.  Exiting.")
         exit(-1)
@@ -1274,8 +1280,10 @@ if __name__ == "__main__":
                                       scenario=args.scenario, scheme=args.tscheme)
 
     # Default IC (overwritten below if we are restarting)
-    tds.U1[0:tds.Ns*tds.Np] = 1e-4
-    tds.U1[tds.Ns*tds.Np:] = 0.75*tds.U1[0:tds.Np]
+    #tds.U1[0:tds.Ns*tds.Np] = 1e-4
+    tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
+    tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
+    tds.U1[tds.Ns*tds.Np:] = 0.75*tds.U1[0:tds.Np] # electron energy
 
     # If restart file provided, read it.
     # NOTE: currently we do a lazy restart in that only the final

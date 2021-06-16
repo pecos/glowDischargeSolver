@@ -120,16 +120,16 @@ if __name__ == "__main__":
 
     print("#   Save final state to {0:s}".format(args.outfile))
 
-    Ns = 2
+    Ns = 3
     if(args.scenario==0):
         print("#   Running scenario = 0 (2 species, 1 rxn, Liu 2014)")
-        Ns = 2
+        Ns = 3
     elif(args.scenario==1):
         print("#   Running scenario = 1 (2 species, 1 rxn, PSAAP config)")
-        Ns = 2
+        Ns = 3
     elif(args.scenario==2):
         print("#   Running scenario = 2 (3 species, 8 rxn, Liu 2017)")
-        Ns = 3
+        Ns = 4
     else:
         print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, or 2.  Exiting.")
         exit(-1)
