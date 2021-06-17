@@ -58,6 +58,7 @@ def setPsaapPropertiesTestArm(gam, params):
 
     A  = np.array([18.687,15.06,4.95,2.14,0.0,0.0,0.0,0.0]) # activation temperature [eV]
     dH = np.array([15.7,11.56,4.14,-11.56,0.0,0.0,0.0,0.0]) # energy lost per electron due to ionization rxn [eV]
+    dEps = np.array([0.0,15.7,11.56,0.0])
 
     # BC parameters
     ks = 1.19e7  # electron recombination rate [cm/s]
@@ -133,6 +134,7 @@ def setPsaapPropertiesTestArm(gam, params):
     params.C[:]  = A[:]
 
     params.dH[:] = dH[:]
+    params.dEps[:] = dEps[:]
     params.qStar = qStar
     params.alpha = alpha
     params.ks    = ks

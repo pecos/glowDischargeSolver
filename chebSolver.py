@@ -75,6 +75,7 @@ class modelClosures:
 
         # energy gain/loss in electrons
         self.dH = np.zeros(Nr) #15.7
+        self.dEps = np.zeros(Ns)
 
         # stoichiometric coefficients (Ns+1 b/c we store coefficient
         # for the background gas... it is only used for
@@ -413,8 +414,8 @@ class timeDomainCollocationSolver:
         ntot += nAronp0 * dens[:,self.Ns-1]
 
         # Temperature (from ideal gas law)
-        Tg = (p0 - nT)/ntot
-        #print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
+        Tg = (p0 - nT[:,0])/ntot
+        print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
 
         Tg_x = self.Dp @ Tg
 
@@ -458,6 +459,33 @@ class timeDomainCollocationSolver:
         # form source terms at collocation points
         omega = self.params.rxnSourceTerm(Te, dens)
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
+
+
+        # evaluate S---the source term required in the background
+        # specie evolution to ensure constant pressure
+        print(Tg.shape)
+        fa = np.zeros(self.Np,dtype=np.float)
+        for i in range(0,self.Ns-1):
+            fa += (5./3.)*(-self.params.mobility(i)*dens[:,i]*Tg*(-phi_x[:,0]) -
+                           self.params.diffusivity(i)* (self.Dp @ (dens[:,i]*Tg) ) )
+
+        # background thermal conductivity contribution
+        kappa_background = 4.42 # FIXME: Add to properties
+        fa += - kappa_background * (self.Dp @ Tg)
+
+        fa_x = self.Dp @ fa
+
+
+        sOmEp = np.zeros(self.Np,dtype=np.float)
+        for i in range(0, self.Ns-1):
+            sOmEp += omega[:,i]*self.params.dEps[i]
+
+        joule = np.zeros(self.Np,dtype=np.float)
+        for i in range(0, self.Ns-1):
+            joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
+
+        S = (sOmEp + fa_x - joule)/Tg/nAronp0
+        print("norm(S) = {0:.6e}\n".format(np.linalg.norm(S)))
 
         # form full residual
         res = np.zeros((self.Nv*self.Np,1))
