@@ -406,18 +406,16 @@ class timeDomainCollocationSolver:
 
         ntot = np.zeros(self.Np)
 
-        # all but background
-        for i in range(0, self.Ns-1):
+        # add all heavies but background
+        for i in range(1, self.Ns-1):
             ntot += dens[:,i]
 
-        # background contribution
+        # add background contribution (accounting for non-dim difference)
         ntot += nAronp0 * dens[:,self.Ns-1]
 
         # Temperature (from ideal gas law)
         Tg = (p0 - nT[:,0])/ntot
-        print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
-
-        Tg_x = self.Dp @ Tg
+        #print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
 
         # solve poisson equation for phi
         # now have self.phi
@@ -463,15 +461,17 @@ class timeDomainCollocationSolver:
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
-        print(Tg.shape)
-        fa = np.zeros(self.Np,dtype=np.float)
-        for i in range(0,self.Ns-1):
-            fa += (5./3.)*(-self.params.mobility(i)*dens[:,i]*Tg*(-phi_x[:,0]) -
+        #print(Tg.shape)
+        #fa = np.zeros(self.Np,dtype=np.float)
+        fa = np.copy(fT)
+        for i in range(1,self.Ns-1):
+            fa[:,0] += (5./3.)*(-self.params.mobility(i)*dens[:,i]*Tg*(-phi_x[:,0]) -
                            self.params.diffusivity(i)* (self.Dp @ (dens[:,i]*Tg) ) )
 
         # background thermal conductivity contribution
         kappa_background = 4.42 # FIXME: Add to properties
-        fa += - kappa_background * (self.Dp @ Tg)
+        fa[:,0] += - kappa_background * (self.Dp @ Tg)
+        #fa += - kappa_background * (self.Dp @ Tg)
 
         fa_x = self.Dp @ fa
 
@@ -484,8 +484,15 @@ class timeDomainCollocationSolver:
         for i in range(0, self.Ns-1):
             joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
 
-        S = (sOmEp + fa_x - joule)/Tg/nAronp0
-        print("norm(S) = {0:.6e}\n".format(np.linalg.norm(S)))
+        S = (sOmEp + fa_x[:,0] - joule)/Tg/nAronp0
+        #print("norm(S) = {0:.6e}\n".format(np.linalg.norm(S)))
+        #print("norm(sOmEp) = {0:.6e}\n".format(np.linalg.norm(sOmEp)))
+        #print("norm(fa_x) = {0:.6e}\n".format(np.linalg.norm(fa_x)))
+        #print("norm(joule) = {0:.6e}\n".format(np.linalg.norm(joule)))
+        #print("norm(sOmEp + fa_x - joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp + fa_x - joule)))
+        #print("norm(sOmEp - fa_x - joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp - fa_x - joule)))
+        #print("norm(sOmEp - fa_x + joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp - fa_x + joule)))
+        #print("norm(sOmEp + fa_x + joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp + fa_x + joule)))
 
         # form full residual
         res = np.zeros((self.Nv*self.Np,1))
@@ -497,7 +504,8 @@ class timeDomainCollocationSolver:
             res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
 
         # background specie (fixed at IC for now)
-        res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] = 0.0
+        #res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] = 0.0
+        res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] = -dt*S
 
         # energy
         res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ)
@@ -562,6 +570,10 @@ class timeDomainCollocationSolver:
             res[2*self.Np  ] = dens[ 0,2] - 0.0
             res[3*self.Np-1] = dens[-1,2] - 0.0
 
+        # force background to 1.0 at boundaries (does this make sense?)
+        res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
+        res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
+
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
         res[(self.Ns+1)*self.Np-1] = (nT[-1] - 0.75*dens[-1,iele])
@@ -601,6 +613,10 @@ class timeDomainCollocationSolver:
         if (self.Ns>2):
             res[2*self.Np  ] = dens[ 0,2] - 0.0
             res[3*self.Np-1] = dens[-1,2] - 0.0
+
+        # force background to 1.0 at boundaries (does this make sense?)
+        res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
+        res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
 
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
@@ -680,6 +696,32 @@ class timeDomainCollocationSolver:
         Te_ne = -np.multiply(Te/dens[:,iele],np.identity(self.Np))
         Te_nT = np.multiply(np.identity(self.Np),1./dens[:,iele])
 
+        # compute the gas temperature (actually 1.5*kB*Tg)
+        p0 = 15566.0
+        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
+
+        ntot = np.zeros(self.Np)
+        ntot_U = np.zeros((self.Np, self.Nv))
+
+        # all but background
+        for i in range(1, self.Ns-1):
+            ntot += dens[:,i]
+            ntot_U[:,i] += np.ones(self.Np)
+
+        # background contribution
+        ntot += nAronp0 * dens[:,self.Ns-1]
+        ntot_U[:,self.Ns-1] += nAronp0*np.ones(self.Np)
+
+        # Temperature (from ideal gas law)
+        Tg = (p0 - nT[:,0])/ntot
+
+        Tg_U = np.zeros((self.Np, self.Nv))
+        for i in range(0, self.Nv):
+            Tg_U[:,i] = -(Tg/ntot)*ntot_U[:,i]
+
+        Tg_U[:,-1] += -np.ones(self.Np)/ntot
+
+        #print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
 
         # force solving poisson equation again
         if (solve_poisson):
@@ -702,9 +744,22 @@ class timeDomainCollocationSolver:
         # must have electron flux for use in Jacobian of Joule heating
         fe = -self.params.mobility(0)*dens[:,iele]*(-phi_x) - self.params.diffusivity(0)*dens_x[:,iele]
 
+        # must have these for joule heating erms
+        fspec = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        for i in range(0,self.Ns):
+            fspec[:,i] = (   self.params.charge(i)*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
+                           - self.params.diffusivity(i)*dens_x[:,i] )
+
+        fT = (5./3.)*(-self.params.mobility(0)*nT*(-phi_x) - self.params.diffusivity(0)*nT_x)
+
+        # overwrite endpoints in fi (weakly impose BC)
+        fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.mobility(1)*dens[ 0,iion]*(-phi_x[ 0])
+        fspec[-1,1] =  self.params.ksion*dens[-1,iion] + self.params.mobility(1)*dens[-1,iion]*(-phi_x[-1])
+
+
         # species equations
         fspec_U = np.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=np.float)
-        for i in range(0,self.Ns):
+        for i in range(0,self.Ns-1):
             fspec_U[i,i,:,:] = (  self.params.charge(i)*self.params.mobility(i)*np.multiply(np.identity(self.Np),-phi_x)
                                 - self.params.diffusivity(i)*self.Dp )
 
@@ -759,6 +814,7 @@ class timeDomainCollocationSolver:
 
         # form source terms at collocation points
         # omega_V returns derivatives of chemical src terms wrt ne, ni, ..., Te
+        omega = self.params.rxnSourceTerm(Te, dens)
         omega_V = self.params.rxnSourceTermJac(Te, dens)
 
         # chain rule to get derivatives wrt ne, ni, ..., nT
@@ -774,29 +830,100 @@ class timeDomainCollocationSolver:
         SJ_ni = -self.params.qStar*( np.multiply(fspec_U[0,1,:,:],-phi_x) + np.multiply(fe,-phi_x_ni))
 
 
+        # evaluate S---the source term required in the background
+        # specie evolution to ensure constant pressure
+        fa = np.zeros(self.Np,dtype=np.float)
+        fa_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float)
+        fa = np.copy(fT)
+        fa_U = np.copy(fT_U)
+
+        for i in range(1,self.Ns-1):
+            naTg = dens[:,i]*Tg
+            fa[:,0] += (5./3.)*(-self.params.mobility(i)*naTg*(-phi_x[:,0]) -
+                           self.params.diffusivity(i)* (self.Dp @ naTg ) )
+
+            fa_U[0,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(naTg,-phi_x_ne))
+            fa_U[1,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(naTg,-phi_x_ni))
+            fa_U[i,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(np.diag(Tg),-phi_x)
+                                    -self.params.diffusivity(i)*self.Dp @ np.diag(Tg) )
+            for j in range(0, self.Nv):
+                fa_U[j,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j])) -
+                                        self.params.diffusivity(i)* (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j]))))
+
+
+
+        # background thermal conductivity contribution
+        kappa_background = 4.42 # FIXME: Add to properties
+        fa[:,0] += - kappa_background * (self.Dp @ Tg)
+        for j in range(0,self.Nv):
+            fa_U[j,:,:] += - kappa_background * self.Dp @ np.diag(Tg_U[:,j])
+
+        fa_x = self.Dp @ fa
+
+        fa_x_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float)
+        for j in range(0,self.Nv):
+            fa_x_U[j,:,:] = self.Dp @ fa_U[j,:,:]
+
+        sOmEp = np.zeros(self.Np,dtype=np.float)
+        sOmEp_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float)
+        for i in range(0, self.Ns-1):
+            sOmEp += omega[:,i]*self.params.dEps[i]
+            for j in range(0,self.Nv):
+                sOmEp_U[j,:,:] += np.diag(omega_U[i,j,:]*self.params.dEps[i])
+
+        joule = np.zeros(self.Np,dtype=np.float)
+        joule_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float)
+        for i in range(0, self.Ns-1):
+            joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
+            for j in range(0,self.Nv):
+                joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec_U[i,j,:,:],(-phi_x))
+
+            joule_U[0,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x_ne))
+            joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x_ni))
+
+
+        S = (sOmEp + fa_x - joule)/Tg/nAronp0
+        S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float)
+
+        S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/nAronp0
+        for j in range(0,self.Nv):
+            S_U[j,:,:] += np.diag( -(S/Tg)*Tg_U[:,j] )
+
         # form the full jacobian
         self.jac = np.zeros((self.Ndof,self.Ndof))
 
         # spatial part
 
         # fluxes: involve spatial derivatives, leading to dense matrices
-        for i in range(0,self.Ns):
+
+        # 'standard' continuity eqns
+        for i in range(0,self.Ns-1):
             for j in range(0,self.Ns):
                 self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fspec_x_U[i,j,:,:])
 
+
+        # electron energy eqn
         for j in range(0,self.Ns+1):
             self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fT_x_U[j,:,:])
 
         # chemistry: spatially local, coupling across species and energy
         # use np.einsum to extract diagonal of each Jacobian block for updating
+        # NB: This affects the background eqns (erroneously) but it is overwritten later
         for i in range(0,self.Ns+1):
             for j in range(0,self.Ns+1):
                 jac_diag = np.einsum('ii->i', self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np])
                 jac_diag -= dt*omega_U[i,j,:]
 
-        # Joule heating
+        # Joule heating (electron energy eqn)
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
+
+
+        # overwrite the background (wrt all variables)
+        for j in range(0,self.Nv):
+            self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*(S_U[j,:,:])
+            #self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*np.zeros(S_U[j,:,:].shape)
+
 
         return rstrg_U
 
@@ -843,6 +970,14 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
+        # force background to 1.0 at boundaries (does this make sense?)
+        self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
+
+        self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
+
+        # Dirichlet condition on electron energy
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
         self.jac[self.Ns*self.Np,0] = -0.75
@@ -874,6 +1009,14 @@ class timeDomainCollocationSolver:
 
             self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
+
+        # force background to 1.0 at boundaries (does this make sense?)
+        self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
+
+        self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
+
 
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
@@ -950,6 +1093,13 @@ class timeDomainCollocationSolver:
         if (self.Ns>2):
             self.jac0[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
             self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+
+        # force background to 1.0 at boundaries (does this make sense?)
+        self.jac0[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        self.jac0[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+
+        #for j in range(0, self.Nv):
+        #    self.jac0[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = np.zeros((self.Np, self.Np))
 
         self.jac0[self.Ns*self.Np  ,:] = np.zeros((1,self.Nv*self.Np))
         self.jac0[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
@@ -1075,6 +1225,7 @@ class timeDomainCollocationSolver:
 
         # evaluate the required Jacobians
         self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+        #self.jacobianFD(self.U2, time, dt)
 
 
         # for the RHS
@@ -1095,18 +1246,22 @@ class timeDomainCollocationSolver:
             Usave[0,:] = self.U2[:,0]
 
         print("#")
-        print("# {0:10s} {1:12s} {2:12s} {3:12s} {4:12s}".format(
-            "Time", "min ne", "max ne", "min Te", "max Te"))
-        print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
+        print("# {0:10s} {1:12s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s}".format(
+            "Time", "min ne", "max ne", "min Te", "max Te", "min nb", "max nb"))
+        print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}".format(
             time0, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
-            self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max()))
+            self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
 
         # assume initial condition has been set in U1!
         time = time0+dt
         self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
-        print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
+        print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}".format(
             time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
-            self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max()))
+            self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
 
         if(computeSensitivity):
             self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
@@ -1128,9 +1283,11 @@ class timeDomainCollocationSolver:
             # advance
             self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
             #self.filter()
-            print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e}".format(
+            print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}".format(
                 time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
-                self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max()), flush=True)
+                self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max(),
+                self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+                self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()), flush=True)
 
             if(savedata!=None):
                 Usave[istep+1,:] = self.U2[:,0]
