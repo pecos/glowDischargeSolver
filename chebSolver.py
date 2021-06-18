@@ -571,8 +571,28 @@ class timeDomainCollocationSolver:
             res[3*self.Np-1] = dens[-1,2] - 0.0
 
         # force background to 1.0 at boundaries (does this make sense?)
-        res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
-        res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
+        #res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
+        #res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
+
+        # enforce that temperature is 300K at boundaries
+        p0 = 15566.0
+        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
+
+        ntot = np.zeros(self.Np)
+
+        # add all heavies but background
+        for i in range(1, self.Ns-1):
+            ntot += dens[:,i]
+
+        # add background contribution (accounting for non-dim difference)
+        ntot += nAronp0 * dens[:,self.Ns-1]
+
+        Tg0 = 0.038778 # 300K (p0 - nT[:,0])/ntot
+        res[(self.Ns-1)*self.Np] = ntot[ 0]*Tg0 + nT[ 0] - p0
+        res[ self.Ns*self.Np-1 ] = ntot[-1]*Tg0 + nT[-1] - p0
+
+        #print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
+
 
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
@@ -615,8 +635,26 @@ class timeDomainCollocationSolver:
             res[3*self.Np-1] = dens[-1,2] - 0.0
 
         # force background to 1.0 at boundaries (does this make sense?)
-        res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
-        res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
+        #res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
+        #res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
+
+        # enforce that temperature is 300K at boundaries
+        p0 = 15566.0
+        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
+
+        ntot = np.zeros(self.Np)
+
+        # add all heavies but background
+        for i in range(1, self.Ns-1):
+            ntot += dens[:,i]
+
+        # add background contribution (accounting for non-dim difference)
+        ntot += nAronp0 * dens[:,self.Ns-1]
+
+        Tg0 = 0.038778 # 300K (p0 - nT[:,0])/ntot
+        res[(self.Ns-1)*self.Np] = ntot[ 0]*Tg0 + nT[ 0] - p0
+        res[ self.Ns*self.Np-1 ] = ntot[-1]*Tg0 + nT[-1] - p0
+
 
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
@@ -971,11 +1009,31 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
         # force background to 1.0 at boundaries (does this make sense?)
-        self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
+        #self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+
+        # enforce that temperature is 300K at boundaries
+        p0 = 15566.0
+        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
+        Tg0 = 0.038778 # 300K (p0 - nT[:,0])/ntot
+        #res[(self.Ns-1)*self.Np] = ntot[ 0]*Tg0 + nT[ 0] - p0
+        #res[ self.Ns*self.Np-1 ] = ntot[-1]*Tg0 + nT[-1] - p0
+
+        self.jac[(self.Ns-1)*self.Np,:] = 0.0
+
+        for i in range(1,self.Ns-1):
+            self.jac[(self.Ns-1)*self.Np,i*self.Np] = Tg0
+
+        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = nAronp0*Tg0
+        self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0
 
         self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
+
+        for i in range(1,self.Ns-1):
+            self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = Tg0
+
+        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = nAronp0*Tg0
+        self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
+
 
         # Dirichlet condition on electron energy
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
@@ -1011,11 +1069,33 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
         # force background to 1.0 at boundaries (does this make sense?)
-        self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
+        #self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        #self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
+
+        #self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        #self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
+        # enforce that temperature is 300K at boundaries
+        p0 = 15566.0
+        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
+        Tg0 = 0.038778 # 300K (p0 - nT[:,0])/ntot
+        #res[(self.Ns-1)*self.Np] = ntot[ 0]*Tg0 + nT[ 0] - p0
+        #res[ self.Ns*self.Np-1 ] = ntot[-1]*Tg0 + nT[-1] - p0
+
+        self.jac[(self.Ns-1)*self.Np,:] = 0.0
+
+        for i in range(1,self.Ns-1):
+            self.jac[(self.Ns-1)*self.Np,i*self.Np] = Tg0
+
+        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = nAronp0*Tg0
+        self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0
 
         self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
+
+        for i in range(1,self.Ns-1):
+            self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = Tg0
+
+        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = nAronp0*Tg0
+        self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
 
 
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
