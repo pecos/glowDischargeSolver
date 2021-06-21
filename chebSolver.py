@@ -97,9 +97,14 @@ class modelClosures:
         self.alpha = 2.33e3
 
         # boundary condition parameters
-        self.gam = 0.01
-        self.ks = 6.89e-1
+        self.gam   = 0.01
+        self.ks    = 6.89e-1
         self.ksion = 0.0
+
+        # background specie density
+        self.kappaB  = 4.42
+        self.p0      = 133.3224*1.5/1.6e-19/8e16
+        self.nAronp0 = 3.22e22 / 8e16
 
     def charge(self,i):
         return self.Z[i]
@@ -400,10 +405,6 @@ class timeDomainCollocationSolver:
         nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
         Te = nT/dens[:,iele]
 
-        # compute the gas temperature (actually 1.5*kB*Tg)
-        p0 = 15566.0
-        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
-
         ntot = np.zeros(self.Np)
 
         # add all heavies but background
@@ -411,11 +412,10 @@ class timeDomainCollocationSolver:
             ntot += dens[:,i]
 
         # add background contribution (accounting for non-dim difference)
-        ntot += nAronp0 * dens[:,self.Ns-1]
+        ntot += self.params.nAronp0 * dens[:,self.Ns-1]
 
         # Temperature (from ideal gas law)
-        Tg = (p0 - nT[:,0])/ntot
-        #print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
+        Tg = (self.params.p0 - nT[:,0])/ntot
 
         # solve poisson equation for phi
         # now have self.phi
@@ -458,23 +458,17 @@ class timeDomainCollocationSolver:
         omega = self.params.rxnSourceTerm(Te, dens)
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
-
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
-        #print(Tg.shape)
-        #fa = np.zeros(self.Np,dtype=np.float)
         fa = np.copy(fT)
         for i in range(1,self.Ns-1):
             fa[:,0] += (5./3.)*(-self.params.mobility(i)*dens[:,i]*Tg*(-phi_x[:,0]) -
                            self.params.diffusivity(i)* (self.Dp @ (dens[:,i]*Tg) ) )
 
         # background thermal conductivity contribution
-        kappa_background = 4.42 # FIXME: Add to properties
-        fa[:,0] += - kappa_background * (self.Dp @ Tg)
-        #fa += - kappa_background * (self.Dp @ Tg)
+        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg)
 
         fa_x = self.Dp @ fa
-
 
         sOmEp = np.zeros(self.Np,dtype=np.float)
         for i in range(0, self.Ns-1):
@@ -484,27 +478,17 @@ class timeDomainCollocationSolver:
         for i in range(0, self.Ns-1):
             joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
 
-        S = (sOmEp + fa_x[:,0] - joule)/Tg/nAronp0
-        #print("norm(S) = {0:.6e}\n".format(np.linalg.norm(S)))
-        #print("norm(sOmEp) = {0:.6e}\n".format(np.linalg.norm(sOmEp)))
-        #print("norm(fa_x) = {0:.6e}\n".format(np.linalg.norm(fa_x)))
-        #print("norm(joule) = {0:.6e}\n".format(np.linalg.norm(joule)))
-        #print("norm(sOmEp + fa_x - joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp + fa_x - joule)))
-        #print("norm(sOmEp - fa_x - joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp - fa_x - joule)))
-        #print("norm(sOmEp - fa_x + joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp - fa_x + joule)))
-        #print("norm(sOmEp + fa_x + joule) = {0:.6e}\n".format(np.linalg.norm(sOmEp + fa_x + joule)))
+        S = (sOmEp + fa_x[:,0] - joule)/Tg/self.params.nAronp0
 
         # form full residual
         res = np.zeros((self.Nv*self.Np,1))
 
         # spatial part
-
         # standard species
         for i in range(0,self.Ns-1):
             res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
 
         # background specie (fixed at IC for now)
-        #res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] = 0.0
         res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] = -dt*S
 
         # energy
@@ -734,10 +718,6 @@ class timeDomainCollocationSolver:
         Te_ne = -np.multiply(Te/dens[:,iele],np.identity(self.Np))
         Te_nT = np.multiply(np.identity(self.Np),1./dens[:,iele])
 
-        # compute the gas temperature (actually 1.5*kB*Tg)
-        p0 = 15566.0
-        nAronp0 = 3.22e22/8e16 # ratio of nominal background to nominal electron density
-
         ntot = np.zeros(self.Np)
         ntot_U = np.zeros((self.Np, self.Nv))
 
@@ -747,11 +727,11 @@ class timeDomainCollocationSolver:
             ntot_U[:,i] += np.ones(self.Np)
 
         # background contribution
-        ntot += nAronp0 * dens[:,self.Ns-1]
-        ntot_U[:,self.Ns-1] += nAronp0*np.ones(self.Np)
+        ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+        ntot_U[:,self.Ns-1] += self.params.nAronp0*np.ones(self.Np)
 
         # Temperature (from ideal gas law)
-        Tg = (p0 - nT[:,0])/ntot
+        Tg = (self.params.p0 - nT[:,0])/ntot
 
         Tg_U = np.zeros((self.Np, self.Nv))
         for i in range(0, self.Nv):
@@ -888,13 +868,10 @@ class timeDomainCollocationSolver:
                 fa_U[j,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j])) -
                                         self.params.diffusivity(i)* (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j]))))
 
-
-
         # background thermal conductivity contribution
-        kappa_background = 4.42 # FIXME: Add to properties
-        fa[:,0] += - kappa_background * (self.Dp @ Tg)
+        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg)
         for j in range(0,self.Nv):
-            fa_U[j,:,:] += - kappa_background * self.Dp @ np.diag(Tg_U[:,j])
+            fa_U[j,:,:] += - self.params.kappaB * self.Dp @ np.diag(Tg_U[:,j])
 
         fa_x = self.Dp @ fa
 
@@ -920,10 +897,10 @@ class timeDomainCollocationSolver:
             joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x_ni))
 
 
-        S = (sOmEp + fa_x - joule)/Tg/nAronp0
+        S = (sOmEp + fa_x - joule)/Tg/self.params.nAronp0
+        
         S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float)
-
-        S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/nAronp0
+        S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/self.params.nAronp0
         for j in range(0,self.Nv):
             S_U[j,:,:] += np.diag( -(S/Tg)*Tg_U[:,j] )
 

@@ -22,6 +22,9 @@ def setPsaapPropertiesTestArm(gam, params):
     # nominal electron energy
     e0 = 1.0  # [eV]
 
+    # pressure
+    p  = 133.3224*1.5 # [J/m^3] *1.5 to convert it to energy
+
     # characteristics of driving voltage
     V0  = 100.0 #1000.0      # amplitude of driving voltage [V]
     tau = (1./13.56e6) # period of driving voltage [s]
@@ -33,6 +36,8 @@ def setPsaapPropertiesTestArm(gam, params):
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
+    kappaB = 4.42    # thermal conductivity of background specie
+                     # !!!Don't understand this value.
 
     # reaction parameters (NB: k_i = Ck*exp(-A/Te))
     #Ck = np.array([1.235e-7,3.712e-8,2.05e-7,1.818e-9,2e-7]) # pre-exponential factors [cm^3/s]
@@ -112,6 +117,7 @@ def setPsaapPropertiesTestArm(gam, params):
     qStar = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
     alpha = qe*np0*L*L/(V0*eps0)
     ks    = ks*tau/L
+    p0     = p/qe/np0
 
     #params.beta = np.array([[2,2,2,1,1],[1,0,1,0,0],[0,1,0,0,0],[0,0,0,1,1]])
     #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
@@ -139,6 +145,9 @@ def setPsaapPropertiesTestArm(gam, params):
     params.alpha = alpha
     params.ks    = ks
     params.gam   = gam
+    params.kappaB  = kappaB
+    params.nAronp0 = nAr / np0
+    params.p0      = p0
 
     #params.Nr = 1
 
