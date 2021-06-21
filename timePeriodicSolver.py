@@ -14,7 +14,7 @@ class timePeriodicSolver:
         else:
             # Default initial guess.  This should be overwritten
             # by reading restart if you want this to work.
-            self.tds.U1[0:self.self.tds.Np] = 1e-4
+            self.tds.U1[0:self.tds.Np] = 1e-4
             self.tds.U1[self.tds.Np:2*self.tds.Np] = 1e-4
             self.tds.U1[2*self.tds.Np:] = 0.75
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('--Nn', metavar='Nn', default=20,
                         type=int, help='Maximum number of Newton iterations')
     parser.add_argument('--gam', metavar='gam', default=0.01,
-                        type=np.float, help='Secondary electron emission parameter')
+                        type=float, help='Secondary electron emission parameter')
     parser.add_argument('--rtol',metavar='rtol', default=1e-6,
                         type=float, help="Relative tolerance for non-linear solve")
     parser.add_argument('--atol',metavar='atol', default=1e-14,

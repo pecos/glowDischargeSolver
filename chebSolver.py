@@ -80,8 +80,8 @@ class modelClosures:
         # stoichiometric coefficients (Ns+1 b/c we store coefficient
         # for the background gas... it is only used for
         # non-dimensionalization purposes)
-        self.beta = np.zeros((Ns+1,Nr),dtype=np.int) # products
-        self.alfa = np.zeros((Ns+1,Nr),dtype=np.int) # reactants
+        self.beta = np.zeros((Ns+1,Nr),dtype=np.int64) # products
+        self.alfa = np.zeros((Ns+1,Nr),dtype=np.int64) # reactants
 
         # this represents a single rxn: Ar+e -> Ar+ + e + e
         self.beta[0,0] = 2
@@ -118,7 +118,7 @@ class modelClosures:
     def rxnSourceTerm(self, energy, density):
         G = self.progressRate(energy,density)
 
-        omega = np.zeros((energy.shape[0], self.Ns+1),dtype=np.float)
+        omega = np.zeros((energy.shape[0], self.Ns+1),dtype=np.float64)
         for i in range(0,self.Ns):
             for j in range(0,self.Nr):
                 omega[:,i] += (self.beta[i,j] - self.alfa[i,j])*G[:,j]
@@ -131,7 +131,7 @@ class modelClosures:
     def rxnSourceTermJac(self, energy, density):
         G_U = self.progressRateJac(energy,density)
 
-        omega_U = np.zeros((self.Ns+1,self.Ns+1,energy.shape[0]),dtype=np.float)
+        omega_U = np.zeros((self.Ns+1,self.Ns+1,energy.shape[0]),dtype=np.float64)
         for i in range(0,self.Ns):
             for j in range(0,self.Nr):
                 omega_U[i,:,:] += (self.beta[i,j] - self.alfa[i,j])*G_U[j,:,:]
@@ -398,7 +398,7 @@ class timeDomainCollocationSolver:
         iion = [1]
 
         # pull off state for convenience
-        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
@@ -426,7 +426,7 @@ class timeDomainCollocationSolver:
         nT_x   = self.Dp @ nT
         phi_x  = self.Dp @ self.phi
 
-        fspec = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        fspec = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             fspec[:,i] = (   self.params.charge(i)*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
                            - self.params.diffusivity(i)*dens_x[:,i] )
@@ -470,11 +470,11 @@ class timeDomainCollocationSolver:
 
         fa_x = self.Dp @ fa
 
-        sOmEp = np.zeros(self.Np,dtype=np.float)
+        sOmEp = np.zeros(self.Np,dtype=np.float64)
         for i in range(0, self.Ns-1):
             sOmEp += omega[:,i]*self.params.dEps[i]
 
-        joule = np.zeros(self.Np,dtype=np.float)
+        joule = np.zeros(self.Np,dtype=np.float64)
         for i in range(0, self.Ns-1):
             joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
 
@@ -533,7 +533,7 @@ class timeDomainCollocationSolver:
         iion = [1]
 
         # pull off state for convenience
-        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
@@ -597,7 +597,7 @@ class timeDomainCollocationSolver:
         iion = [1]
 
         # pull off state for convenience
-        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
@@ -659,7 +659,7 @@ class timeDomainCollocationSolver:
         iion = [1]
 
         # pull off state for convenience
-        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
@@ -708,7 +708,7 @@ class timeDomainCollocationSolver:
         iion = [1]
 
         # pull off state for convenience
-        dens = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        dens = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
@@ -763,7 +763,7 @@ class timeDomainCollocationSolver:
         fe = -self.params.mobility(0)*dens[:,iele]*(-phi_x) - self.params.diffusivity(0)*dens_x[:,iele]
 
         # must have these for joule heating erms
-        fspec = np.ndarray((self.Np, self.Ns),dtype=np.float)
+        fspec = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             fspec[:,i] = (   self.params.charge(i)*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
                            - self.params.diffusivity(i)*dens_x[:,i] )
@@ -776,7 +776,7 @@ class timeDomainCollocationSolver:
 
 
         # species equations
-        fspec_U = np.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=np.float)
+        fspec_U = np.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=np.float64)
         for i in range(0,self.Ns-1):
             fspec_U[i,i,:,:] = (  self.params.charge(i)*self.params.mobility(i)*np.multiply(np.identity(self.Np),-phi_x)
                                 - self.params.diffusivity(i)*self.Dp )
@@ -786,7 +786,7 @@ class timeDomainCollocationSolver:
 
 
         # energy equations
-        fT_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float)
+        fT_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float64)
         fT_U[0,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ne))
         fT_U[1,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ni))
         fT_U[self.Ns,:,:] = (5./3.)*( -self.params.mobility(0)*np.multiply(np.identity(self.Np),-phi_x)
@@ -820,13 +820,13 @@ class timeDomainCollocationSolver:
             rstrg_U[1,self.Np-1] -= self.params.ks
 
         # form Jacobians of derivatives of fluxes at collocation points
-        fspec_x_U = np.ndarray((self.Ns, self.Ns+1, self.Np, self.Np),dtype=np.float)
+        fspec_x_U = np.ndarray((self.Ns, self.Ns+1, self.Np, self.Np),dtype=np.float64)
 
         for i in range(0,self.Ns):
             for j in range(0,self.Ns+1):
                 fspec_x_U[i,j,:,:] = self.Dp @ fspec_U[i,j,:,:]
 
-        fT_x_U = np.ndarray((self.Ns+1, self.Np, self.Np),dtype=np.float)
+        fT_x_U = np.ndarray((self.Ns+1, self.Np, self.Np),dtype=np.float64)
         for j in range(0,self.Ns+1):
             fT_x_U[j, :,:] = self.Dp @ fT_U[j,:,:]
 
@@ -850,8 +850,8 @@ class timeDomainCollocationSolver:
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
-        fa = np.zeros(self.Np,dtype=np.float)
-        fa_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float)
+        fa = np.zeros(self.Np,dtype=np.float64)
+        fa_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float64)
         fa = np.copy(fT)
         fa_U = np.copy(fT_U)
 
@@ -875,19 +875,19 @@ class timeDomainCollocationSolver:
 
         fa_x = self.Dp @ fa
 
-        fa_x_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float)
+        fa_x_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float64)
         for j in range(0,self.Nv):
             fa_x_U[j,:,:] = self.Dp @ fa_U[j,:,:]
 
-        sOmEp = np.zeros(self.Np,dtype=np.float)
-        sOmEp_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float)
+        sOmEp = np.zeros(self.Np,dtype=np.float64)
+        sOmEp_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         for i in range(0, self.Ns-1):
             sOmEp += omega[:,i]*self.params.dEps[i]
             for j in range(0,self.Nv):
                 sOmEp_U[j,:,:] += np.diag(omega_U[i,j,:]*self.params.dEps[i])
 
-        joule = np.zeros(self.Np,dtype=np.float)
-        joule_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float)
+        joule = np.zeros(self.Np,dtype=np.float64)
+        joule_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         for i in range(0, self.Ns-1):
             joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
             for j in range(0,self.Nv):
@@ -899,7 +899,7 @@ class timeDomainCollocationSolver:
 
         S = (sOmEp + fa_x - joule)/Tg/self.params.nAronp0
         
-        S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float)
+        S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/self.params.nAronp0
         for j in range(0,self.Nv):
             S_U[j,:,:] += np.diag( -(S/Tg)*Tg_U[:,j] )
@@ -1178,11 +1178,11 @@ class timeDomainCollocationSolver:
 
         # perturb each component of Uin to form finite differenc approx
         for k in range(0,Uin.shape[0]):
-            dU = np.sqrt(np.finfo(np.float).eps)*np.absolute(Uin[k])
+            dU = np.sqrt(np.finfo(np.float64).eps)*np.absolute(Uin[k])
             Up = np.copy(Uin)
 
-            if (np.absolute(dU) < np.finfo(np.float).eps):
-                dU = np.finfo(np.float).eps
+            if (np.absolute(dU) < np.finfo(np.float64).eps):
+                dU = np.finfo(np.float64).eps
 
             Up[k] += dU
 
@@ -1299,7 +1299,7 @@ class timeDomainCollocationSolver:
               rtol=1e-6, computeSensitivity=False, weak_bc=False):
 
         if(savedata!=None):
-            Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float)
+            Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float64)
             Usave[0,:] = self.U2[:,0]
 
         print("#")
@@ -1360,7 +1360,7 @@ class timeDomainCollocationSolver:
                  computeSensitivity=False, weak_bc=False):
 
         if(savedata!=None):
-            Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float)
+            Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float64)
             Usave[0,:] = self.U2[:,0]
 
         print("#")
