@@ -2,6 +2,7 @@ import numpy as np
 import numpy.polynomial.chebyshev as cheb
 import matplotlib.pyplot as plt
 
+from chemistryArgonPlasma import ChemistryArgonPlasma
 from Liu2014Properties import setLiu2014Properties
 from psaapProperties import setPsaapProperties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
@@ -157,9 +158,9 @@ class modelClosures:
     def progressRateJac(self, energy, density):
         G = self.progressRate(energy,density)
         G_U = np.zeros((self.Nr,self.Ns+1, energy.shape[0]))
+        rxn = ChemistryArgonPlasma(energy)
         for i in range(0,self.Nr):
-            kf = self.rxnRateCoefficient(energy, i)
-            kf_T = self.rxnRateCoefficientJac(energy, i)
+            kf, kf_T = rxn.rxnRateCoefficientG2()
 
             #G[:,i] *= density[:,j]**self.alfa[j,i]
             G_U[i,self.Ns,:] = kf_T[:,0]
