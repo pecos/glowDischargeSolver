@@ -22,6 +22,9 @@ def setLiu2014Properties(gam, params):
 
     # pressure
     p  = 133.3224*1.5 # [J/m^3] *1.5 to convert it to energy
+    
+    # gas energy at the wall
+    Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
 
     # characteristics of driving voltage
     V0  = 100.0       # amplitude of driving voltage [V]
@@ -51,6 +54,7 @@ def setLiu2014Properties(gam, params):
     qe   = 1.6e-19   # unit charge [C]
     eps0 = 8.86e-12  # permittivity of free space [F/m]
     kB   = 1.38e-23  # Boltzmann constant [J/K]
+    # kB   = 8.62e−5 # Boltzmann constant [eV/K]
 
 
     ###################################################################
@@ -100,6 +104,7 @@ def setLiu2014Properties(gam, params):
     params.kappaB = kappaB
     params.nAronp0 = nAr / np0
     params.p0      = p0
+    params.Tg0     = Tg0
 
     # 5) Dump to screen
     params.print()
