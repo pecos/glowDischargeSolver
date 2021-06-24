@@ -56,8 +56,9 @@ class modelClosures:
 
         # charge number
         self.Z = np.zeros(Ns)
-        self.Z[0] = -1 # electrons are always 0
+        self.Z[0] = -1 # electrons are always -1
         self.Z[1] =  1 # ions are always 1
+        self.Z[2] =  0 # background specie should be 0
 
         # mobility
         self.mu = np.zeros(Ns)
@@ -80,8 +81,8 @@ class modelClosures:
         # stoichiometric coefficients (Ns+1 b/c we store coefficient
         # for the background gas... it is only used for
         # non-dimensionalization purposes)
-        self.beta = np.zeros((Ns+1,Nr),dtype=np.int64) # products
-        self.alfa = np.zeros((Ns+1,Nr),dtype=np.int64) # reactants
+        self.beta = np.zeros((Ns,Nr),dtype=np.int64) # products
+        self.alfa = np.zeros((Ns,Nr),dtype=np.int64) # reactants
 
         # this represents a single rxn: Ar+e -> Ar+ + e + e
         self.beta[0,0] = 2
@@ -463,8 +464,8 @@ class timeDomainCollocationSolver:
         # specie evolution to ensure constant pressure
         fa = np.copy(fT)
         for i in range(1,self.Ns-1):
-            fa[:,0] += (5./3.)*(-self.params.mobility(i)*dens[:,i]*Tg*(-phi_x[:,0]) -
-                           self.params.diffusivity(i)* (self.Dp @ (dens[:,i]*Tg) ) )
+            fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*dens[:,i]*Tg*(-phi_x[:,0]) -
+                                self.params.diffusivity(i)* (self.Dp @ (dens[:,i]*Tg)))
 
         # background thermal conductivity contribution
         fa[:,0] += - self.params.kappaB * (self.Dp @ Tg)
@@ -847,15 +848,15 @@ class timeDomainCollocationSolver:
 
         for i in range(1,self.Ns-1):
             naTg = dens[:,i]*Tg
-            fa[:,0] += (5./3.)*(-self.params.mobility(i)*naTg*(-phi_x[:,0]) -
+            fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*naTg*(-phi_x[:,0]) -
                            self.params.diffusivity(i)* (self.Dp @ naTg ) )
 
-            fa_U[0,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(naTg,-phi_x_ne))
-            fa_U[1,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(naTg,-phi_x_ni))
-            fa_U[i,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(np.diag(Tg),-phi_x)
+            fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg,-phi_x_ne))
+            fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg,-phi_x_ni))
+            fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(np.diag(Tg),-phi_x)
                                     -self.params.diffusivity(i)*self.Dp @ np.diag(Tg) )
             for j in range(0, self.Nv):
-                fa_U[j,:,:] += (5./3.)*(-self.params.mobility(i)*np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j])) -
+                fa_U[j,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j])) -
                                         self.params.diffusivity(i)* (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j]))))
 
         # background thermal conductivity contribution

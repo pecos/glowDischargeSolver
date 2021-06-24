@@ -1,3 +1,5 @@
+import numpy as np
+
 def setPsaapProperties(gam, params):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
@@ -33,8 +35,9 @@ def setPsaapProperties(gam, params):
     nmui   = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
     nDe    = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi    = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
-    kappaB = 4.42      # thermal conductivity of background specie
-                       # !!!Don't understand this value.
+    nDb    = 2.42e18   # argon number density times ion diffusivity [1/(cm*s)]
+    kappaB = 4.42*6.4516 # thermal conductivity of background specie
+                         # !!!Don't understand this value.
 
     # reaction parameters (NB: k_i = Ck*exp(-A/Te))
     Ck = 1.235e-7    # ionization rate pre-exponential factor [cm^3/s]
@@ -60,6 +63,7 @@ def setPsaapProperties(gam, params):
     # 1) Convert input units to base SI (except eV)
     nDe  *= 100. # 1/(m*s)
     nDi  *= 100. # 1/(m*s)
+    nDb  *= 100. # 1/(m*s)
     nmue *= 100. # 1/(V*m*s)
     nmui *= 100. # 1/(V*m*s)
     Ck   *= 1e-6 # m^3/s
@@ -68,17 +72,20 @@ def setPsaapProperties(gam, params):
     # 2) Compute "raw" transport parameters
     De  = nDe/nAr
     Di  = nDi/nAr
+    Db  = nDb/nAr
     mue = nmue/nAr
     mui = nmui/nAr
 
     # 3) Compute non-dimensional properties required by solver
     De    = De*tau/(L*L)
     Di    = Di*tau/(L*L)
+    Db    = Db*tau/(L*L)
     mue   = mue*V0*tau/(L*L)
     mui   = mui*V0*tau/(L*L)
     Ck    = Ck*tau*nAr
     A     = A*1.5/e0  # 1.5 to convert from temperature to energy
     dH    = dH/e0
+    dEps  = np.array([0.0,15.7,0.0])
     qStar = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
     alpha = qe*np0*L*L/(V0*eps0)
     ks    = ks*tau/L
@@ -87,12 +94,15 @@ def setPsaapProperties(gam, params):
     # 4) Set values in params class
     params.D[0]    = De
     params.D[1]    = Di
+    params.D[2]    = Db * nAr / np0
     params.mu[0]   = mue
     params.mu[1]   = mui
+    params.mu[2]   = 0.0
     params.A[0]    = Ck
     params.B[0]    = 0.0
     params.C[0]    = A
     params.dH[0]   = dH
+    params.dEps[:] = dEps[:]
     params.qStar   = qStar
     params.alpha   = alpha
     params.ks      = ks

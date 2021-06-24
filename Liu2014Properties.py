@@ -1,3 +1,5 @@
+import numpy as np
+
 def setLiu2014Properties(gam, params):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
@@ -83,6 +85,7 @@ def setLiu2014Properties(gam, params):
     Ck     = Ck*tau*nAr
     A      = A*1.5/e0  # 1.5 to convert from temperature to energy
     dH     = dH/e0
+    dEps  = np.array([0.0,15.7,0.0])
     qStar  = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
     alpha  = qe*np0*L*L/(V0*eps0)
     ks     = ks*tau/L
@@ -97,6 +100,7 @@ def setLiu2014Properties(gam, params):
     params.B[0]   = 0.0
     params.C[0]   = A
     params.dH[0]  = dH
+    params.dEps[:] = dEps[:]
     params.qStar  = qStar
     params.alpha  = alpha
     params.ks     = ks
