@@ -24,18 +24,20 @@ def setPsaapProperties(gam, params):
 
     # pressure
     p  = 133.3224*1.5 # [J/m^3] *1.5 to convert it to energy
+    
+    # gas energy at the wall
+    Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
 
     # characteristics of driving voltage
-    V0  = 1000.0      # amplitude of driving voltage [V]
-    tau = (1./13.56e6) # period of driving voltage [s]
-    L   = 1*0.005  # half-gap-width [m] (gap width is 1cm)
+    V0  = 1000.0       # amplitude of driving voltage [V]
+    tau = (1./13.6e6) # period of driving voltage [s]
+    L   = 1.00*0.005  # half-gap-width [m] (gap width is 1in)
 
     # transport parameters
     nmue   = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
     nmui   = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
     nDe    = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi    = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
-    nDb    = 2.42e18   # argon number density times ion diffusivity [1/(cm*s)]
     kappaB = 4.42*6.4516 # thermal conductivity of background specie
                          # !!!Don't understand this value.
 
@@ -54,6 +56,7 @@ def setPsaapProperties(gam, params):
     qe   = 1.6e-19   # unit charge [C]
     eps0 = 8.86e-12  # permittivity of free space [F/m]
     kB   = 1.38e-23  # Boltzmann constant [J/K]
+    # kB   = 8.62e−5 # Boltzmann constant [eV/K]
 
 
     ###################################################################
@@ -63,7 +66,6 @@ def setPsaapProperties(gam, params):
     # 1) Convert input units to base SI (except eV)
     nDe  *= 100. # 1/(m*s)
     nDi  *= 100. # 1/(m*s)
-    nDb  *= 100. # 1/(m*s)
     nmue *= 100. # 1/(V*m*s)
     nmui *= 100. # 1/(V*m*s)
     Ck   *= 1e-6 # m^3/s
@@ -72,14 +74,12 @@ def setPsaapProperties(gam, params):
     # 2) Compute "raw" transport parameters
     De  = nDe/nAr
     Di  = nDi/nAr
-    Db  = nDb/nAr
     mue = nmue/nAr
     mui = nmui/nAr
 
     # 3) Compute non-dimensional properties required by solver
     De    = De*tau/(L*L)
     Di    = Di*tau/(L*L)
-    Db    = Db*tau/(L*L)
     mue   = mue*V0*tau/(L*L)
     mui   = mui*V0*tau/(L*L)
     Ck    = Ck*tau*nAr
@@ -94,10 +94,8 @@ def setPsaapProperties(gam, params):
     # 4) Set values in params class
     params.D[0]    = De
     params.D[1]    = Di
-    params.D[2]    = Db * nAr / np0
     params.mu[0]   = mue
     params.mu[1]   = mui
-    params.mu[2]   = 0.0
     params.A[0]    = Ck
     params.B[0]    = 0.0
     params.C[0]    = A
@@ -110,6 +108,7 @@ def setPsaapProperties(gam, params):
     params.kappaB  = kappaB
     params.nAronp0 = nAr / np0
     params.p0      = p0
+    params.Tg0     = Tg0
 
     # 5) Dump to screen
     params.print()
