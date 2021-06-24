@@ -893,7 +893,7 @@ class timeDomainCollocationSolver:
         S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/self.params.nAronp0
         for j in range(0,self.Nv):
-            S_U[j,:,:] += np.diag( -(S/Tg)*Tg_U[:,j] )
+            S_U[j,:,:] += np.multiply(np.diag( -(S/Tg)*Tg_U[:,j] ),np.identity(self.Np))
 
         # form the full jacobian
         self.jac = np.zeros((self.Ndof,self.Ndof))
