@@ -404,20 +404,22 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
+        nT = np.zeros((self.Np, 1),dtype=np.float64)
         nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
         Te = nT/dens[:,iele]
 
-        ntot = np.zeros(self.Np)
+        ntot = np.zeros((self.Np, 1),dtype=np.float64)
 
         # add all heavies but background
         for i in range(1, self.Ns-1):
-            ntot += dens[:,i]
+            ntot[:,0] += dens[:,i]
 
         # add background contribution (accounting for non-dim difference)
-        ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+        ntot[:,0] += self.params.nAronp0 * dens[:,self.Ns-1]
 
         # Temperature (from ideal gas law)
-        Tg = (self.params.p0 - nT[:,0])/ntot
+        Tg = np.zeros((self.Np, 1),dtype=np.float64)
+        Tg = (self.params.p0 - nT)/ntot
 
         # solve poisson equation for phi
         # now have self.phi
@@ -464,23 +466,24 @@ class timeDomainCollocationSolver:
         # specie evolution to ensure constant pressure
         fa = np.copy(fT)
         for i in range(1,self.Ns-1):
-            fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*dens[:,i]*Tg*(-phi_x[:,0]) -
-                                self.params.diffusivity(i)* (self.Dp @ (dens[:,i]*Tg)))
+            fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,i],Tg[:,0])*(-phi_x[:,0]) -
+                                self.params.diffusivity(i)* (self.Dp @ np.multiply(dens[:,i],Tg[:,0])))
 
         # background thermal conductivity contribution
-        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg)
+        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0])
 
         fa_x = self.Dp @ fa
 
-        sOmEp = np.zeros(self.Np,dtype=np.float64)
+        sOmEp = np.zeros((self.Np,1),dtype=np.float64)
         for i in range(0, self.Ns-1):
-            sOmEp += omega[:,i]*self.params.dEps[i]
+            sOmEp[:,0] += omega[:,i]*self.params.dEps[i]
 
-        joule = np.zeros(self.Np,dtype=np.float64)
+        joule = np.zeros((self.Np,1),dtype=np.float64)
         for i in range(0, self.Ns-1):
-            joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
+            joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
 
-        S = (sOmEp + fa_x[:,0] - joule)/Tg/self.params.nAronp0
+        S = np.zeros((self.Np,1),dtype=np.float64)
+        S = (sOmEp[:,0] + fa_x[:,0] - joule[:,0])/Tg[:,0]/self.params.nAronp0
 
         # form full residual
         res = np.zeros((self.Nv*self.Np,1))
@@ -709,26 +712,27 @@ class timeDomainCollocationSolver:
         Te_ne = -np.multiply(Te/dens[:,iele],np.identity(self.Np))
         Te_nT = np.multiply(np.identity(self.Np),1./dens[:,iele])
 
-        ntot = np.zeros(self.Np)
+        ntot = np.zeros((self.Np,1),dtype=np.float64)
         ntot_U = np.zeros((self.Np, self.Nv))
 
         # all but background
         for i in range(1, self.Ns-1):
-            ntot += dens[:,i]
+            ntot[:,0] += dens[:,i]
             ntot_U[:,i] += np.ones(self.Np)
 
         # background contribution
-        ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+        ntot[:,0] += self.params.nAronp0 * dens[:,self.Ns-1]
         ntot_U[:,self.Ns-1] += self.params.nAronp0*np.ones(self.Np)
 
         # Temperature (from ideal gas law)
-        Tg = (self.params.p0 - nT[:,0])/ntot
+        Tg = np.zeros((self.Np, 1),dtype=np.float64)
+        Tg = (self.params.p0 - nT)/ntot
 
         Tg_U = np.zeros((self.Np, self.Nv))
         for i in range(0, self.Nv):
-            Tg_U[:,i] = -(Tg/ntot)*ntot_U[:,i]
+            Tg_U[:,i] = -(Tg[:,0]/ntot[:,0])*ntot_U[:,i]
 
-        Tg_U[:,-1] += -np.ones(self.Np)/ntot
+        Tg_U[:,-1] += -np.ones(self.Np)/ntot[:,0]
 
         #print("Mean gas temperature = {0:.6e}".format((2./3)*np.mean(Tg)*11604.))
 
@@ -841,26 +845,27 @@ class timeDomainCollocationSolver:
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
-        fa = np.zeros(self.Np,dtype=np.float64)
+        fa = np.zeros((self.Np,1),dtype=np.float64)
         fa_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float64)
         fa = np.copy(fT)
         fa_U = np.copy(fT_U)
 
+        naTg = np.zeros((self.Np,1),dtype=np.float64)
         for i in range(1,self.Ns-1):
-            naTg = dens[:,i]*Tg
-            fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*naTg*(-phi_x[:,0]) -
-                           self.params.diffusivity(i)* (self.Dp @ naTg ) )
+            naTg[:,0] = dens[:,i]*Tg[:,0]
+            fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*naTg[:,0]*(-phi_x[:,0]) -
+                           self.params.diffusivity(i)* (self.Dp @ naTg[:,0] ) )
 
-            fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg,-phi_x_ne))
-            fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg,-phi_x_ni))
-            fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(np.diag(Tg),-phi_x)
-                                    -self.params.diffusivity(i)*self.Dp @ np.diag(Tg) )
+            fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg[:,0],-phi_x_ne))
+            fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg[:,0],-phi_x_ni))
+            fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(np.diag(Tg[:,0]),-phi_x)
+                                    -self.params.diffusivity(i)*self.Dp @ np.diag(Tg[:,0]) )
             for j in range(0, self.Nv):
                 fa_U[j,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j])) -
                                         self.params.diffusivity(i)* (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j]))))
 
         # background thermal conductivity contribution
-        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg)
+        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0])
         for j in range(0,self.Nv):
             fa_U[j,:,:] += - self.params.kappaB * self.Dp @ np.diag(Tg_U[:,j])
 
@@ -870,17 +875,17 @@ class timeDomainCollocationSolver:
         for j in range(0,self.Nv):
             fa_x_U[j,:,:] = self.Dp @ fa_U[j,:,:]
 
-        sOmEp = np.zeros(self.Np,dtype=np.float64)
+        sOmEp = np.zeros((self.Np,1),dtype=np.float64)
         sOmEp_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         for i in range(0, self.Ns-1):
-            sOmEp += omega[:,i]*self.params.dEps[i]
+            sOmEp[:,0] += omega[:,i]*self.params.dEps[i]
             for j in range(0,self.Nv):
                 sOmEp_U[j,:,:] += np.diag(omega_U[i,j,:]*self.params.dEps[i])
 
-        joule = np.zeros(self.Np,dtype=np.float64)
+        joule = np.zeros((self.Np,1),dtype=np.float64)
         joule_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         for i in range(0, self.Ns-1):
-            joule += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
+            joule[:,0] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x[:,0]))
             for j in range(0,self.Nv):
                 joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec_U[i,j,:,:],(-phi_x))
 
@@ -889,7 +894,7 @@ class timeDomainCollocationSolver:
 
 
         S = (sOmEp + fa_x - joule)/Tg/self.params.nAronp0
-        
+
         S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/self.params.nAronp0
         for j in range(0,self.Nv):
