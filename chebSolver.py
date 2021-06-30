@@ -892,7 +892,6 @@ class timeDomainCollocationSolver:
             joule_U[0,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x_ne))
             joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x_ni))
 
-
         S = (sOmEp + fa_x - joule)/Tg/self.params.nAronp0
 
         S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
@@ -912,7 +911,6 @@ class timeDomainCollocationSolver:
             for j in range(0,self.Ns):
                 self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fspec_x_U[i,j,:,:])
 
-
         # electron energy eqn
         for j in range(0,self.Ns+1):
             self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fT_x_U[j,:,:])
@@ -922,13 +920,12 @@ class timeDomainCollocationSolver:
         # NB: This affects the background eqns (erroneously) but it is overwritten later
         for i in range(0,self.Ns+1):
             for j in range(0,self.Ns+1):
-                jac_diag = np.einsum('ii->i', self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np])
+                jac_diag  = np.einsum('ii->i', self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np])
                 jac_diag -= dt*omega_U[i,j,:]
 
         # Joule heating (electron energy eqn)
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
-
 
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):

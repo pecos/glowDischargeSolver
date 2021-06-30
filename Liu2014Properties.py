@@ -78,13 +78,13 @@ def setLiu2014Properties(gam, params):
     mui = nmui/nAr
 
     # 3) Compute non-dimensional properties required by solver
-    De     = De*tau/(L*L)
-    Di     = Di*tau/(L*L)
-    mue    = mue*V0*tau/(L*L)
-    mui    = mui*V0*tau/(L*L)
-    Ck     = Ck*tau*nAr
-    A      = A*1.5/e0  # 1.5 to convert from temperature to energy
-    dH     = dH/e0
+    De    = De*tau/(L*L)
+    Di    = Di*tau/(L*L)
+    mue   = mue*V0*tau/(L*L)
+    mui   = mui*V0*tau/(L*L)
+    Ck    = Ck*tau*nAr
+    A     = A*1.5/e0  # 1.5 to convert from temperature to energy
+    dH    = dH/e0
     dEps  = np.array([0.0,15.7,0.0])
     qStar = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
     alpha = qe*np0*L*L/(V0*eps0)
