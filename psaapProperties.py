@@ -38,8 +38,6 @@ def setPsaapProperties(gam, params):
     nmui   = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
     nDe    = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi    = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
-    kappaB = 4.42*6.4516 # thermal conductivity of background specie
-                         # !!!Don't understand this value.
 
     # reaction parameters (NB: k_i = Ck*exp(-A/Te))
     Ck = 1.235e-7    # ionization rate pre-exponential factor [cm^3/s]
@@ -78,18 +76,21 @@ def setPsaapProperties(gam, params):
     mui = nmui/nAr
 
     # 3) Compute non-dimensional properties required by solver
-    De    = De*tau/(L*L)
-    Di    = Di*tau/(L*L)
-    mue   = mue*V0*tau/(L*L)
-    mui   = mui*V0*tau/(L*L)
-    Ck    = Ck*tau*nAr
-    A     = A*1.5/e0  # 1.5 to convert from temperature to energy
-    dH    = dH/e0
-    dEps  = np.array([0.0,15.7,0.0])
-    qStar = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
-    alpha = qe*np0*L*L/(V0*eps0)
-    ks    = ks*tau/L
-    p0    = p/qe/np0
+    De     = De*tau/(L*L)
+    Di     = Di*tau/(L*L)
+    mue    = mue*V0*tau/(L*L)
+    mui    = mui*V0*tau/(L*L)
+    Ck     = Ck*tau*nAr
+    A      = A*1.5/e0  # 1.5 to convert from temperature to energy
+    dH     = dH/e0
+    dEps   = np.array([0.0,15.7,0.0])
+    qStar  = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
+    alpha  = qe*np0*L*L/(V0*eps0)
+    ks     = ks*tau/L
+    p0     = p/qe/np0
+    kappaB = 4.42*6.4516 # non-dimensional thermal conductivity of background specie
+                         # (2/3)*tau/L**2*Kb/np0/kB,
+                         # where Kb is the thermal conductivity of background specie
 
     # 4) Set values in params class
     params.D[0]    = De

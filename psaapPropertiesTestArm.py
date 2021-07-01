@@ -36,8 +36,6 @@ def setPsaapPropertiesTestArm(gam, params):
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
-    kappaB = 4.42    # thermal conductivity of background specie
-                     # !!!Don't understand this value.
 
     # reaction parameters (NB: k_i = Ck*exp(-A/Te))
     #Ck = np.array([1.235e-7,3.712e-8,2.05e-7,1.818e-9,2e-7]) # pre-exponential factors [cm^3/s]
@@ -107,17 +105,20 @@ def setPsaapPropertiesTestArm(gam, params):
     mue   = mue*V0*tau/(L*L)
     mui   = mui*V0*tau/(L*L)
 
-    Ck[0:2]    = Ck[0:2]*tau*nAr
-    #Ck[2:5]    = Ck[2:5]*tau*np0
-    Ck[2:6]    = Ck[2:6]*tau*np0
-    Ck[6] *= tau*nAr
-    Ck[7] *= tau*nAr*nAr
-    A     = A*1.5/e0  # 1.5 to convert from temperature to energy
-    dH    = dH/e0
-    qStar = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
-    alpha = qe*np0*L*L/(V0*eps0)
-    ks    = ks*tau/L
-    p0     = p/qe/np0
+    Ck[0:2] = Ck[0:2]*tau*nAr
+    #Ck[2:5] = Ck[2:5]*tau*np0
+    Ck[2:6] = Ck[2:6]*tau*np0
+    Ck[6]  *= tau*nAr
+    Ck[7]  *= tau*nAr*nAr
+    A       = A*1.5/e0  # 1.5 to convert from temperature to energy
+    dH      = dH/e0
+    qStar   = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
+    alpha   = qe*np0*L*L/(V0*eps0)
+    ks      = ks*tau/L
+    p0      = p/qe/np0
+    kappaB  = 4.42      # non-dimensional thermal conductivity of background specie
+                        # (2/3)*tau/L**2*Kb/np0/kB,
+                        # where Kb is the thermal conductivity of background specie
 
     #params.beta = np.array([[2,2,2,1,1],[1,0,1,0,0],[0,1,0,0,0],[0,0,0,1,1]])
     #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
