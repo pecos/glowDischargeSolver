@@ -559,11 +559,7 @@ class timeDomainCollocationSolver:
             res[2*self.Np  ] = dens[ 0,2] - 0.0
             res[3*self.Np-1] = dens[-1,2] - 0.0
 
-        # force background to 1.0 at boundaries (does this make sense?)
-        #res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
-        #res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
-
-        # enforce that temperature is 300K at boundaries
+        # enforce Dirichlet condition on heavy species temperature
         ntot = np.zeros(self.Np)
 
         # add all heavies but background
@@ -616,11 +612,7 @@ class timeDomainCollocationSolver:
             res[2*self.Np  ] = dens[ 0,2] - 0.0
             res[3*self.Np-1] = dens[-1,2] - 0.0
 
-        # force background to 1.0 at boundaries (does this make sense?)
-        #res[(self.Ns-1)*self.Np] = dens[0,self.Ns-1] - 1.0
-        #res[self.Ns*self.Np-1] = dens[-1,self.Ns-1] - 1.0
-
-        # enforce that temperature is 300K at boundaries
+        # enforce Dirichlet condition on heavy species temperature
         ntot = np.zeros(self.Np)
 
         # add all heavies but background
@@ -930,7 +922,6 @@ class timeDomainCollocationSolver:
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
             self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*(S_U[j,:,:])
-            #self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*np.zeros(S_U[j,:,:].shape)
 
 
         return rstrg_U
@@ -978,12 +969,9 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
-        # force background to 1.0 at boundaries (does this make sense?)
-        #self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-
+        # Dirichlet on heavy species temperature
         self.jac[(self.Ns-1)*self.Np,:] = 0.0
 
-        # enforce that temperature is 300K at boundaries
         for i in range(1,self.Ns-1):
             self.jac[(self.Ns-1)*self.Np,i*self.Np] = self.params.Tg0
 
@@ -1032,16 +1020,9 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
-        # force background to 1.0 at boundaries (does this make sense?)
-        #self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-        #self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
-
-        #self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-        #self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
-        
+        # Dirichlet on heavy species temperature
         self.jac[(self.Ns-1)*self.Np,:] = 0.0
 
-        # enforce that temperature is 300K at boundaries
         for i in range(1,self.Ns-1):
             self.jac[(self.Ns-1)*self.Np,i*self.Np] = self.params.Tg0
 
@@ -1133,13 +1114,11 @@ class timeDomainCollocationSolver:
             self.jac0[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
             self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
-        # force background to 1.0 at boundaries (does this make sense?)
+        # Dirichlet on heavy species temperature
         self.jac0[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac0[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
-        #for j in range(0, self.Nv):
-        #    self.jac0[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = np.zeros((self.Np, self.Np))
-
+        # Dirichlet on electron temperature
         self.jac0[self.Ns*self.Np  ,:] = np.zeros((1,self.Nv*self.Np))
         self.jac0[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
