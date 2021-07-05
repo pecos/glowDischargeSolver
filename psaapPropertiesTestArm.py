@@ -1,5 +1,14 @@
 import numpy as np
 
+
+class Reaction(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
 def setPsaapPropertiesTestArm(gam, params):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
@@ -150,6 +159,34 @@ def setPsaapPropertiesTestArm(gam, params):
     params.nAronp0 = nAr / np0
     params.p0      = p0
 
+
+    reactionExpressionslist = ["a * energy**b * np.exp(-Ea / energy)",
+                               "a * energy**b * np.exp(-Ea / energy)",
+                               "a * energy**b * np.exp(-Ea / energy)",
+                               "a * energy**b * np.exp(-Ea / energy)",
+                               "a * energy**b * np.exp(-Ea / energy)",
+                               "a * energy**b * np.exp(-Ea / energy)",
+                               "a * energy**b * np.exp(-Ea / energy)",
+                               "a * energy**b * np.exp(-Ea / energy)"]
+
+    reactionTExpressionslist = ["a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)",
+                                "a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)",
+                                "a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)",
+                                "a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)",
+                                "a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)",
+                                "a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)",
+                                "a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)",
+                                "a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)"]
+
+    reactionsList = []
+    for i in range(len(Ck)):
+        rxn   = reactionExpressionslist[i]
+        rxn_T = reactionTExpressionslist[i]
+
+        reaction = Reaction(a = Ck[i], b = 0.0, Ea = A[i], kf = rxn, kf_T = rxn_T)
+        reactionsList.append(reaction)
+
+    params.reactionsList = reactionsList
     #params.Nr = 1
 
     # 5) Dump to screen

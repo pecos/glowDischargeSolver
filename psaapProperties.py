@@ -1,5 +1,14 @@
 import numpy as np
 
+
+class Reaction(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
 def setPsaapProperties(gam, params):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
@@ -110,6 +119,20 @@ def setPsaapProperties(gam, params):
     params.nAronp0 = nAr / np0
     params.p0      = p0
     params.Tg0     = Tg0
+
+    reactionExpressionslist = ["a * energy**b * np.exp(-Ea / energy)"]
+
+    reactionTExpressionslist = ["a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)"]
+
+    reactionsList = []
+    for i in range(1):
+        rxn   = reactionExpressionslist[i]
+        rxn_T = reactionTExpressionslist[i]
+
+        reaction = Reaction(a = Ck, b = 0.0, Ea = A, kf = rxn, kf_T = rxn_T)
+        reactionsList.append(reaction)
+
+    params.reactionsList = reactionsList
 
     # 5) Dump to screen
     params.print()

@@ -109,6 +109,8 @@ class modelClosures:
         self.nAronp0 = 3.22e22 / 8e16
         self.Tg0     = 0.038778
 
+        self.reactionsList =[]
+
     def charge(self,i):
         return self.Z[i]
 
@@ -160,7 +162,7 @@ class modelClosures:
         G_U = np.zeros((self.Nr,self.Ns+1, energy.shape[0]))
         rxn = ChemistryArgonPlasma(energy)
         for i in range(0,self.Nr):
-            kf, kf_T = rxn.rxnRateCoefficientG2()
+            kf, kf_T = rxn.rxnRateCoefficient()
 
             #G[:,i] *= density[:,j]**self.alfa[j,i]
             G_U[i,self.Ns,:] = kf_T[:,0]
@@ -185,25 +187,42 @@ class modelClosures:
 
     def rxnRateCoefficient(self, energy, i):
         """Returns ionization reaction rate constant"""
-        a  = self.A[i]
-        b  = self.B[i]
-        Ea = self.C[i]
+        # a  = self.A[i]
+        # b  = self.B[i]
+        # Ea = self.C[i]
+        # indFix = (energy[:,0]<=0.0)
+        # energy[indFix,0] = 1.0
+        # kf = a * (energy**b) * np.exp(-Ea/energy)
+        # kf[indFix,0] = 0
+
+        a  = self.reactionsList[i].a
+        b  = self.reactionsList[i].b
+        Ea = self.reactionsList[i].Ea
         indFix = (energy[:,0]<=0.0)
         energy[indFix,0] = 1.0
-        kf = a * (energy**b) * np.exp(-Ea/energy)
+        kf = eval(self.reactionsList[i].kf)
         kf[indFix,0] = 0
+
         return kf #a * (energy**b) * np.exp(-Ea/energy)
 
     def rxnRateCoefficientJac(self, energy, i):
         """Returns derivative of ionization reaction rate constant wrt
         energy
         """
-        a  = self.A[i]
-        b  = self.B[i]
-        Ea = self.C[i]
+        # a  = self.A[i]
+        # b  = self.B[i]
+        # Ea = self.C[i]
+        # indFix = (energy[:,0]<=0.0)
+        # energy[indFix,0] = 1.0
+        # kf_T = a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
+        # kf_T[indFix,0] = 0
+
+        a  = self.reactionsList[i].a
+        b  = self.reactionsList[i].b
+        Ea = self.reactionsList[i].Ea
         indFix = (energy[:,0]<=0.0)
         energy[indFix,0] = 1.0
-        kf_T = a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
+        kf_T = eval(self.reactionsList[i].kf_T)
         kf_T[indFix,0] = 0
 
         return kf_T #a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
