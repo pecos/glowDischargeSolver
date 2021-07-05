@@ -15,15 +15,15 @@ NEWTEXE="python3 ./timePeriodicSolver.py"
 #dt=0.00390625
 #baseFile='restart_psaap_Np250_'
 
-# Liu 2 species case
+# Liu 3 species case
 #Np=150
 #Nt=6400
 #Nt1=128
 #dt=0.0078125
 #scenario=0
-#baseFile="restart_2spec_Np${Np}_"
-#newtFile="newton_2spec_Np${Np}.npy"
-#saveFile="newton_2spec_Np${Np}_fullsoln.npy"
+#baseFile="restart_3spec_Np${Np}_"
+#newtFile="newton_3spec_Np${Np}.npy"
+#saveFile="newton_3spec_Np${Np}_fullsoln.npy"
 
 # Liu 3 species case
 Np=150
@@ -31,9 +31,9 @@ Nt=6400
 Nt1=128
 dt=0.0078125
 scenario=2
-baseFile="restart_3spec_Np${Np}_"
-newtFile="newton_3spec_Np${Np}.npy"
-saveFile="newton_3spec_Np${Np}_fullsoln.npy"
+baseFile="restart_4spec_Np${Np}_"
+newtFile="newton_4spec_Np${Np}.npy"
+saveFile="newton_4spec_Np${Np}_fullsoln.npy"
 
 baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario"
 newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 10 --scenario $scenario"

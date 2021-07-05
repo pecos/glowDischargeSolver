@@ -14,7 +14,7 @@ class timePeriodicSolver:
         else:
             # Default initial guess.  This should be overwritten
             # by reading restart if you want this to work.
-            self.tds.U1[0:self.self.tds.Np] = 1e-4
+            self.tds.U1[0:self.tds.Np] = 1e-4
             self.tds.U1[self.tds.Np:2*self.tds.Np] = 1e-4
             self.tds.U1[2*self.tds.Np:] = 0.75
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('--Nn', metavar='Nn', default=20,
                         type=int, help='Maximum number of Newton iterations')
     parser.add_argument('--gam', metavar='gam', default=0.01,
-                        type=np.float, help='Secondary electron emission parameter')
+                        type=float, help='Secondary electron emission parameter')
     parser.add_argument('--rtol',metavar='rtol', default=1e-6,
                         type=float, help="Relative tolerance for non-linear solve")
     parser.add_argument('--atol',metavar='atol', default=1e-14,
@@ -120,16 +120,16 @@ if __name__ == "__main__":
 
     print("#   Save final state to {0:s}".format(args.outfile))
 
-    Ns = 2
+    Ns = 3
     if(args.scenario==0):
         print("#   Running scenario = 0 (2 species, 1 rxn, Liu 2014)")
-        Ns = 2
+        Ns = 3
     elif(args.scenario==1):
         print("#   Running scenario = 1 (2 species, 1 rxn, PSAAP config)")
-        Ns = 2
+        Ns = 3
     elif(args.scenario==2):
         print("#   Running scenario = 2 (3 species, 8 rxn, Liu 2017)")
-        Ns = 3
+        Ns = 4
     else:
         print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, or 2.  Exiting.")
         exit(-1)

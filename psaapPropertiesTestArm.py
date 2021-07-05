@@ -22,6 +22,9 @@ def setPsaapPropertiesTestArm(gam, params):
     # nominal electron energy
     e0 = 1.0  # [eV]
 
+    # pressure
+    p  = 133.3224*1.5 # [J/m^3] *1.5 to convert it to energy
+
     # characteristics of driving voltage
     V0  = 100.0 #1000.0      # amplitude of driving voltage [V]
     tau = (1./13.56e6) # period of driving voltage [s]
@@ -58,6 +61,7 @@ def setPsaapPropertiesTestArm(gam, params):
 
     A  = np.array([18.687,15.06,4.95,2.14,0.0,0.0,0.0,0.0]) # activation temperature [eV]
     dH = np.array([15.7,11.56,4.14,-11.56,0.0,0.0,0.0,0.0]) # energy lost per electron due to ionization rxn [eV]
+    dEps = np.array([0.0,15.7,11.56,0.0])
 
     # BC parameters
     ks = 1.19e7  # electron recombination rate [cm/s]
@@ -101,16 +105,20 @@ def setPsaapPropertiesTestArm(gam, params):
     mue   = mue*V0*tau/(L*L)
     mui   = mui*V0*tau/(L*L)
 
-    Ck[0:2]    = Ck[0:2]*tau*nAr
-    #Ck[2:5]    = Ck[2:5]*tau*np0
-    Ck[2:6]    = Ck[2:6]*tau*np0
-    Ck[6] *= tau*nAr
-    Ck[7] *= tau*nAr*nAr
-    A     = A*1.5/e0  # 1.5 to convert from temperature to energy
-    dH    = dH/e0
-    qStar = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
-    alpha = qe*np0*L*L/(V0*eps0)
-    ks    = ks*tau/L
+    Ck[0:2] = Ck[0:2]*tau*nAr
+    #Ck[2:5] = Ck[2:5]*tau*np0
+    Ck[2:6] = Ck[2:6]*tau*np0
+    Ck[6]  *= tau*nAr
+    Ck[7]  *= tau*nAr*nAr
+    A       = A*1.5/e0  # 1.5 to convert from temperature to energy
+    dH      = dH/e0
+    qStar   = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
+    alpha   = qe*np0*L*L/(V0*eps0)
+    ks      = ks*tau/L
+    p0      = p/qe/np0
+    kappaB  = 4.42      # non-dimensional thermal conductivity of background specie
+                        # (2/3)*tau/L**2*Kb/np0/kB,
+                        # where Kb is the thermal conductivity of background specie
 
     #params.beta = np.array([[2,2,2,1,1],[1,0,1,0,0],[0,1,0,0,0],[0,0,0,1,1]])
     #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
@@ -133,10 +141,14 @@ def setPsaapPropertiesTestArm(gam, params):
     params.C[:]  = A[:]
 
     params.dH[:] = dH[:]
+    params.dEps[:] = dEps[:]
     params.qStar = qStar
     params.alpha = alpha
     params.ks    = ks
     params.gam   = gam
+    params.kappaB  = kappaB
+    params.nAronp0 = nAr / np0
+    params.p0      = p0
 
     #params.Nr = 1
 
