@@ -2,7 +2,6 @@ import numpy as np
 import numpy.polynomial.chebyshev as cheb
 import matplotlib.pyplot as plt
 
-from chemistryArgonPlasma import ChemistryArgonPlasma
 from Liu2014Properties import setLiu2014Properties
 from psaapProperties import setPsaapProperties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
@@ -126,7 +125,7 @@ class modelClosures:
         omega = np.zeros((energy.shape[0], self.Ns+1),dtype=np.float64)
         for i in range(0,self.Ns):
             for j in range(0,self.Nr):
-                omega[:,i] += (self.beta[i,j] - self.alfa[i,j])*G[:,j]
+                omega[:,i] += (self.reactionsList[j].rxnBeta[i,0] - self.reactionsList[j].rxnAlfa[i,0])*G[:,j]
 
         for j in range(0,self.Nr):
             omega[:,self.Ns] -= self.dH[j]*G[:,j]
@@ -139,7 +138,7 @@ class modelClosures:
         omega_U = np.zeros((self.Ns+1,self.Ns+1,energy.shape[0]),dtype=np.float64)
         for i in range(0,self.Ns):
             for j in range(0,self.Nr):
-                omega_U[i,:,:] += (self.beta[i,j] - self.alfa[i,j])*G_U[j,:,:]
+                omega_U[i,:,:] += (self.reactionsList[j].rxnBeta[i,0] - self.reactionsList[j].rxnAlfa[i,0])*G_U[j,:,:]
 
         for j in range(0,self.Nr):
             omega_U[self.Ns,:,:] -= self.dH[j]*G_U[j,:,:]
@@ -152,34 +151,34 @@ class modelClosures:
             kf = self.rxnRateCoefficient(energy, i)
             G[:,i] = kf[:,0]
             for j in range(0,self.Ns):
-                if (self.alfa[j,i]>0):
-                    G[:,i] *= density[:,j]**self.alfa[j,i]
+                if (self.reactionsList[i].rxnAlfa[j,0]>0):
+                    G[:,i] *= density[:,j]**self.reactionsList[i].rxnAlfa[j,0]
 
         return G
 
     def progressRateJac(self, energy, density):
         G = self.progressRate(energy,density)
         G_U = np.zeros((self.Nr,self.Ns+1, energy.shape[0]))
-        rxn = ChemistryArgonPlasma(energy)
         for i in range(0,self.Nr):
-            kf, kf_T = rxn.rxnRateCoefficient()
+            kf   = self.rxnRateCoefficient(energy, i)
+            kf_T = self.rxnRateCoefficientJac(energy,i)
 
-            #G[:,i] *= density[:,j]**self.alfa[j,i]
+            #G[:,i] *= density[:,j]**self.reactionsList[i].rxnAlfa[j,0]
             G_U[i,self.Ns,:] = kf_T[:,0]
 
             for k in range(0,self.Ns):
-                #G_U[i,k,:] = self.alfa[k,i]*G[:,i]/density[:,k]
-                if (self.alfa[k,i]==0):
+                #G_U[i,k,:] = self.reactionsList[i].rxnAlfa[k,0]*G[:,i]/density[:,k]
+                if (self.reactionsList[i].rxnAlfa[k,0]==0):
                     G_U[i,k,:] = 0
                 else:
                     G_U[i,k,:] = kf[:,0]
                     for j in range(0,self.Ns):
                         if (j==k):
-                            G_U[i,k,:] *= self.alfa[k,i]*density[:,k]**(self.alfa[j,i]-1)
+                            G_U[i,k,:] *= self.reactionsList[i].rxnAlfa[k,0]*density[:,k]**(self.reactionsList[i].rxnAlfa[j,0]-1)
                         else:
-                            G_U[i,k,:] *= density[:,j]**self.alfa[j,i]
+                            G_U[i,k,:] *= density[:,j]**self.reactionsList[i].rxnAlfa[j,0]
 
-                G_U[i,self.Ns,:] *= density[:,k]**self.alfa[k,i]
+                G_U[i,self.Ns,:] *= density[:,k]**self.reactionsList[i].rxnAlfa[k,0]
 
             #G_U[i,self.Ns,:] = kf_T[:,0]*G[:,i]/kf[:,0]
 

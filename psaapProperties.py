@@ -101,6 +101,9 @@ def setPsaapProperties(gam, params):
                          # (2/3)*tau/L**2*Kb/np0/kB,
                          # where Kb is the thermal conductivity of background specie
 
+    params.beta = np.array([[2],[1],[0]], dtype=np.int64)
+    params.alfa = np.array([[1],[0],[1]], dtype=np.int64)
+
     # 4) Set values in params class
     params.D[0]    = De
     params.D[1]    = Di
@@ -129,7 +132,9 @@ def setPsaapProperties(gam, params):
         rxn   = reactionExpressionslist[i]
         rxn_T = reactionTExpressionslist[i]
 
-        reaction = Reaction(a = Ck, b = 0.0, Ea = A, kf = rxn, kf_T = rxn_T)
+        reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
+                            a = Ck, b = 0.0, Ea = A,
+                            kf = rxn, kf_T = rxn_T)
         reactionsList.append(reaction)
 
     params.reactionsList = reactionsList

@@ -25,7 +25,7 @@ NEWTEXE="python3 ./timePeriodicSolver.py"
 #newtFile="newton_3spec_Np${Np}.npy"
 #saveFile="newton_3spec_Np${Np}_fullsoln.npy"
 
-# Liu 3 species case
+# Liu 4 species case
 Np=150
 Nt=6400
 Nt1=128

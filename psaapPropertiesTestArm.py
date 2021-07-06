@@ -133,8 +133,8 @@ def setPsaapPropertiesTestArm(gam, params):
     #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
     #params.beta = np.array([[2,1,2,1],[1,0,1,0],[0,1,0,0],[0,0,0,1]], dtype=np.int)
     #params.alfa = np.array([[1,1,1,1],[0,0,0,0],[0,0,1,1],[1,1,0,0]], dtype=np.int)
-    params.beta = np.array([[2,1,2,1,1,1,0,0],[1,0,1,0,0,1,0,0],[0,1,0,0,0,0,0,0],[0,0,0,1,0,1,2,1]], dtype=np.int)
-    params.alfa = np.array([[1,1,1,1,1,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,2,1,1],[1,1,0,0,0,0,1,2]], dtype=np.int)
+    params.beta = np.array([[2,1,2,1,1,1,0,0],[1,0,1,0,0,1,0,0],[0,1,0,0,0,0,0,0],[0,0,0,1,0,1,2,1]], dtype=np.int64)
+    params.alfa = np.array([[1,1,1,1,1,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,2,1,1],[1,1,0,0,0,0,1,2]], dtype=np.int64)
 
     # 4) Set values in params class
     params.D[0]  = De
@@ -183,7 +183,9 @@ def setPsaapPropertiesTestArm(gam, params):
         rxn   = reactionExpressionslist[i]
         rxn_T = reactionTExpressionslist[i]
 
-        reaction = Reaction(a = Ck[i], b = 0.0, Ea = A[i], kf = rxn, kf_T = rxn_T)
+        reaction = Reaction(rxnAlfa = params.alfa[:,[i]], rxnBeta = params.beta[:,[i]],
+                            a = Ck, b = 0.0, Ea = A,
+                            kf = rxn, kf_T = rxn_T)
         reactionsList.append(reaction)
 
     params.reactionsList = reactionsList
