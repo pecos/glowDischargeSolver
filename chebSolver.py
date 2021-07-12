@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
 import matplotlib.pyplot as plt
+import time
 
 from Liu2014Properties import setLiu2014Properties
 from psaapProperties import setPsaapProperties
@@ -186,20 +187,10 @@ class modelClosures:
 
     def rxnRateCoefficient(self, energy, i):
         """Returns ionization reaction rate constant"""
-        # a  = self.A[i]
-        # b  = self.B[i]
-        # Ea = self.C[i]
-        # indFix = (energy[:,0]<=0.0)
-        # energy[indFix,0] = 1.0
-        # kf = a * (energy**b) * np.exp(-Ea/energy)
-        # kf[indFix,0] = 0
 
-        a  = self.reactionsList[i].a
-        b  = self.reactionsList[i].b
-        Ea = self.reactionsList[i].Ea
         indFix = (energy[:,0]<=0.0)
         energy[indFix,0] = 1.0
-        kf = eval(self.reactionsList[i].kf)
+        kf = self.reactionsList[i].kf(energy)
         kf[indFix,0] = 0
 
         return kf #a * (energy**b) * np.exp(-Ea/energy)
@@ -208,20 +199,10 @@ class modelClosures:
         """Returns derivative of ionization reaction rate constant wrt
         energy
         """
-        # a  = self.A[i]
-        # b  = self.B[i]
-        # Ea = self.C[i]
-        # indFix = (energy[:,0]<=0.0)
-        # energy[indFix,0] = 1.0
-        # kf_T = a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
-        # kf_T[indFix,0] = 0
 
-        a  = self.reactionsList[i].a
-        b  = self.reactionsList[i].b
-        Ea = self.reactionsList[i].Ea
         indFix = (energy[:,0]<=0.0)
         energy[indFix,0] = 1.0
-        kf_T = eval(self.reactionsList[i].kf_T)
+        kf_T = self.reactionsList[i].kf_T(energy)
         kf_T[indFix,0] = 0
 
         return kf_T #a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
@@ -316,11 +297,11 @@ class timeDomainCollocationSolver:
         self.params = modelClosures(self.Ns, Nr)
 
         if(scenario==0):
-            setLiu2014Properties(gam, self.params)
+            setLiu2014Properties(gam, self.params, Nr)
         elif(scenario==1):
-            setPsaapProperties(gam, self.params)
+            setPsaapProperties(gam, self.params, Nr)
         elif(scenario==2):
-            setPsaapPropertiesTestArm(gam, self.params)
+            setPsaapPropertiesTestArm(gam, self.params, Nr)
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)

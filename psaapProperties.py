@@ -9,7 +9,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapProperties(gam, params):
+def setPsaapProperties(gam, params, Nr):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -123,17 +123,16 @@ def setPsaapProperties(gam, params):
     params.p0      = p0
     params.Tg0     = Tg0
 
-    reactionExpressionslist = ["a * energy**b * np.exp(-Ea / energy)"]
+    reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)"]
 
-    reactionTExpressionslist = ["a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)"]
+    reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)"]
 
     reactionsList = []
-    for i in range(1):
-        rxn   = reactionExpressionslist[i]
-        rxn_T = reactionTExpressionslist[i]
+    for i in range(Nr):
+        rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+        rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
 
         reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
-                            a = Ck, b = 0.0, Ea = A,
                             kf = rxn, kf_T = rxn_T)
         reactionsList.append(reaction)
 
