@@ -1,6 +1,15 @@
 import numpy as np
 
-def setLiu2014Properties(gam, params):
+
+class Reaction(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+def setLiu2014Properties(gam, params, Nr):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -76,21 +85,24 @@ def setLiu2014Properties(gam, params):
     mui = nmui/nAr
 
     # 3) Compute non-dimensional properties required by solver
-    De    = De*tau/(L*L)
-    Di    = Di*tau/(L*L)
-    mue   = mue*V0*tau/(L*L)
-    mui   = mui*V0*tau/(L*L)
-    Ck    = Ck*tau*nAr
-    A     = A*1.5/e0  # 1.5 to convert from temperature to energy
-    dH    = dH/e0
-    dEps  = np.array([0.0,15.7,0.0])
-    qStar = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
-    alpha = qe*np0*L*L/(V0*eps0)
-    ks    = ks*tau/L
-    p0    = p/qe/np0
+    De     = De*tau/(L*L)
+    Di     = Di*tau/(L*L)
+    mue    = mue*V0*tau/(L*L)
+    mui    = mui*V0*tau/(L*L)
+    Ck     = Ck*tau*nAr
+    A      = A*1.5/e0  # 1.5 to convert from temperature to energy
+    dH     = dH/e0
+    dEps   = np.array([0.0,15.7,0.0])
+    qStar  = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
+    alpha  = qe*np0*L*L/(V0*eps0)
+    ks     = ks*tau/L
+    p0     = p/qe/np0
     kappaB = 4.42       # non-dimensional thermal conductivity of background specie
                         # (2/3)*tau/L**2*Kb/np0/kB,
                         # where Kb is the thermal conductivity of background specie
+
+    params.beta = np.array([[2],[1],[0]], dtype=np.int64)
+    params.alfa = np.array([[1],[0],[1]], dtype=np.int64)
 
     # 4) Set values in params class
     params.D[0]    = De
@@ -110,6 +122,21 @@ def setLiu2014Properties(gam, params):
     params.nAronp0 = nAr / np0
     params.p0      = p0
     params.Tg0     = Tg0
+
+    reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)"]
+
+    reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)"]
+
+    reactionsList = []
+    for i in range(Nr):
+        rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+        rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+
+        reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
+                            kf = rxn, kf_T = rxn_T)
+        reactionsList.append(reaction)
+
+    params.reactionsList = reactionsList
 
     # 5) Dump to screen
     params.print()

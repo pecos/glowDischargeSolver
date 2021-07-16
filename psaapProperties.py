@@ -1,6 +1,15 @@
 import numpy as np
 
-def setPsaapProperties(gam, params):
+
+class Reaction(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+def setPsaapProperties(gam, params, Nr):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -92,6 +101,9 @@ def setPsaapProperties(gam, params):
                          # (2/3)*tau/L**2*Kb/np0/kB,
                          # where Kb is the thermal conductivity of background specie
 
+    params.beta = np.array([[2],[1],[0]], dtype=np.int64)
+    params.alfa = np.array([[1],[0],[1]], dtype=np.int64)
+
     # 4) Set values in params class
     params.D[0]    = De
     params.D[1]    = Di
@@ -110,6 +122,21 @@ def setPsaapProperties(gam, params):
     params.nAronp0 = nAr / np0
     params.p0      = p0
     params.Tg0     = Tg0
+
+    reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)"]
+
+    reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)"]
+
+    reactionsList = []
+    for i in range(Nr):
+        rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+        rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+
+        reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
+                            kf = rxn, kf_T = rxn_T)
+        reactionsList.append(reaction)
+
+    params.reactionsList = reactionsList
 
     # 5) Dump to screen
     params.print()
