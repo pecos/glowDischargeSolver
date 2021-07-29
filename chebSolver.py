@@ -117,8 +117,21 @@ class modelClosures:
     def mobility(self,i):
         return self.mu[i]
 
-    def diffusivity(self,i):
-        return self.D[i]
+    def diffusivity(self, i, energy):
+        self.DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
+        self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
+        # if i == 0:
+        #     for j in range(energy.shape[0]):
+        #         self.DEf[j,0] = max(self.DEf[j,0],self.D[i])
+        # if i == 0:
+        #     self.D[:,0] = 5.0 * self.D[:,0]
+        # print(np.max(self.DEf), np.min(self.DEf))
+        return self.DEf[:,0]
+
+    def diffusivity_U(self, i, j, energy_U):
+        self.D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
+        self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] * 5.0 / 100.0
+        return self.D_U
 
     def rxnSourceTerm(self, energy, density):
         G = self.progressRate(energy,density)
@@ -430,12 +443,18 @@ class timeDomainCollocationSolver:
         nT_x   = self.Dp @ nT
         phi_x  = self.Dp @ self.phi
 
+        energy = np.zeros((self.Np, self.Ns),dtype=np.float64)
+        energy[:,0] = Te[:,0]
+        for i in range(1,self.Ns):
+            energy[:,i] = Tg[:,0]
+
         fspec = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             fspec[:,i] = (   self.params.charge(i)*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
-                           - self.params.diffusivity(i)*dens_x[:,i] )
+                           - np.multiply(self.params.diffusivity(i, energy),dens_x[:,i]) )
 
-        fT = (5./3.)*(-self.params.mobility(0)*nT*(-phi_x) - self.params.diffusivity(0)*nT_x)
+        fT = np.zeros((self.Np, 1),dtype=np.float64)
+        fT[:,0] = (5./3.)*(-self.params.mobility(0)*nT[:,0]*(-phi_x[:,0]) -  np.multiply(self.params.diffusivity(0, energy), nT_x[:,0]))
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.mobility(1)*dens[ 0,iion]*(-phi_x[ 0])
@@ -467,7 +486,7 @@ class timeDomainCollocationSolver:
         fa = np.copy(fT)
         for i in range(1,self.Ns-1):
             fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,i],Tg[:,0])*(-phi_x[:,0]) -
-                                self.params.diffusivity(i)* (self.Dp @ np.multiply(dens[:,i],Tg[:,0])))
+                                np.multiply(self.params.diffusivity(i, energy), (self.Dp @ np.multiply(dens[:,i],Tg[:,0]))))
 
         # background thermal conductivity contribution
         fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0])
@@ -732,6 +751,17 @@ class timeDomainCollocationSolver:
         if (solve_poisson):
             self.solve_poisson(dens[:,iele],dens[:,iion],time)
 
+        energy = np.zeros((self.Np, self.Ns),dtype=np.float64)
+        energy[:,0] = Te[:,0]
+        for i in range(1,self.Ns):
+            energy[:,i] = Tg[:,0]
+            
+        energy_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
+        # energy_U[0,0,:,:] = Te_ne
+        # energy_U[0,self.Ns,:,:] = Te_nT
+        # for i in range(1,self.Ns):
+        #     energy_U[i,i,:,:] += np.multiply(np.identity(self.Np),Tg_U[:,i])
+
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
         ident0[0,0] = ident0[-1,-1] = 0.0
@@ -747,15 +777,15 @@ class timeDomainCollocationSolver:
         phi_x_ni = self.Dp @ phi_ni
 
         # must have electron flux for use in Jacobian of Joule heating
-        fe = -self.params.mobility(0)*dens[:,iele]*(-phi_x) - self.params.diffusivity(0)*dens_x[:,iele]
+        fe = -self.params.mobility(0)*dens[:,iele]*(-phi_x) - np.multiply(self.params.diffusivity(0, energy), dens_x[:,iele])
 
         # must have these for joule heating erms
         fspec = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
             fspec[:,i] = (   self.params.charge(i)*self.params.mobility(i)*dens[:,i]*(-phi_x[:,0])
-                           - self.params.diffusivity(i)*dens_x[:,i] )
+                           - np.multiply(self.params.diffusivity(i, energy), dens_x[:,i]) )
 
-        fT = (5./3.)*(-self.params.mobility(0)*nT*(-phi_x) - self.params.diffusivity(0)*nT_x)
+        fT = (5./3.)*(-self.params.mobility(0)*nT*(-phi_x) - self.params.diffusivity(0, energy)*nT_x)
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + self.params.mobility(1)*dens[ 0,iion]*(-phi_x[ 0])
@@ -766,18 +796,26 @@ class timeDomainCollocationSolver:
         fspec_U = np.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=np.float64)
         for i in range(0,self.Ns-1):
             fspec_U[i,i,:,:] = (  self.params.charge(i)*self.params.mobility(i)*np.multiply(np.identity(self.Np),-phi_x)
-                                - self.params.diffusivity(i)*self.Dp )
+                                - np.multiply(self.params.diffusivity(i, energy), self.Dp) )
 
             fspec_U[i,0,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ne)
             fspec_U[i,1,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ni)
 
+        for i in range(1,self.Ns-1):
+            for j in range(1,self.Nv):
+                fspec_U[i,j,:,:] -= np.multiply(self.params.diffusivity_U(i, j, energy_U), dens_x[:,[i]])
+
+        fspec_U[0,0,:,:] -= np.multiply(self.params.diffusivity_U(0, 0, energy_U), dens_x[:,iele])
+        fspec_U[0,self.Ns,:,:] -= np.multiply(self.params.diffusivity_U(0, self.Ns, energy_U), dens_x[:,iele])
 
         # energy equations
         fT_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float64)
         fT_U[0,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ne))
         fT_U[1,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ni))
         fT_U[self.Ns,:,:] = (5./3.)*( -self.params.mobility(0)*np.multiply(np.identity(self.Np),-phi_x)
-                                      -self.params.diffusivity(0)*self.Dp )
+                                      -np.multiply(self.params.diffusivity(0, energy), self.Dp))
+        fT_U[0,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, 0, energy_U), nT[:,0])
+        fT_U[self.Ns,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, self.Ns, energy_U), nT[:,0])
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec_U[1,0,0,:] = self.params.mobility(1)*dens[0,1]*(-phi_x_ne[ 0,:])
@@ -833,6 +871,8 @@ class timeDomainCollocationSolver:
         # joule heating
         SJ_ne = -self.params.qStar*( np.multiply(fspec_U[0,0,:,:],-phi_x) + np.multiply(fe,-phi_x_ne))
         SJ_ni = -self.params.qStar*( np.multiply(fspec_U[0,1,:,:],-phi_x) + np.multiply(fe,-phi_x_ni))
+        SJ_nb = -self.params.qStar * np.multiply(fspec_U[0,self.Ns-1,:,:],-phi_x)
+        SJ_nT = -self.params.qStar * np.multiply(fspec_U[0,self.Ns,:,:],-phi_x)
 
 
         # evaluate S---the source term required in the background
@@ -846,15 +886,16 @@ class timeDomainCollocationSolver:
         for i in range(1,self.Ns-1):
             naTg[:,0] = dens[:,i]*Tg[:,0]
             fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*naTg[:,0]*(-phi_x[:,0]) -
-                           self.params.diffusivity(i)* (self.Dp @ naTg[:,0] ) )
+                           np.multiply(self.params.diffusivity(i, energy), (self.Dp @ naTg[:,0] )))
 
             fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg[:,0],-phi_x_ne))
             fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg[:,0],-phi_x_ni))
             fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(np.diag(Tg[:,0]),-phi_x)
-                                    -self.params.diffusivity(i)*self.Dp @ np.diag(Tg[:,0]) )
+                                    -np.multiply(self.params.diffusivity(i, energy), self.Dp @ np.diag(Tg[:,0])))
             for j in range(0, self.Nv):
                 fa_U[j,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j])) -
-                                        self.params.diffusivity(i)* (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j]))))
+                                        np.multiply(self.params.diffusivity(i, energy), (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j])))))
+                fa_U[j,:,:] -= (5./3.) * np.multiply(self.Dp @ naTg[:,0], self.params.diffusivity_U(i, j, energy_U))
 
         # background thermal conductivity contribution
         fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0])
@@ -918,6 +959,8 @@ class timeDomainCollocationSolver:
         # Joule heating (electron energy eqn)
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
+        self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
+        self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*SJ_nT
 
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
