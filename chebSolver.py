@@ -119,18 +119,17 @@ class modelClosures:
 
     def diffusivity(self, i, energy):
         self.DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
-        self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
-        # if i == 0:
-        #     for j in range(energy.shape[0]):
-        #         self.DEf[j,0] = max(self.DEf[j,0],self.D[i])
-        # if i == 0:
-        #     self.D[:,0] = 5.0 * self.D[:,0]
-        # print(np.max(self.DEf), np.min(self.DEf))
+        if i == 0:
+            indFix = (energy[:,i]<0.75)
+            energy[indFix,i] = 0.75
+            self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
+        elif i == 1:
+            self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
         return self.DEf[:,0]
 
     def diffusivity_U(self, i, j, energy_U):
         self.D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
-        self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] * 5.0 / 100.0
+        self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / 100.0
         return self.D_U
 
     def rxnSourceTerm(self, energy, density):
@@ -322,6 +321,7 @@ class timeDomainCollocationSolver:
 
         # Jacobian storage
         self.jac  = np.zeros((self.Ndof, self.Ndof))
+        self.jacFD  = np.zeros((self.Ndof, self.Ndof))
         self.jac0 = np.zeros((self.Ndof, self.Ndof))
 
         self.A1 = np.zeros((self.Ndof, self.Ndof))
@@ -757,10 +757,11 @@ class timeDomainCollocationSolver:
             energy[:,i] = Tg[:,0]
             
         energy_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
-        # energy_U[0,0,:,:] = Te_ne
-        # energy_U[0,self.Ns,:,:] = Te_nT
-        # for i in range(1,self.Ns):
-        #     energy_U[i,i,:,:] += np.multiply(np.identity(self.Np),Tg_U[:,i])
+        energy_U[0,0,:,:] = Te_ne
+        energy_U[0,self.Ns,:,:] = Te_nT
+        for i in range(1,self.Ns):
+            for j in range(1,self.Nv):
+                energy_U[i,j,:,:] = np.multiply(np.identity(self.Np),Tg_U[:,j])
 
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
@@ -802,7 +803,7 @@ class timeDomainCollocationSolver:
             fspec_U[i,1,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ni)
 
         for i in range(1,self.Ns-1):
-            for j in range(1,self.Nv):
+            for j in range(1,self.Ns-1):
                 fspec_U[i,j,:,:] -= np.multiply(self.params.diffusivity_U(i, j, energy_U), dens_x[:,[i]])
 
         fspec_U[0,0,:,:] -= np.multiply(self.params.diffusivity_U(0, 0, energy_U), dens_x[:,iele])
@@ -941,7 +942,7 @@ class timeDomainCollocationSolver:
 
         # 'standard' continuity eqns
         for i in range(0,self.Ns-1):
-            for j in range(0,self.Ns):
+            for j in range(0,self.Nv):
                 self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fspec_x_U[i,j,:,:])
 
         # electron energy eqn
@@ -965,7 +966,6 @@ class timeDomainCollocationSolver:
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
             self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*(S_U[j,:,:])
-
 
         return rstrg_U
 
