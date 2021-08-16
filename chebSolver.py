@@ -122,7 +122,7 @@ class modelClosures:
         if i == 0:
             indFix = (energy[:,i]<0.75)
             energy[indFix,i] = 0.75
-            self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
+            self.DEf[:,0] = self.D[i]
         elif i == 1:
             self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
         return self.DEf[:,0]
@@ -803,7 +803,7 @@ class timeDomainCollocationSolver:
             fspec_U[i,1,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ni)
 
         for i in range(1,self.Ns-1):
-            for j in range(1,self.Ns-1):
+            for j in range(1,self.Nv):
                 fspec_U[i,j,:,:] -= np.multiply(self.params.diffusivity_U(i, j, energy_U), dens_x[:,[i]])
 
         fspec_U[0,0,:,:] -= np.multiply(self.params.diffusivity_U(0, 0, energy_U), dens_x[:,iele])
@@ -815,8 +815,8 @@ class timeDomainCollocationSolver:
         fT_U[1,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ni))
         fT_U[self.Ns,:,:] = (5./3.)*( -self.params.mobility(0)*np.multiply(np.identity(self.Np),-phi_x)
                                       -np.multiply(self.params.diffusivity(0, energy), self.Dp))
-        fT_U[0,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, 0, energy_U), nT[:,0])
-        fT_U[self.Ns,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, self.Ns, energy_U), nT[:,0])
+        # fT_U[0,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, 0, energy_U), nT[:,0])
+        # fT_U[self.Ns,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, self.Ns, energy_U), nT[:,0])
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec_U[1,0,0,:] = self.params.mobility(1)*dens[0,1]*(-phi_x_ne[ 0,:])
@@ -839,10 +839,12 @@ class timeDomainCollocationSolver:
         else:
             rstrg_U[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
             rstrg_U[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
+            rstrg_U[0,self.Ns*self.Np:] = fspec_U[0,self.Ns,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns,0,:])
             rstrg_U[0,0] += self.params.ks
 
             rstrg_U[1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
             rstrg_U[1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
+            rstrg_U[1,self.Ns*self.Np:] = fspec_U[0,self.Ns,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
             rstrg_U[1,self.Np-1] -= self.params.ks
 
         # form Jacobians of derivatives of fluxes at collocation points
