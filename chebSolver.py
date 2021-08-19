@@ -120,8 +120,11 @@ class modelClosures:
     def diffusivity(self, i, energy):
         self.DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
         if i == 0:
-            indFix = (energy[:,i]<0.75)
-            energy[indFix,i] = 0.75
+            # indFix = (energy[:,i]<0.75)
+            # energy[indFix,i] = 0.75
+            # self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
+            # indMax = (self.DEf[:,0]<self.D[i])
+            # self.DEf[indMax,0] += self.D[i]
             self.DEf[:,0] = self.D[i]
         elif i == 1:
             self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
@@ -129,7 +132,10 @@ class modelClosures:
 
     def diffusivity_U(self, i, j, energy_U):
         self.D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
-        self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / 100.0
+        if i==0:
+            self.D_U = 0.0
+        else:
+            self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / 100.0
         return self.D_U
 
     def rxnSourceTerm(self, energy, density):
@@ -815,8 +821,8 @@ class timeDomainCollocationSolver:
         fT_U[1,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ni))
         fT_U[self.Ns,:,:] = (5./3.)*( -self.params.mobility(0)*np.multiply(np.identity(self.Np),-phi_x)
                                       -np.multiply(self.params.diffusivity(0, energy), self.Dp))
-        # fT_U[0,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, 0, energy_U), nT[:,0])
-        # fT_U[self.Ns,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, self.Ns, energy_U), nT[:,0])
+        fT_U[0,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, 0, energy_U), nT[:,0])
+        fT_U[self.Ns,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, self.Ns, energy_U), nT[:,0])
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec_U[1,0,0,:] = self.params.mobility(1)*dens[0,1]*(-phi_x_ne[ 0,:])
@@ -874,7 +880,6 @@ class timeDomainCollocationSolver:
         # joule heating
         SJ_ne = -self.params.qStar*( np.multiply(fspec_U[0,0,:,:],-phi_x) + np.multiply(fe,-phi_x_ne))
         SJ_ni = -self.params.qStar*( np.multiply(fspec_U[0,1,:,:],-phi_x) + np.multiply(fe,-phi_x_ni))
-        SJ_nb = -self.params.qStar * np.multiply(fspec_U[0,self.Ns-1,:,:],-phi_x)
         SJ_nT = -self.params.qStar * np.multiply(fspec_U[0,self.Ns,:,:],-phi_x)
 
 
@@ -962,7 +967,6 @@ class timeDomainCollocationSolver:
         # Joule heating (electron energy eqn)
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
-        self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
         self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*SJ_nT
 
         # overwrite the background (wrt all variables)
