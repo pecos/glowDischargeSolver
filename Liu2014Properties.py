@@ -97,7 +97,7 @@ def setLiu2014Properties(gam, params, Nr):
     alpha  = qe*np0*L*L/(V0*eps0)
     ks     = ks*tau/L
     p0     = p/qe/np0
-    kappaB = 4.42       # non-dimensional thermal conductivity of background specie
+    kappaB = 4.42 #4.878171165833662       # non-dimensional thermal conductivity of background specie
                         # (2/3)*tau/L**2*Kb/np0/kB,
                         # where Kb is the thermal conductivity of background specie
 
