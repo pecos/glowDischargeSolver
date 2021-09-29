@@ -126,8 +126,7 @@ class modelClosures:
             # indMax = (self.DEf[:,0]<self.D[i])
             # self.DEf[indMax,0] += self.D[i]
             # self.DEf[:,0] = self.D[i]
-            self.DEf[:,0] = 2.0 / 3.0 * np.mean(energy[:,i], axis=0) * self.mu[i] / 100.0
-            # self.DEf[:,0] = 2.0 / 3.0 * 2.63382454 * self.mu[i] / 100.0
+            self.DEf[:,0] = 2.0 / 3.0 *energy[:,i] * self.mu[i] / 100.0
         elif i == 1:
             self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
         return self.DEf[:,0]
@@ -135,7 +134,7 @@ class modelClosures:
     def diffusivity_U(self, i, j, energy_U):
         self.D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
         if i==0:
-            self.D_U = 0.0
+            self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / 100.0
         else:
             self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / 100.0
         return self.D_U
@@ -786,7 +785,9 @@ class timeDomainCollocationSolver:
         phi_x_ni = self.Dp @ phi_ni
 
         # must have electron flux for use in Jacobian of Joule heating
-        fe = -self.params.mobility(0)*dens[:,iele]*(-phi_x) - np.multiply(self.params.diffusivity(0, energy), dens_x[:,iele])
+        fe = np.zeros((self.Np, 1),dtype=np.float64)
+        fe[:,0] = -self.params.mobility(0)*dens[:,0]*(-phi_x[:,0]) - np.multiply(self.params.diffusivity(0, energy), dens_x[:,0])
+        fe = fe.reshape((self.Np,1))
 
         # must have these for joule heating erms
         fspec = np.ndarray((self.Np, self.Ns),dtype=np.float64)
@@ -805,7 +806,7 @@ class timeDomainCollocationSolver:
         fspec_U = np.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=np.float64)
         for i in range(0,self.Ns-1):
             fspec_U[i,i,:,:] = (  self.params.charge(i)*self.params.mobility(i)*np.multiply(np.identity(self.Np),-phi_x)
-                                - np.multiply(self.params.diffusivity(i, energy).T, self.Dp) )
+                                - np.multiply(self.params.diffusivity(i, energy).reshape((self.Np,1)), self.Dp) )
 
             fspec_U[i,0,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ne)
             fspec_U[i,1,:,:] += self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,[i]],-phi_x_ni)
@@ -822,7 +823,7 @@ class timeDomainCollocationSolver:
         fT_U[0,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ne))
         fT_U[1,:,:] = (5./3.)*(-self.params.mobility(0)*np.multiply(nT,-phi_x_ni))
         fT_U[self.Ns,:,:] = (5./3.)*( -self.params.mobility(0)*np.multiply(np.identity(self.Np),-phi_x)
-                                      -np.multiply(self.params.diffusivity(0, energy).T, self.Dp))
+                                      -np.multiply(self.params.diffusivity(0, energy).reshape((self.Np,1)), self.Dp))
         fT_U[0,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, 0, energy_U), nT_x[:,0])
         fT_U[self.Ns,:,:] -= (5./3.) * np.multiply(self.params.diffusivity_U(0, self.Ns, energy_U), nT_x[:,0])
 
@@ -896,15 +897,15 @@ class timeDomainCollocationSolver:
         for i in range(1,self.Ns-1):
             naTg[:,0] = dens[:,i]*Tg[:,0]
             fa[:,0] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*naTg[:,0]*(-phi_x[:,0]) -
-                           np.multiply(self.params.diffusivity(i, energy).T, (self.Dp @ naTg[:,0] )))
+                           np.multiply(self.params.diffusivity(i, energy), (self.Dp @ naTg[:,0] )))
 
             fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg[:,0],-phi_x_ne))
             fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(naTg[:,0],-phi_x_ni))
             fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(np.diag(Tg[:,0]),-phi_x)
-                                    -np.multiply(self.params.diffusivity(i, energy).T, self.Dp @ np.diag(Tg[:,0])))
+                                    -np.multiply(self.params.diffusivity(i, energy).reshape((self.Np,1)), self.Dp @ np.diag(Tg[:,0])))
             for j in range(0, self.Nv):
                 fa_U[j,:,:] += (5./3.)*(self.params.charge(i)*self.params.mobility(i)*np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j])) -
-                                        np.multiply(self.params.diffusivity(i, energy).T, (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j])))))
+                                        np.multiply(self.params.diffusivity(i, energy).reshape((self.Np,1)), (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j])))))
                 fa_U[j,:,:] -= (5./3.) * np.multiply(self.Dp @ naTg[:,0], self.params.diffusivity_U(i, j, energy_U))
 
         # background thermal conductivity contribution
@@ -1471,11 +1472,11 @@ if __name__ == "__main__":
     import argparse
     usage = "python3 ./chebSolver"
     parser = argparse.ArgumentParser(usage)
-    parser.add_argument('--Np', metavar='Np', default=100,
+    parser.add_argument('--Np', metavar='Np', default=250,
                         type=int, help='Number of Chebyshev points')
-    parser.add_argument('--Nt', metavar='Nt', default=16,
+    parser.add_argument('--Nt', metavar='Nt', default=12800,
                         type=int, help='Number of time steps')
-    parser.add_argument('--dt', metavar='dt', default=0.0625,
+    parser.add_argument('--dt', metavar='dt', default=1/128,
                         type=float, help='Size of time step')
     parser.add_argument('--t0', metavar='t0', default=0.0,
                         type=float, help='Initial time')
