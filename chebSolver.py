@@ -118,26 +118,16 @@ class modelClosures:
         return self.mu[i]
 
     def diffusivity(self, i, energy):
-        self.DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
-        if i == 0:
-            # indFix = (energy[:,i]<0.75)
-            # energy[indFix,i] = 0.75
-            # self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
-            # indMax = (self.DEf[:,0]<self.D[i])
-            # self.DEf[indMax,0] += self.D[i]
-            # self.DEf[:,0] = self.D[i]
-            self.DEf[:,0] = 2.0 / 3.0 *energy[:,i] * self.mu[i] / 100.0
-        elif i == 1:
-            self.DEf[:,0] = 2.0 / 3.0 * energy[:,i] * self.mu[i] / 100.0
-        return self.DEf[:,0]
+        DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
+        V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+        DEf[:,0] = 2.0 / 3.0 *energy[:,i] * self.mu[i] / V0
+        return DEf[:,0]
 
     def diffusivity_U(self, i, j, energy_U):
-        self.D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
-        if i==0:
-            self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / 100.0
-        else:
-            self.D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / 100.0
-        return self.D_U
+        D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
+        V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+        D_U = 2.0 / 3.0 * energy_U[i,j,:,:] * self.mu[i] / V0
+        return D_U
 
     def rxnSourceTerm(self, energy, density):
         G = self.progressRate(energy,density)
@@ -1472,11 +1462,11 @@ if __name__ == "__main__":
     import argparse
     usage = "python3 ./chebSolver"
     parser = argparse.ArgumentParser(usage)
-    parser.add_argument('--Np', metavar='Np', default=250,
+    parser.add_argument('--Np', metavar='Np', default=100,
                         type=int, help='Number of Chebyshev points')
-    parser.add_argument('--Nt', metavar='Nt', default=12800,
+    parser.add_argument('--Nt', metavar='Nt', default=16,
                         type=int, help='Number of time steps')
-    parser.add_argument('--dt', metavar='dt', default=1/128,
+    parser.add_argument('--dt', metavar='dt', default=0.06258,
                         type=float, help='Size of time step')
     parser.add_argument('--t0', metavar='t0', default=0.0,
                         type=float, help='Initial time')
