@@ -513,7 +513,7 @@ class timeDomainCollocationSolver:
             joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
 
         S = np.zeros((self.Np,1),dtype=np.float64)
-        S = (sOmEp[:,0] + fa_x[:,0] - joule[:,0])/Tg[:,0]/self.params.nAronp0
+        S[:,0] = (sOmEp[:,0] + fa_x[:,0] - joule[:,0])/Tg[:,0]/self.params.nAronp0
 
         # form full residual
         res = np.zeros((self.Nv*self.Np,1))
@@ -524,7 +524,7 @@ class timeDomainCollocationSolver:
             res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
 
         # background specie (fixed at IC for now)
-        res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] = -dt*S
+        res[(self.Ns-1)*self.Np:self.Ns*self.Np] = -dt*S
 
         # energy
         res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ)
@@ -781,9 +781,11 @@ class timeDomainCollocationSolver:
                 energy_U[i,j,:,:] = np.multiply(np.identity(self.Np),Tg_U[:,j])
 
         diffusivity_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
+        mu_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
         for i in range(0,self.Ns):
             for j in range(0,self.Nv):
                 diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j, mu, energy_U)
+            mu_U[i,self.Ns-1,:,:] = self.params.mobility_U(i, dens[:,self.Ns-1])
             diffusivity_U[i,self.Ns-1,:,:] -= np.diag(diffusivity[:,i] / dens[:,self.Ns-1])
 
         # solve poisson equation for phi_ne
@@ -811,7 +813,8 @@ class timeDomainCollocationSolver:
             fspec[:,i] = ( self.params.charge(i) * mu[:,i] * dens[:,i] * (-phi_x[:,0])
                            - np.multiply(diffusivity[:,i], dens_x[:,i]) )
 
-        fT = (5./3.)*(-mu[:,0] * nT * (-phi_x) - diffusivity[:,0] * nT_x)
+        fT = (5./3.)*(-np.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - np.multiply(diffusivity[:,0], nT_x[:,0]))
+        fT = fT.reshape((self.Np,1))
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec[ 0,1] = -self.params.ksion * dens[ 0,iion] \
@@ -830,49 +833,60 @@ class timeDomainCollocationSolver:
                 * np.multiply(mu[:,[i]],np.multiply(dens[:,[i]],-phi_x_ne))
             fspec_U[i,1,:,:] += self.params.charge(i) \
                 * np.multiply(mu[:,[i]], np.multiply(dens[:,[i]],-phi_x_ni))
+            fspec_U[i,self.Ns-1,:,:] += self.params.charge(i) \
+                * np.multiply(mu_U[i,self.Ns-1,:,:], np.multiply(dens[:,[i]],-phi_x))
 
         for i in range(1,self.Ns-1):
             for j in range(1,self.Nv):
                 fspec_U[i,j,:,:] -= np.multiply(diffusivity_U[i,j,:,:], dens_x[:,[i]])
 
         fspec_U[0,0,:,:] -= np.multiply(diffusivity_U[0, 0, :, :], dens_x[:,iele])
+        fspec_U[0,self.Ns-1,:,:] -= np.multiply(diffusivity_U[0, self.Ns-1, :, :], dens_x[:,iele])
         fspec_U[0,self.Ns,:,:] -= np.multiply(diffusivity_U[0, self.Ns, :, :], dens_x[:,iele])
 
         # energy equations
         fT_U = np.zeros((self.Ns+1,self.Np, self.Np),dtype=np.float64)
         fT_U[0,:,:] = (5./3.)*(-mu[:,iele]*np.multiply(nT,-phi_x_ne))
         fT_U[1,:,:] = (5./3.)*(-mu[:,iele]*np.multiply(nT,-phi_x_ni))
+        fT_U[self.Ns-1,:,:] = (5./3.) * np.multiply(-mu_U[0,self.Ns-1,:,:], np.multiply(nT,-phi_x))
         fT_U[self.Ns,:,:] = (5./3.)*( -np.multiply(mu[:,iele],np.multiply(np.identity(self.Np),-phi_x))
                                       -np.multiply(diffusivity[:,iele], self.Dp))
         fT_U[0,:,:] -= (5./3.) * np.multiply(diffusivity_U[0, 0, :, :], nT_x[:,0])
+        fT_U[self.Ns-1,:,:] -= (5./3.) * np.multiply(diffusivity_U[0, self.Ns-1, :, :], nT_x[:,0])
         fT_U[self.Ns,:,:] -= (5./3.) * np.multiply(diffusivity_U[0, self.Ns, :, :], nT_x[:,0])
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
         fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
+        fspec_U[1,self.Ns-1,0,:] = mu_U[1,self.Ns-1,0,:] * dens[0,1] * (-phi_x[0,0])
         fspec_U[1,1,0,0] += -self.params.ksion + mu[0,1] * (-phi_x[ 0])
 
         fspec_U[1,0,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
         fspec_U[1,1,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
+        fspec_U[1,self.Ns-1,-1,:] = mu_U[1,self.Ns-1,-1,:] * dens[-1,1] * (-phi_x[-1,0])
         fspec_U[1,1,-1,-1] += self.params.ksion + mu[-1,1] * (-phi_x[-1])
 
         rstrg_U = np.zeros((2,self.Nv*self.Np))
         if (weak_bc):
             fspec_U[0,0,0,:] = (- self.params.gam*fspec_U[ 1,0,0,:])
             fspec_U[0,1,0,:] = (- self.params.gam*fspec_U[ 1,1,0,:])
+            fspec_U[0,self.Ns-1,0,:] = (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
             fspec_U[0,0,0,0] -= self.params.ks
 
             fspec_U[0,0,-1,:] = (- self.params.gam*fspec_U[1,0,-1,:])
             fspec_U[0,1,-1,:] = (- self.params.gam*fspec_U[1,1,-1,:])
+            fspec_U[0,self.Ns-1,-1,:] = (- self.params.gam*fspec_U[ 1,self.Ns-1,-1,:])
             fspec_U[0,0,-1,-1] += self.params.ks
         else:
             rstrg_U[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
             rstrg_U[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
+            rstrg_U[0,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
             rstrg_U[0,self.Ns*self.Np:] = fspec_U[0,self.Ns,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns,0,:])
             rstrg_U[0,0] += self.params.ks
 
             rstrg_U[1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
             rstrg_U[1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
+            rstrg_U[1,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,-1,:])
             rstrg_U[1,self.Ns*self.Np:] = fspec_U[0,self.Ns,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
             rstrg_U[1,self.Np-1] -= self.params.ks
 
@@ -903,6 +917,7 @@ class timeDomainCollocationSolver:
         # joule heating
         SJ_ne = -self.params.qStar*( np.multiply(fspec_U[0,0,:,:],-phi_x) + np.multiply(fe,-phi_x_ne))
         SJ_ni = -self.params.qStar*( np.multiply(fspec_U[0,1,:,:],-phi_x) + np.multiply(fe,-phi_x_ni))
+        SJ_nb = -self.params.qStar * np.multiply(fspec_U[0,self.Ns-1,:,:],-phi_x)
         SJ_nT = -self.params.qStar * np.multiply(fspec_U[0,self.Ns,:,:],-phi_x)
 
 
@@ -916,11 +931,12 @@ class timeDomainCollocationSolver:
         naTg = np.zeros((self.Np,1),dtype=np.float64)
         for i in range(1,self.Ns-1):
             naTg[:,0] = dens[:,i]*Tg[:,0]
-            fa[:,0] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,i],naTg[:,0]*(-phi_x[:,0])) -
+            fa[:,0] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,i],np.multiply(naTg[:,0],(-phi_x[:,0]))) -
                            np.multiply(diffusivity[:,i], (self.Dp @ naTg[:,0] )))
 
             fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg[:,0],-phi_x_ne)))
             fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg[:,0],-phi_x_ni)))
+            fa_U[self.Ns-1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu_U[i,self.Ns-1,:,:], np.multiply(naTg[:,0],-phi_x[:,0])))
             fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(np.diag(Tg[:,0]),-phi_x))
                                     -np.multiply(diffusivity[:,[i]], self.Dp @ np.diag(Tg[:,0])))
             for j in range(0, self.Nv):
@@ -991,6 +1007,7 @@ class timeDomainCollocationSolver:
         # Joule heating (electron energy eqn)
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
+        self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
         self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*SJ_nT
 
         # overwrite the background (wrt all variables)
@@ -1493,11 +1510,11 @@ if __name__ == "__main__":
     import argparse
     usage = "python3 ./chebSolver"
     parser = argparse.ArgumentParser(usage)
-    parser.add_argument('--Np', metavar='Np', default=250,
+    parser.add_argument('--Np', metavar='Np', default=100,
                         type=int, help='Number of Chebyshev points')
-    parser.add_argument('--Nt', metavar='Nt', default=3200,
+    parser.add_argument('--Nt', metavar='Nt', default=16,
                         type=int, help='Number of time steps')
-    parser.add_argument('--dt', metavar='dt', default=1/128,
+    parser.add_argument('--dt', metavar='dt', default=0.625,
                         type=float, help='Size of time step')
     parser.add_argument('--t0', metavar='t0', default=0.0,
                         type=float, help='Initial time')
