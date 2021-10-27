@@ -40,7 +40,7 @@ def setPsaapProperties(gam, params, Nr):
     # characteristics of driving voltage
     V0  = 1000.0       # amplitude of driving voltage [V]
     tau = (1./13.6e6) # period of driving voltage [s]
-    L   = 1.00*0.005  # half-gap-width [m] (gap width is 1in)
+    L   = 2.00*0.005  # half-gap-width [m] (gap width is 1in)
 
     # transport parameters
     nmue   = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]

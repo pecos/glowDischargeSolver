@@ -28,6 +28,17 @@ def setPsaapPropertiesTestArm(gam, params, Nr):
     nAr = 3.22e22     # background number density of Ar [1/m^3] (corresponds to p=1Torr)
     np0 = 8e16        # "nominal" electron density [1/m^3]
 
+    # masses
+    # me = 9.10938356e-31  # mass of an electron [kg]
+    # me = 5.489e-4  # mass of an electron [u]
+    me = 0.511e6  # mass of an electron [eV/c2]
+    # mAr = 39.948  # mass of an argon atom [u]
+    # mAr = 39.948 * 1.66054e-27 # mass of an argon atom [kg]
+    mAr = 37.2158e9  # mass of an electron [eV/c2]
+    # u = 931.4941e6  # eV/c2
+    c = 299792458  # speed of light [m/s]
+    se = 40  # momentum cross section [m^2]
+
     # nominal electron energy
     e0 = 1.0  # [eV]
 
@@ -42,6 +53,8 @@ def setPsaapPropertiesTestArm(gam, params, Nr):
     # transport parameters
     nmue = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
     nmui = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
+    nmum = 1 / (np.sqrt(16.0 * (mAr + mAr) * 300 * 8.62e-5 * c**2
+                        / (3.0 * np.pi * mAr * mAr)) * se * mAr * 1.6e-19 / c**2)
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
@@ -105,6 +118,7 @@ def setPsaapPropertiesTestArm(gam, params, Nr):
 
     mue = nmue/nAr
     mui = nmui/nAr
+    mum = nmum/nAr
 
     # 3) Compute non-dimensional properties required by solver
     De    = De*tau/(L*L)
@@ -113,6 +127,7 @@ def setPsaapPropertiesTestArm(gam, params, Nr):
 
     mue   = mue*V0*tau/(L*L)
     mui   = mui*V0*tau/(L*L)
+    mum   = mum*V0*tau/(L*L)
 
     Ck[0:2] = Ck[0:2]*tau*nAr
     #Ck[2:5] = Ck[2:5]*tau*np0
@@ -143,7 +158,7 @@ def setPsaapPropertiesTestArm(gam, params, Nr):
 
     params.mu[0] = mue
     params.mu[1] = mui
-    params.mu[2] = 0
+    params.mu[2] = mum
 
     params.A[:]  = Ck[:]
     params.B[:]  = 0.0

@@ -325,7 +325,6 @@ class timeDomainCollocationSolver:
 
         # Jacobian storage
         self.jac  = np.zeros((self.Ndof, self.Ndof))
-        self.jacFD  = np.zeros((self.Ndof, self.Ndof))
         self.jac0 = np.zeros((self.Ndof, self.Ndof))
 
         self.A1 = np.zeros((self.Ndof, self.Ndof))
@@ -381,7 +380,6 @@ class timeDomainCollocationSolver:
         U0 = self.V0pinv @ self.U2[2*self.Np:]
         U0[ind:] = 0.0
         self.U2[2*self.Np:] = self.V0p @ U0
-
 
     def solve_poisson(self, ne,ni,time):
         """Solve Gauss' law for the electric potential.
@@ -934,16 +932,16 @@ class timeDomainCollocationSolver:
             fa[:,0] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,i],np.multiply(naTg[:,0],(-phi_x[:,0]))) -
                            np.multiply(diffusivity[:,i], (self.Dp @ naTg[:,0] )))
 
-            fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg[:,0],-phi_x_ne)))
-            fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg[:,0],-phi_x_ni)))
-            fa_U[self.Ns-1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu_U[i,self.Ns-1,:,:], np.multiply(naTg[:,0],-phi_x[:,0])))
+            fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg,-phi_x_ne)))
+            fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg,-phi_x_ni)))
+            fa_U[self.Ns-1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu_U[i,self.Ns-1,:,:], np.multiply(naTg,-phi_x[:,0])))
             fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(np.diag(Tg[:,0]),-phi_x))
                                     -np.multiply(diffusivity[:,[i]], self.Dp @ np.diag(Tg[:,0])))
             for j in range(0, self.Nv):
                 fa_U[j,:,:] += (5./3.)*(self.params.charge(i)
-                                        *np.multiply(mu[:,[i]], np.multiply(dens[:,i]*(-phi_x[:,0]),np.diag(Tg_U[:,j]))) -
-                                        np.multiply(diffusivity[:,[i]], (self.Dp @ np.multiply(dens[:,i],np.diag(Tg_U[:,j])))))
-                fa_U[j,:,:] -= (5./3.) * np.multiply(self.Dp @ naTg[:,0], diffusivity_U[i,j,:,:])
+                                        *np.multiply(mu[:,[i]], np.multiply(dens[:,i]*(-phi_x),np.diag(Tg_U[:,j]))) -
+                                        np.multiply(diffusivity[:,[i]], (self.Dp @ np.multiply(dens[:,[i]],np.diag(Tg_U[:,j])))))
+                fa_U[j,:,:] -= (5./3.) * np.multiply(self.Dp @ naTg, diffusivity_U[i,j,:,:])
 
         # background thermal conductivity contribution
         fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0])
@@ -970,8 +968,8 @@ class timeDomainCollocationSolver:
             for j in range(0,self.Nv):
                 joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec_U[i,j,:,:],(-phi_x))
 
-            joule_U[0,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x_ne))
-            joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,i],(-phi_x_ni))
+            joule_U[0,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,[i]],(-phi_x_ne))
+            joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*np.multiply(fspec[:,[i]],(-phi_x_ni))
 
         S = (sOmEp + fa_x - joule)/Tg/self.params.nAronp0
 
@@ -991,6 +989,7 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns-1):
             for j in range(0,self.Nv):
                 self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fspec_x_U[i,j,:,:])
+
 
         # electron energy eqn
         for j in range(0,self.Ns+1):
@@ -1269,6 +1268,7 @@ class timeDomainCollocationSolver:
 
             try:
                 dU = np.linalg.solve(self.jac, -r)
+
                 self.U2 += dU
 
                 # zero the last mode
@@ -1514,7 +1514,7 @@ if __name__ == "__main__":
                         type=int, help='Number of Chebyshev points')
     parser.add_argument('--Nt', metavar='Nt', default=16,
                         type=int, help='Number of time steps')
-    parser.add_argument('--dt', metavar='dt', default=0.625,
+    parser.add_argument('--dt', metavar='dt', default=0.0625,
                         type=float, help='Size of time step')
     parser.add_argument('--t0', metavar='t0', default=0.0,
                         type=float, help='Initial time')
