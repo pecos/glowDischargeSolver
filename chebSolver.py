@@ -471,11 +471,15 @@ class timeDomainCollocationSolver:
         # overwrite endpoints in fe (weakly impose BC)
         rstrg = np.zeros(2)
         if (weak_bc):
-            fspec[ 0,0] = (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
-            fspec[-1,0] = ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+            fspec[ 0,0] = (- self.params.ks*dens[ 0,iele] * Te[0,0]**0.5
+                           - self.params.gam*fspec[ 0,iion])
+            fspec[-1,0] = (+ self.params.ks*dens[-1,iele] * Te[-1,0]**0.5
+                           - self.params.gam*fspec[-1,iion])
         else:
-            rstrg[0] = fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
-            rstrg[1] = fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+            rstrg[0] = fspec[ 0,iele] - (- self.params.ks*dens[ 0,iele] * Te[0,0]**0.5
+                                         - self.params.gam*fspec[ 0,iion])
+            rstrg[1] = fspec[-1,iele] - (+ self.params.ks*dens[-1,iele] * Te[-1,0]**0.5
+                                         - self.params.gam*fspec[-1,iion])
 
         #if (self.Ns>2):
         #    fspec[ 0,2:self.Ns] = 0.0
@@ -869,24 +873,36 @@ class timeDomainCollocationSolver:
             fspec_U[0,0,0,:] = (- self.params.gam*fspec_U[ 1,0,0,:])
             fspec_U[0,1,0,:] = (- self.params.gam*fspec_U[ 1,1,0,:])
             fspec_U[0,self.Ns-1,0,:] = (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
-            fspec_U[0,0,0,0] -= self.params.ks
+            fspec_U[0,0,0,0] -= self.params.ks \
+                * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
+            fspec_U[0,self.Ns,0,0] -= self.params.ks \
+                * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
 
             fspec_U[0,0,-1,:] = (- self.params.gam*fspec_U[1,0,-1,:])
             fspec_U[0,1,-1,:] = (- self.params.gam*fspec_U[1,1,-1,:])
-            fspec_U[0,self.Ns-1,-1,:] = (- self.params.gam*fspec_U[ 1,self.Ns-1,-1,:])
-            fspec_U[0,0,-1,-1] += self.params.ks
+            fspec_U[0,self.Ns,-1,:] = (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
+            fspec_U[0,0,-1,-1] += self.params.ks \
+                * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
+            fspec_U[0,self.Ns,-1,-1] += self.params.ks \
+                * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
         else:
             rstrg_U[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
             rstrg_U[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
             rstrg_U[0,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
             rstrg_U[0,self.Ns*self.Np:] = fspec_U[0,self.Ns,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns,0,:])
-            rstrg_U[0,0] += self.params.ks
+            rstrg_U[0,0] += self.params.ks \
+                * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
+            rstrg_U[0,self.Ns*self.Np] += self.params.ks \
+                * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
 
             rstrg_U[1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
             rstrg_U[1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
             rstrg_U[1,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,-1,:])
             rstrg_U[1,self.Ns*self.Np:] = fspec_U[0,self.Ns,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
-            rstrg_U[1,self.Np-1] -= self.params.ks
+            rstrg_U[1,self.Np-1] -= self.params.ks \
+                * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
+            rstrg_U[1,self.Nv*self.Np-1] -= self.params.ks \
+                * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
 
         # form Jacobians of derivatives of fluxes at collocation points
         fspec_x_U = np.ndarray((self.Ns, self.Ns+1, self.Np, self.Np),dtype=np.float64)
