@@ -4,13 +4,15 @@ import chebSolver as cs
 
 class timePeriodicSolver:
 
-    def __init__(self, Ns, NT, Np, gam, restart=None, scenario=0, scheme='BE'):
-        self.tds = cs.timeDomainCollocationSolver(Ns,NT,Np,gam,scenario,scheme)
+    def __init__(self, Ns, NT, Np, gam, V0, VDC, restart=None, scenario=0, scheme='BE'):
+        self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np, gam, V0,
+                                                  VDC, scenario, scheme)
         self.res = np.zeros((self.tds.Ndof,1))
         self.jac = np.zeros((self.tds.Ndof,self.tds.Ndof))
 
         if (restart!=None):
             self.tds.U1 = np.load(restart)
+
         else:
             # Default initial guess.  This should be overwritten
             # by reading restart if you want this to work.
@@ -97,6 +99,10 @@ if __name__ == "__main__":
                         action='store_true', help='Be extra chatty')
     parser.add_argument('--plot', default=False,
                         action='store_true', help="Plot the final state for inspection.")
+    parser.add_argument('--V0', metavar='V0', default=100,
+                        type=float, help='Voltage amplitude')
+    parser.add_argument('--VDC', metavar='VDC', default=0.0,
+                        type=float, help='Vertical shift of voltage sinusoidal')
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -122,21 +128,24 @@ if __name__ == "__main__":
 
     Ns = 3
     if(args.scenario==0):
-        print("#   Running scenario = 0 (2 species, 1 rxn, Liu 2014)")
+        print("#   Running scenario = 0 (3 species, 1 rxn, Liu 2014)")
         Ns = 3
     elif(args.scenario==1):
-        print("#   Running scenario = 1 (2 species, 1 rxn, PSAAP config)")
+        print("#   Running scenario = 1 (3 species, 1 rxn, PSAAP config)")
         Ns = 3
     elif(args.scenario==2):
-        print("#   Running scenario = 2 (3 species, 8 rxn, Liu 2017)")
+        print("#   Running scenario = 2 (4 species, 8 rxn, Liu 2017)")
+        Ns = 4
+    elif(args.scenario==3):
+        print("#   Running scenario = 3 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
     else:
-        print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, or 2.  Exiting.")
+        print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.")
         exit(-1)
 
     print("#")
 
-    tps = timePeriodicSolver(Ns, 1, args.Np, args.gam,
+    tps = timePeriodicSolver(Ns, 1, args.Np, args.gam, args.V0, args.VDC,
                              restart=args.restart, scenario=args.scenario, scheme=args.tscheme)
 
 
