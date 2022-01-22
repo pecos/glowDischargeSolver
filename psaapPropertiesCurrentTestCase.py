@@ -9,7 +9,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
+def setPsaapPropertiesCurrentTestCase(gam, inputV0, inputVDC, params, Nr):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -25,7 +25,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     ###################################################################
 
     # densities
-    nAr = 3.22e22     # background number density of Ar [1/m^3] (corresponds to p=100 mTorr)
+    nAr = 1.6102e21   # background number density of Ar [1/m^3] (corresponds to p=100 mTorr)
     np0 = 8e16        # "nominal" electron density [1/m^3]
 
     # masses
@@ -43,7 +43,8 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     e0 = 1.0  # [eV]
 
     # pressure
-    p  = 133.3224*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
+    # p  = 133.3224*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
+    p  = 1 * 6.6661185 * 1.5 # [J/m^3] *1.5 to convert it to energy (50 mTorr)
 
     # gas energy at the wall
     Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
@@ -51,18 +52,19 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     # characteristics of driving voltage
     V0  = inputV0                 # amplitude of driving voltage [V]
     verticalShift = inputVDC      # DC voltage (vertical shift in driving voltage)
-    tau = (1./13.6e6)             # period of driving voltage [s]
-    L   = 2.54*0.005              # half-gap-width [m] (gap width is 2.54cm)
+    # tau = (1./13.6e6)           # period of driving voltage [s]
+    tau = (1./27.1e6)             # period of driving voltage [s]
+    L   = 2.00*0.005              #1*0.005  # half-gap-width [m] (gap width is 1cm)
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
     # transport parameters
-    nmue = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
-    nmui = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
+    nmue = 4.83e20   # argon number density times electron mobility [1/(V*cm*s)]
+    nmui = 2.33e18   # argon number density times ion mobility [1/(V*cm*s)]
     nmum = 1 / (np.sqrt(16.0 * (mAr + mAr) * 300 * 8.62e-5 * c**2
                         / (3.0 * np.pi * mAr * mAr)) * se * mAr * 1.6e-19 / c**2)
-    nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
-    nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
-    nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
+    nDe  = 1.93e21   # argon number density times electron diffusivity [1/(cm*s)]
+    nDi  = 1.04e17   # argon number density times ion diffusivity [1/(cm*s)]
+    nDm  = 1.21e17   # argon number density times metastable diffusivity [1/(cm*s)]
 
     # reaction parameters (NB: k_i = Ck*exp(-A/Te))
     #Ck = np.array([1.235e-7,3.712e-8,2.05e-7,1.818e-9,2e-7]) # pre-exponential factors [cm^3/s]
@@ -148,9 +150,9 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     alpha   = qe*np0*L*L/(V0*eps0)
     ks      = ks*tau/L
     p0      = p/qe/np0
-    kappaB  = 4.878171165833662 # non-dimensional thermal conductivity of background specie
-                                # (2/3)*tau/L**2*Kb/np0/kB,
-                                # where Kb is the thermal conductivity of background specie
+    kappaB  = 4.878171165833662*1.6129 # non-dimensional thermal conductivity of background specie
+                        # (2/3)*tau/L**2*Kb/np0/kB,
+                        # where Kb is the thermal conductivity of background specie
 
     #params.beta = np.array([[2,2,2,1,1],[1,0,1,0,0],[0,1,0,0,0],[0,0,0,1,1]])
     #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
