@@ -6,6 +6,7 @@ import time
 from Liu2014Properties import setLiu2014Properties
 from psaapProperties import setPsaapProperties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
+from psaapPropertiesCurrentTestCase import setPsaapPropertiesCurrentTestCase
 
 class modelClosures:
     """Class providing model parameters."""
@@ -108,6 +109,22 @@ class modelClosures:
         self.p0      = 133.3224*1.5/1.6e-19/8e16
         self.nAronp0 = 3.22e22 / 8e16
         self.Tg0     = 0.038778
+
+        # coefficient for the elastic collision term
+        self.EC = 2.0 * 0.511e6 / 37.2158e9 * 3.8e9 * (1./13.6e6)
+
+        # DC voltage (vertical shift in the driving voltage)
+        self.verticalShift = 0.0
+
+        # Parameters needed to compute the current with dimensions
+        self.V0Ltau  = 100 / (2.54 * 0.005 * (1./13.6e6))
+        self.V0L     = 100 / (2.54 * 0.005)
+        self.LLV0tau = (2.54 * 0.005)**2 / (100 * (1./13.6e6))
+        self.tauL    = 2.54 * 0.005 / (1./13.6e6)
+        self.np0     = 8e16             # "nominal" electron density [1/m^3]
+        self.qe      = 1.6e-19          # unit charge [C]
+        self.eps0    = 8.86e-12         # unit charge [C]
+        self.eArea   = np.pi * 0.05**2  # electrode area [m^2]
 
         self.reactionsList =[]
 
@@ -270,7 +287,8 @@ class timeDomainCollocationSolver:
         xc -- Collocation points (allowed to different from xp for now)
     """
 
-    def __init__(self, Ns, NT, Np, gam=0.01, scenario=0, scheme="BE"):
+    def __init__(self, Ns, NT, Np, gam=0.01,
+                 V0 = 100.0, VDC = 0.0, scenario=0, scheme="BE"):
         """Initializes storage and operaters required for solve."""
 
         # parameters of the time marching scheme
@@ -306,6 +324,8 @@ class timeDomainCollocationSolver:
             Nr = 1
         elif(scenario==2):
             Nr = 8
+        elif(scenario==3):
+            Nr = 8
         else:
             print("ERROR: scenario = {} not understood.".format(scenario))
             exit(-1)
@@ -313,11 +333,13 @@ class timeDomainCollocationSolver:
         self.params = modelClosures(self.Ns, Nr)
 
         if(scenario==0):
-            setLiu2014Properties(gam, self.params, Nr)
+            setLiu2014Properties(gam, V0, VDC, self.params, Nr)
         elif(scenario==1):
-            setPsaapProperties(gam, self.params, Nr)
+            setPsaapProperties(gam, V0, VDC, self.params, Nr)
         elif(scenario==2):
-            setPsaapPropertiesTestArm(gam, self.params, Nr)
+            setPsaapPropertiesTestArm(gam, V0, VDC, self.params, Nr)
+        elif(scenario==3):
+            setPsaapPropertiesCurrentTestCase(gam, V0, VDC, self.params, Nr)
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -361,6 +383,10 @@ class timeDomainCollocationSolver:
         self.LpD = np.identity(self.Np)
         self.LpD[1:-1,:] = self.Lp[1:-1,:]
 
+        self.totalCurrent    = np.zeros((2,1),dtype=np.float64)
+        self.electronCurrent = np.zeros((2,1),dtype=np.float64)
+        self.ionCurrent      = np.zeros((2,1),dtype=np.float64)
+
 
     def filter(self):
         """Filter state by zeroing out the last Chebyshev coefficient.
@@ -393,7 +419,7 @@ class timeDomainCollocationSolver:
         """
         r = -self.params.alpha*(ni-ne)
         r[0] = 0.0
-        r[-1] = np.sin(2*np.pi*time)
+        r[-1] = np.sin(2*np.pi*time) + self.params.verticalShift
         self.phi = np.linalg.solve(self.LpD, r)
 
     def spatial_residual(self, Uin, time, dt, weak_bc=False):
@@ -492,6 +518,7 @@ class timeDomainCollocationSolver:
         # form source terms at collocation points
         omega = self.params.rxnSourceTerm(Te, dens)
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
+        SEC = -self.params.EC * (nT - np.multiply(dens[0, iele], Tg))
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
@@ -529,7 +556,49 @@ class timeDomainCollocationSolver:
         res[(self.Ns-1)*self.Np:self.Ns*self.Np] = -dt*S
 
         # energy
-        res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ)
+        res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ  - SEC)
+
+
+        ############################################################
+        # Computation of total, displacement, and particle current #
+        ############################################################
+        E_currentTimeStep = - phi_x
+
+        # pull off state for convenience
+        dens_previousTimeStep = np.ndarray((self.Np, self.Ns),dtype=np.float64)
+        for i in range(0,self.Ns):
+            dens_previousTimeStep[:,i] = self.U1[i*self.Np:(i+1)*self.Np,0]
+
+        # solve poisson equation for phi
+        # now have self.phi
+        self.solve_poisson(dens_previousTimeStep[:,iele],dens_previousTimeStep[:,iion],time)
+
+        # form fluxes at grid points
+        E_previousTimeStep  = -self.Dp @ self.phi
+
+        displacementCurrent = self.params.eps0 \
+            * (E_currentTimeStep - E_previousTimeStep) / dt * self.params.V0Ltau
+
+        particleCurrent = np.zeros((2,self.Ns),dtype=np.float64)
+        particleCurrent[0,iion]  = mu[0,1] * self.params.LLV0tau \
+            * dens[ 0,iion] * self.params.np0 * (-phi_x[ 0]) * self.params.V0L \
+                * self.params.qe * self.params.charge(1)
+        particleCurrent[-1,iion] = mu[-1,1] * self.params.LLV0tau \
+            * dens[-1,iion] * self.params.np0 * (-phi_x[-1]) * self.params.V0L \
+                * self.params.qe * self.params.charge(1)
+
+        particleCurrent[0,iele]  = (- self.params.ks * self.params.tauL \
+            *  dens[ 0,iele] * self.params.np0 * Te[0,0]**0.5 * self.params.qe \
+            - self.params.gam * particleCurrent[0,iion]) * self.params.charge(0)
+        particleCurrent[-1,iele] = (+ self.params.ks * self.params.tauL \
+            * dens[-1,iele] * self.params.np0 * Te[-1,0]**0.5 * self.params.qe \
+            - self.params.gam * particleCurrent[-1,iion]) * self.params.charge(0)
+        self.totalCurrent[ 0,0] = displacementCurrent[ 0] \
+            + particleCurrent[ 0,iion] + particleCurrent[ 0,iele]
+        self.totalCurrent[-1,0] = displacementCurrent[-1] \
+            + particleCurrent[-1,iion] + particleCurrent[-1,iele]
+        self.ionCurrent[:]      = particleCurrent[:,iion]
+        self.electronCurrent[:] = particleCurrent[:,iele]
 
         return res, rstrg
 
@@ -599,10 +668,12 @@ class timeDomainCollocationSolver:
             ntot += dens[:,i]
 
         # add background contribution (accounting for non-dim difference)
-        ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+        # ntot += self.params.nAronp0 * dens[:,self.Ns-1]
 
-        res[(self.Ns-1)*self.Np] = ntot[ 0]*self.params.Tg0 + nT[ 0] - self.params.p0
-        res[ self.Ns*self.Np-1 ] = ntot[-1]*self.params.Tg0 + nT[-1] - self.params.p0
+        res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
+            - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0 #ntot[ 0]*self.params.Tg0 + nT[ 0] - self.params.p0
+        res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
+            - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0 #ntot[-1]*self.params.Tg0 + nT[-1] - self.params.p0
 
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
@@ -652,11 +723,14 @@ class timeDomainCollocationSolver:
             ntot += dens[:,i]
 
         # add background contribution (accounting for non-dim difference)
-        ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+        # ntot += self.params.nAronp0 * dens[:,self.Ns-1]
 
-        res[(self.Ns-1)*self.Np] = ntot[ 0]*self.params.Tg0 + nT[ 0] - self.params.p0
-        res[ self.Ns*self.Np-1 ] = ntot[-1]*self.params.Tg0 + nT[-1] - self.params.p0
-
+        res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
+            - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0
+            #ntot[ 0]*self.params.Tg0 + nT[ 0] - self.params.p0
+        res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
+            - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
+            #ntot[-1]*self.params.Tg0 + nT[-1] - self.params.p0
 
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
@@ -934,6 +1008,16 @@ class timeDomainCollocationSolver:
         SJ_nb = -self.params.qStar * np.multiply(fspec_U[0,self.Ns-1,:,:],-phi_x)
         SJ_nT = -self.params.qStar * np.multiply(fspec_U[0,self.Ns,:,:],-phi_x)
 
+        # elastic collisions
+        SEC_U = np.zeros((self.Ns + 1, self.Np, self.Np), dtype=np.float64)
+        for j in range(0, self.Nv):
+            SEC_U[j, :, :] = self.params.EC \
+                           * dens[:, iele] \
+                           * np.multiply(np.identity(self.Np),
+                                         np.diag(Tg_U[:, j]))
+        SEC_U[self.Ns, :, :] -= self.params.EC * np.identity(self.Np)
+        SEC_U[      0, :, :] += self.params.EC \
+                              * np.multiply(np.identity(self.Np), Tg)
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
@@ -1020,10 +1104,10 @@ class timeDomainCollocationSolver:
                 jac_diag -= dt*omega_U[i,j,:]
 
         # Joule heating (electron energy eqn)
-        self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*SJ_ne
-        self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*SJ_ni
+        self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*(SJ_ne + SEC_U[0, :, :])
+        self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*(SJ_ni + SEC_U[1, :, :])
         self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
-        self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*SJ_nT
+        self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*(SJ_nT + SEC_U[self.Ns, :, :])
 
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
@@ -1075,21 +1159,21 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
         # Dirichlet on heavy species temperature
-        self.jac[(self.Ns-1)*self.Np,:] = 0.0
+        self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
 
         for i in range(1,self.Ns-1):
-            self.jac[(self.Ns-1)*self.Np,i*self.Np] = self.params.Tg0
+            self.jac[(self.Ns-1)*self.Np,i*self.Np] = 1.0 / self.params.nAronp0
 
-        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = self.params.nAronp0*self.params.Tg0
-        self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0
+        self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0 #self.params.nAronp0*self.params.Tg0
+        self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
         self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
         for i in range(1,self.Ns-1):
-            self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = self.params.Tg0
+            self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = 1.0 / self.params.nAronp0
 
-        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = self.params.nAronp0*self.params.Tg0
-        self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
+        self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0 #self.params.nAronp0*self.params.Tg0
+        self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
 
         # Dirichlet condition on electron energy
@@ -1367,7 +1451,9 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float64)
+            CurrentSave=np.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=np.float64)
             Usave[0,:] = self.U2[:,0]
+            CurrentSave[0,:] = self.totalCurrent[:,0]
 
         print("#")
         print("# {0:10s} {1:12s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s}".format(
@@ -1393,6 +1479,7 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave[1,:] = self.U2[:,0]
+            CurrentSave[1,:] = self.totalCurrent[:,0]
 
 
         for istep in range(1, Nstep):
@@ -1415,12 +1502,14 @@ class timeDomainCollocationSolver:
 
             if(savedata!=None):
                 Usave[istep+1,:] = self.U2[:,0]
+                CurrentSave[istep+1,:] = self.totalCurrent[:,0]
 
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
 
         if(savedata!=None):
             np.save(savedata,Usave)
+            np.save("Current_" + savedata, CurrentSave)
 
 
     def solveLCN(self, time0, dt, Nstep, savedata=None, verbose=False,
@@ -1428,7 +1517,9 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float64)
+            CurrentSave=np.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=np.float64)
             Usave[0,:] = self.U2[:,0]
+            CurrentSave[0,:] = self.totalCurrent[:,0]
 
         print("#")
         print("# {0:10s} {1:12s} {2:12s} {3:12s} {4:12s}".format(
@@ -1450,6 +1541,7 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave[1,:] = self.U2[:,0]
+            CurrentSave[1,:] = self.totalCurrent[:,0]
 
 
         for istep in range(1, Nstep):
@@ -1469,12 +1561,14 @@ class timeDomainCollocationSolver:
 
             if(savedata!=None):
                 Usave[istep+1,:] = self.U2[:,0]
+                CurrentSave[istep+1,:] = self.totalCurrent[:,0]
 
             #if(computeSensitivity):
             #    self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
 
         if(savedata!=None):
             np.save(savedata,Usave)
+            np.save("Current_" + savedata, CurrentSave)
 
 
     def plot(self, col, create=True):
@@ -1552,6 +1646,10 @@ if __name__ == "__main__":
                         action='store_true', help='Enforce electron flux BC weakly')
     parser.add_argument('--plot', default=False,
                         action='store_true', help="Plot the final state for inspection.")
+    parser.add_argument('--V0', metavar='V0', default=100.0,
+                        type=float, help='Voltage amplitude')
+    parser.add_argument('--VDC', metavar='VDC', default=0.0,
+                        type=float, help='Vertical shift of voltage sinusoidal')
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -1582,16 +1680,19 @@ if __name__ == "__main__":
 
     Ns = 3
     if(args.scenario==0):
-        print("#   Running scenario = 0 (2 species, 1 rxn, Liu 2014)")
+        print("#   Running scenario = 0 (3 species, 1 rxn, Liu 2014)")
         Ns = 3
     elif(args.scenario==1):
-        print("#   Running scenario = 1 (2 species, 1 rxn, PSAAP config)")
+        print("#   Running scenario = 1 (3 species, 1 rxn, PSAAP config)")
         Ns = 3
     elif(args.scenario==2):
-        print("#   Running scenario = 2 (3 species, 8 rxn, Liu 2017)")
+        print("#   Running scenario = 2 (4 species, 8 rxn, Liu 2017)")
+        Ns = 4
+    elif(args.scenario==3):
+        print("#   Running scenario = 3 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
     else:
-        print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, or 2.  Exiting.")
+        print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.")
         exit(-1)
 
     if(args.savedata!=None):
@@ -1604,7 +1705,8 @@ if __name__ == "__main__":
     print("#")
 
     # Instantiate solver class
-    tds = timeDomainCollocationSolver(Ns,1,args.Np,gam=0.01,
+    tds = timeDomainCollocationSolver(Ns, 1, args.Np, gam=0.01, V0 = args.V0,
+                                      VDC = args.VDC,
                                       scenario=args.scenario, scheme=args.tscheme)
 
     # Default IC (overwritten below if we are restarting)
@@ -1637,6 +1739,7 @@ if __name__ == "__main__":
 
     # Save the result
     np.save(args.outfile, tds.U2)
+    np.save("Current_" + args.outfile, tds.totalCurrent)
 
     if(args.plot):
         tds.plot('b-')
