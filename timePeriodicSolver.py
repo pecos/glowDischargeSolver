@@ -5,9 +5,11 @@ import chebSolver as cs
 class timePeriodicSolver:
 
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
+                 backgroundSpecieActivationFactor,
                  gam, V0, VDC, restart=None, scenario=0, scheme='BE'):
         self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np,
                                                   elasticCollisionActivationFactor,
+                                                  backgroundSpecieActivationFactor,
                                                   gam, V0,
                                                   VDC, scenario, scheme)
         self.res = np.zeros((self.tds.Ndof,1))
@@ -55,7 +57,11 @@ class timePeriodicSolver:
         self.res = self.tds.U2 - Uic
 
         # Compute the Jacobian
-        self.jac = self.tds.A1 - np.identity(self.tds.Ndof)
+        A = np.identity(self.tds.Ndof)
+        A[(self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1,
+          (self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1] -= np.identity(self.tds.Np-2) \
+            * (1.0 - self.tds.backgroundSpecieActivationFactor)
+        self.jac = self.tds.A1 - A
 
         # return norm of residual
         return np.linalg.norm(self.res)
@@ -108,6 +114,8 @@ if __name__ == "__main__":
                         type=float, help='Vertical shift of voltage sinusoidal')
     parser.add_argument('--elasticCollisionActivation', default=False,
                          action='store_true', help="Activate the elastic collision term.")
+    parser.add_argument('--backgroundSpecieActivation', default=False,
+                        action='store_true', help="Activate the background specie density equation.")
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -158,7 +166,16 @@ if __name__ == "__main__":
          print("#   The elastic collision term is not included.")
          elasticCollisionActivationFactor = 0.0
 
+    backgroundSpecieActivationFactor = 1.0
+    if(args.backgroundSpecieActivation==True):
+        print("#   The background specie density is not fixed.")
+        backgroundSpecieActivationFactor = 1.0
+    else:
+        print("#   The background specie density is fixed.")
+        backgroundSpecieActivationFactor = 0.0
+
     tps = timePeriodicSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
+                             backgroundSpecieActivationFactor,
                              args.gam, args.V0, args.VDC,
                              restart=args.restart, scenario=args.scenario,
                              scheme=args.tscheme)
