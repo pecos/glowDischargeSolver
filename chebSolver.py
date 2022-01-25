@@ -287,8 +287,9 @@ class timeDomainCollocationSolver:
         xc -- Collocation points (allowed to different from xp for now)
     """
 
-    def __init__(self, Ns, NT, Np, gam=0.01,
-                 V0 = 100.0, VDC = 0.0, scenario=0, scheme="BE"):
+    def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
+                 gam=0.01, V0 = 100.0, VDC = 0.0,
+                 scenario=0, scheme="BE"):
         """Initializes storage and operaters required for solve."""
 
         # parameters of the time marching scheme
@@ -329,6 +330,8 @@ class timeDomainCollocationSolver:
         else:
             print("ERROR: scenario = {} not understood.".format(scenario))
             exit(-1)
+
+        self.elasticCollisionActivationFactor = elasticCollisionActivationFactor
 
         self.params = modelClosures(self.Ns, Nr)
 
@@ -518,7 +521,10 @@ class timeDomainCollocationSolver:
         # form source terms at collocation points
         omega = self.params.rxnSourceTerm(Te, dens)
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
-        SEC = -self.params.EC * (nT - np.multiply(dens[0, iele], Tg))
+
+        # elastic collision term at collocation points
+        SEC  = -self.params.EC * (nT - np.multiply(dens[0, iele], Tg))
+        SEC *= self.elasticCollisionActivationFactor
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
@@ -1018,6 +1024,7 @@ class timeDomainCollocationSolver:
         SEC_U[self.Ns, :, :] -= self.params.EC * np.identity(self.Np)
         SEC_U[      0, :, :] += self.params.EC \
                               * np.multiply(np.identity(self.Np), Tg)
+        SEC_U *= self.elasticCollisionActivationFactor
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
@@ -1650,6 +1657,8 @@ if __name__ == "__main__":
                         type=float, help='Voltage amplitude')
     parser.add_argument('--VDC', metavar='VDC', default=0.0,
                         type=float, help='Vertical shift of voltage sinusoidal')
+    parser.add_argument('--elasticCollisionActivation', default=False,
+                         action='store_true', help="Activate the elastic collision term.")
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -1695,6 +1704,14 @@ if __name__ == "__main__":
         print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.")
         exit(-1)
 
+    elasticCollisionActivationFactor = 1.0
+    if(args.elasticCollisionActivation==True):
+         print("#   The elastic collision term is included.")
+         elasticCollisionActivationFactor = 1.0
+    else:
+         print("#   The elastic collision term is not included.")
+         elasticCollisionActivationFactor = 0.0
+
     if(args.savedata!=None):
         print("#")
         print("#   Saving every time step to {0:s}".format(args.savedata))
@@ -1705,8 +1722,8 @@ if __name__ == "__main__":
     print("#")
 
     # Instantiate solver class
-    tds = timeDomainCollocationSolver(Ns, 1, args.Np, gam=0.01, V0 = args.V0,
-                                      VDC = args.VDC,
+    tds = timeDomainCollocationSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
+                                      gam=0.01, V0 = args.V0, VDC = args.VDC,
                                       scenario=args.scenario, scheme=args.tscheme)
 
     # Default IC (overwritten below if we are restarting)

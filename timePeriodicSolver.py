@@ -4,8 +4,11 @@ import chebSolver as cs
 
 class timePeriodicSolver:
 
-    def __init__(self, Ns, NT, Np, gam, V0, VDC, restart=None, scenario=0, scheme='BE'):
-        self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np, gam, V0,
+    def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
+                 gam, V0, VDC, restart=None, scenario=0, scheme='BE'):
+        self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np,
+                                                  elasticCollisionActivationFactor,
+                                                  gam, V0,
                                                   VDC, scenario, scheme)
         self.res = np.zeros((self.tds.Ndof,1))
         self.jac = np.zeros((self.tds.Ndof,self.tds.Ndof))
@@ -103,6 +106,8 @@ if __name__ == "__main__":
                         type=float, help='Voltage amplitude')
     parser.add_argument('--VDC', metavar='VDC', default=0.0,
                         type=float, help='Vertical shift of voltage sinusoidal')
+    parser.add_argument('--elasticCollisionActivation', default=False,
+                         action='store_true', help="Activate the elastic collision term.")
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -145,8 +150,18 @@ if __name__ == "__main__":
 
     print("#")
 
-    tps = timePeriodicSolver(Ns, 1, args.Np, args.gam, args.V0, args.VDC,
-                             restart=args.restart, scenario=args.scenario, scheme=args.tscheme)
+    elasticCollisionActivationFactor = 1.0
+    if(args.elasticCollisionActivation==True):
+         print("#   The elastic collision term is included.")
+         elasticCollisionActivationFactor = 1.0
+    else:
+         print("#   The elastic collision term is not included.")
+         elasticCollisionActivationFactor = 0.0
+
+    tps = timePeriodicSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
+                             args.gam, args.V0, args.VDC,
+                             restart=args.restart, scenario=args.scenario,
+                             scheme=args.tscheme)
 
 
     # Get the IC, for use in computing the residual below
