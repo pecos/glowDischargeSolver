@@ -7,6 +7,7 @@ from Liu2014Properties import setLiu2014Properties
 from psaapProperties import setPsaapProperties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesCurrentTestCase import setPsaapPropertiesCurrentTestCase
+from psaapPropertiesCurrentTestCase100mTorr import setPsaapPropertiesCurrentTestCase100mTorr
 
 class modelClosures:
     """Class providing model parameters."""
@@ -328,6 +329,8 @@ class timeDomainCollocationSolver:
             Nr = 8
         elif(scenario==3):
             Nr = 8
+        elif(scenario==4):
+            Nr = 8
         else:
             print("ERROR: scenario = {} not understood.".format(scenario))
             exit(-1)
@@ -345,6 +348,8 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesTestArm(gam, V0, VDC, self.params, Nr)
         elif(scenario==3):
             setPsaapPropertiesCurrentTestCase(gam, V0, VDC, self.params, Nr)
+        elif(scenario==4):
+            setPsaapPropertiesCurrentTestCase100mTorr(gam, V0, VDC, self.params, Nr)
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -1476,9 +1481,13 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float64)
-            CurrentSave=np.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=np.float64)
+            TotalCurrentSave=np.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=np.float64)
+            IonCurrentSave=np.ndarray((Nstep+1,self.ionCurrent.shape[0]),dtype=np.float64)
+            ElectronCurrentSave=np.ndarray((Nstep+1,self.electronCurrent.shape[0]),dtype=np.float64)
             Usave[0,:] = self.U2[:,0]
-            CurrentSave[0,:] = self.totalCurrent[:,0]
+            TotalCurrentSave[0,:] = self.totalCurrent[:,0]
+            IonCurrentSave[0,:] = self.ionCurrent[:,0]
+            ElectronCurrentSave[0,:] = self.electronCurrent[:,0]
 
         print("#")
         print("# {0:10s} {1:12s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s}".format(
@@ -1504,8 +1513,9 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave[1,:] = self.U2[:,0]
-            CurrentSave[1,:] = self.totalCurrent[:,0]
-
+            TotalCurrentSave[1,:] = self.totalCurrent[:,0]
+            IonCurrentSave[1,:] = self.ionCurrent[:,0]
+            ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
             # prepare for next step
@@ -1527,14 +1537,18 @@ class timeDomainCollocationSolver:
 
             if(savedata!=None):
                 Usave[istep+1,:] = self.U2[:,0]
-                CurrentSave[istep+1,:] = self.totalCurrent[:,0]
+                TotalCurrentSave[istep+1,:] = self.totalCurrent[:,0]
+                IonCurrentSave[istep+1,:] = self.ionCurrent[:,0]
+                ElectronCurrentSave[istep+1,:] = self.electronCurrent[:,0]
 
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
 
         if(savedata!=None):
             np.save(savedata,Usave)
-            np.save("Current_" + savedata, CurrentSave)
+            np.save("TotalCurrent_" + savedata, TotalCurrentSave)
+            np.save("IonCurrent_" + savedata, IonCurrentSave)
+            np.save("ElectronCurrent_" + savedata, ElectronCurrentSave)
 
 
     def solveLCN(self, time0, dt, Nstep, savedata=None, verbose=False,
@@ -1542,9 +1556,13 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave=np.ndarray((Nstep+1,self.U2.shape[0]),dtype=np.float64)
-            CurrentSave=np.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=np.float64)
+            TotalCurrentSave=np.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=np.float64)
+            IonCurrentSave=np.ndarray((Nstep+1,self.ionCurrent.shape[0]),dtype=np.float64)
+            ElectronCurrentSave=np.ndarray((Nstep+1,self.electronCurrent.shape[0]),dtype=np.float64)
             Usave[0,:] = self.U2[:,0]
-            CurrentSave[0,:] = self.totalCurrent[:,0]
+            TotalCurrentSave[0,:] = self.totalCurrent[:,0]
+            IonCurrentSave[0,:] = self.ionCurrent[:,0]
+            ElectronCurrentSave[0,:] = self.electronCurrent[:,0]
 
         print("#")
         print("# {0:10s} {1:12s} {2:12s} {3:12s} {4:12s}".format(
@@ -1566,8 +1584,9 @@ class timeDomainCollocationSolver:
 
         if(savedata!=None):
             Usave[1,:] = self.U2[:,0]
-            CurrentSave[1,:] = self.totalCurrent[:,0]
-
+            TotalCurrentSave[1,:] = self.totalCurrent[:,0]
+            IonCurrentSave[1,:] = self.ionCurrent[:,0]
+            ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
             # prepare for next step
@@ -1586,14 +1605,18 @@ class timeDomainCollocationSolver:
 
             if(savedata!=None):
                 Usave[istep+1,:] = self.U2[:,0]
-                CurrentSave[istep+1,:] = self.totalCurrent[:,0]
+                TotalCurrentSave[istep+1,:] = self.totalCurrent[:,0]
+                IonCurrentSave[istep+1,:] = self.ionCurrent[:,0]
+                ElectronCurrentSave[istep+1,:] = self.electronCurrent[:,0]
 
             #if(computeSensitivity):
             #    self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
 
         if(savedata!=None):
             np.save(savedata,Usave)
-            np.save("Current_" + savedata, CurrentSave)
+            np.save("TotalCurrent_" + savedata, TotalCurrentSave)
+            np.save("IonCurrent_" + savedata, IonCurrentSave)
+            np.save("ElectronCurrent_" + savedata, ElectronCurrentSave)
 
 
     def plot(self, col, create=True):
@@ -1719,6 +1742,9 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==3):
         print("#   Running scenario = 3 (4 species, 8 rxn, Liu 2017)")
+        Ns = 4
+    elif(args.scenario==4):
+        print("#   Running scenario = 4 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
     else:
         print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.")

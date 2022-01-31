@@ -152,6 +152,9 @@ if __name__ == "__main__":
     elif(args.scenario==3):
         print("#   Running scenario = 3 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
+    elif(args.scenario==4):
+        print("#   Running scenario = 4 (4 species, 8 rxn, Liu 2017)")
+        Ns = 4
     else:
         print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.")
         exit(-1)
