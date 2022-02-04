@@ -893,8 +893,6 @@ class timeDomainCollocationSolver:
                                                                    self.EinsteinForm)
             mu_U[i,self.Ns-1,:,:] = self.params.mobility_U(i, dens[:,self.Ns-1])
             diffusivity_U[i,self.Ns-1,:,:] -= np.diag(diffusivity[:,i] / dens[:,self.Ns-1])
-            if not (self.EinsteinForm):
-                diffusivity_U[i,self.Ns-1,:,:] *= 1.0 / dens[:,self.Ns-1]
 
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
