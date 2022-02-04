@@ -16,7 +16,7 @@ NEWTEXE="python3 ./timePeriodicSolver.py"
 #baseFile='restart_psaap_Np250_'
 
 # Liu 3 species case
-#Np=250
+#Np=300
 #Nt=25600
 #Nt1=128
 #dt=0.0078125
@@ -26,7 +26,7 @@ NEWTEXE="python3 ./timePeriodicSolver.py"
 #saveFile="newton_3spec_CN_Np${Np}_fullsoln.npy"
 
 # Liu 4 species case
-Np=250
+Np=300
 Nt=25600
 Nt1=128
 dt=0.0078125
