@@ -139,19 +139,23 @@ class modelClosures:
 
     def mobility_U(self, i, nb):
         mu_U = np.zeros((nb.shape[0],nb.shape[0]),dtype=np.float64)
-        mu_U = np.diag(-self.mu[i]/ nb)
+        mu_U = np.diag(-self.mu[i]/ nb**2.0)
         return mu_U
 
-    def diffusivity(self, i, energy, mu):
+    def diffusivity(self, i, energy, mu, nb, EinsteinForm):
         DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
-        V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-        DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
+        if EinsteinForm:
+            V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+            DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
+        else:
+            DEf[:,0] = self.D[i] / nb
         return DEf[:,0]
 
-    def diffusivity_U(self, i, j, mu, energy_U):
+    def diffusivity_U(self, i, j, mu, energy_U, EinsteinForm):
         D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
-        V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-        D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
+        if EinsteinForm:
+            V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+            D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
         return D_U
 
     def rxnSourceTerm(self, energy, density):
@@ -289,7 +293,7 @@ class timeDomainCollocationSolver:
     """
 
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
-                 backgroundSpecieActivationFactor,
+                 backgroundSpecieActivationFactor, EinsteinForm,
                  gam=0.01, V0 = 100.0, VDC = 0.0,
                  scenario=0, scheme="BE"):
         """Initializes storage and operaters required for solve."""
@@ -337,6 +341,7 @@ class timeDomainCollocationSolver:
 
         self.elasticCollisionActivationFactor = elasticCollisionActivationFactor
         self.backgroundSpecieActivationFactor = backgroundSpecieActivationFactor
+        self.EinsteinForm = EinsteinForm
 
         self.params = modelClosures(self.Ns, Nr)
 
@@ -490,7 +495,9 @@ class timeDomainCollocationSolver:
 
         for i in range(0,self.Ns):
             mu[:,i]  = self.params.mobility(i, dens[:,self.Ns-1])
-            diffusivity[:,i] = self.params.diffusivity(i, energy, mu)
+            diffusivity[:,i] = self.params.diffusivity(i, energy,
+                                                       mu, dens[:,self.Ns-1],
+                                                       self.EinsteinForm)
 
         fspec = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
@@ -867,8 +874,9 @@ class timeDomainCollocationSolver:
 
         for i in range(0,self.Ns):
             mu[:,i]  = self.params.mobility(i, dens[:,self.Ns-1])
-            diffusivity[:,i] = self.params.diffusivity(i, energy, mu)
-
+            diffusivity[:,i] = self.params.diffusivity(i, energy,
+                                                       mu, dens[:,self.Ns-1],
+                                                       self.EinsteinForm)
         energy_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
         energy_U[0,0,:,:] = Te_ne
         energy_U[0,self.Ns,:,:] = Te_nT
@@ -880,9 +888,13 @@ class timeDomainCollocationSolver:
         mu_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
         for i in range(0,self.Ns):
             for j in range(0,self.Nv):
-                diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j, mu, energy_U)
+                diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j,
+                                                                   mu, energy_U,
+                                                                   self.EinsteinForm)
             mu_U[i,self.Ns-1,:,:] = self.params.mobility_U(i, dens[:,self.Ns-1])
             diffusivity_U[i,self.Ns-1,:,:] -= np.diag(diffusivity[:,i] / dens[:,self.Ns-1])
+            if not (self.EinsteinForm):
+                diffusivity_U[i,self.Ns-1,:,:] *= 1.0 / dens[:,self.Ns-1]
 
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
@@ -1702,6 +1714,8 @@ if __name__ == "__main__":
                          action='store_true', help="Activate the elastic collision term.")
     parser.add_argument('--backgroundSpecieActivation', default=False,
                         action='store_true', help="Activate the background specie density equation.")
+    parser.add_argument('--EinsteinForm', default=False,
+                        action='store_true', help="Activate Einstein's form for diffusion coefficient.")
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -1766,6 +1780,14 @@ if __name__ == "__main__":
         print("#   The background specie density is fixed.")
         backgroundSpecieActivationFactor = 0.0
 
+    EinsteinForm = True
+    if(args.EinsteinForm==True):
+        print("#   The Einstein's form for diffusion coefficient is used.")
+        EinsteinForm = True
+    else:
+        print("#   The Einstein's form for diffusion coefficient is not used.")
+        EinsteinForm = False
+
     if(args.savedata!=None):
         print("#")
         print("#   Saving every time step to {0:s}".format(args.savedata))
@@ -1777,7 +1799,7 @@ if __name__ == "__main__":
 
     # Instantiate solver class
     tds = timeDomainCollocationSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
-                                      backgroundSpecieActivationFactor,
+                                      backgroundSpecieActivationFactor, EinsteinForm,
                                       gam=0.01, V0 = args.V0, VDC = args.VDC,
                                       scenario=args.scenario, scheme=args.tscheme)
 

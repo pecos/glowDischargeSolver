@@ -5,11 +5,12 @@ import chebSolver as cs
 class timePeriodicSolver:
 
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
-                 backgroundSpecieActivationFactor,
+                 backgroundSpecieActivationFactor, EinsteinForm,
                  gam, V0, VDC, restart=None, scenario=0, scheme='BE'):
         self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np,
                                                   elasticCollisionActivationFactor,
                                                   backgroundSpecieActivationFactor,
+                                                  EinsteinForm,
                                                   gam, V0,
                                                   VDC, scenario, scheme)
         self.res = np.zeros((self.tds.Ndof,1))
@@ -116,6 +117,8 @@ if __name__ == "__main__":
                          action='store_true', help="Activate the elastic collision term.")
     parser.add_argument('--backgroundSpecieActivation', default=False,
                         action='store_true', help="Activate the background specie density equation.")
+    parser.add_argument('--EinsteinForm', default=False,
+                        action='store_true', help="Activate Einstein's form for diffusion coefficient.")
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -177,8 +180,17 @@ if __name__ == "__main__":
         print("#   The background specie density is fixed.")
         backgroundSpecieActivationFactor = 0.0
 
+    EinsteinForm = True
+    if(args.EinsteinForm==True):
+        print("#   The Einstein's form for diffusion coefficient is used.")
+        EinsteinForm = True
+    else:
+        print("#   The Einstein's form for diffusion coefficient is not used.")
+        EinsteinForm = False
+
     tps = timePeriodicSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
                              backgroundSpecieActivationFactor,
+                             EinsteinForm,
                              args.gam, args.V0, args.VDC,
                              restart=args.restart, scenario=args.scenario,
                              scheme=args.tscheme)
