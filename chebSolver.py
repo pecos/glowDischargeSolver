@@ -1700,7 +1700,7 @@ if __name__ == "__main__":
                         type=float, help='Vertical shift of voltage sinusoidal')
     parser.add_argument('--elasticCollisionActivation', default=False,
                          action='store_true', help="Activate the elastic collision term.")
-    parser.add_argument('--backgroundSpecieActivation', default=True,
+    parser.add_argument('--backgroundSpecieActivation', default=False,
                         action='store_true', help="Activate the background specie density equation.")
     args = parser.parse_args()
 
