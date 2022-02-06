@@ -152,6 +152,10 @@ class modelClosures:
         return DEf[:,0]
 
     def diffusivity_U(self, i, j, mu, energy_U, EinsteinForm):
+        """The derivative of diffusivity over n_b is computed in line 899 
+        inside the spatial_jacobian function.
+        !!! Please  check this line too when and if you adjust D_U here. !!!
+        """
         D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
         if EinsteinForm:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
