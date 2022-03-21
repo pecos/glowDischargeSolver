@@ -1,5 +1,5 @@
 import numpy as np
-
+from scipy.interpolate import CubicSpline
 
 class Reaction(object):
     def __init__(self, *initial_data, **kwargs):
@@ -158,14 +158,55 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr):
 
     reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)"]
 
+    reactionExpressionTypelist = [True]
+
     reactionsList = []
     for i in range(Nr):
-        rxn   = eval("lambda energy :" + reactionExpressionslist[i])
-        rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+        if reactionExpressionTypelist[i]:
+            Nsample = 72
+            N300 = 200
 
-        reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
-                            kf = rxn, kf_T = rxn_T)
-        reactionsList.append(reaction)
+            rateCoeff = np.fromfile('./BOLSIGChemistry/reaction300K_%s.dat' %str(i))
+            rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T
+
+            Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
+            Te = np.reshape(Te,[Nsample, N300]).T
+
+            Te[:,0] *= 1.5
+            TeLog = np.log(Te[:, 0])
+
+            nonZeroIndex = np.nonzero(rateCoeff[:, 0])
+            rateCoeffYLog = np.zeros(rateCoeff.shape[0])
+            rateCoeffYLog[nonZeroIndex[0][0]:] = np.log(rateCoeff[nonZeroIndex[0][0]:, 0])
+            rateCoeffYLog[0:nonZeroIndex[0][0]] = rateCoeffYLog[nonZeroIndex[0][0]]
+            rateCoeffYLog += - np.log(1.0/tau) + np.log(nAr)
+
+            filtering = np.where(rateCoeffYLog<rateCoeffYLog[nonZeroIndex[0][0]+1])
+            index = filtering[-1][-1]
+            rateCoeffYLog[0:index] = rateCoeffYLog[index]
+
+            reactionExpressionsLog = CubicSpline(TeLog[:], rateCoeffYLog[:])
+
+            reactionTExpressionsLog = CubicSpline.derivative(reactionExpressionsLog)
+            reactionTArrayLog = reactionTExpressionsLog(TeLog[:])
+            reactionTArrayLog[0:index] = -1000 # reactionTArrayLog[index]
+
+            reactionTExpressionsLogFiltered = CubicSpline(TeLog[:],
+                                                          reactionTArrayLog)
+            reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
+                                rxnBolsig = reactionExpressionTypelist[i],
+                                kf_log = reactionExpressionsLog,
+                                kf_T_log = reactionTExpressionsLogFiltered)
+            reactionsList.append(reaction)
+
+        else:
+            rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+            rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+
+            reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
+                                rxnBolsig = reactionExpressionTypelist[i],
+                                kf = rxn, kf_T = rxn_T)
+            reactionsList.append(reaction)
 
     params.reactionsList = reactionsList
 

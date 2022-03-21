@@ -292,7 +292,12 @@ class modelClosures:
 
         indFix = (energy[:,0]<=0.0)
         energy[indFix,0] = 1.0
-        kf = self.reactionsList[i].kf(energy)
+        if self.reactionsList[i].rxnBolsig:
+            kf = np.exp(self.reactionsList[i].kf_log(np.log(energy)))
+            print(kf)
+        else:
+            print(i)
+            kf = self.reactionsList[i].kf(energy)
         kf[indFix,0] = 0
 
         return kf #a * (energy**b) * np.exp(-Ea/energy)
@@ -304,7 +309,11 @@ class modelClosures:
 
         indFix = (energy[:,0]<=0.0)
         energy[indFix,0] = 1.0
-        kf_T = self.reactionsList[i].kf_T(energy)
+        if self.reactionsList[i].rxnBolsig:
+            kf_T = self.reactionsList[i].kf_T_log(np.log(energy)) \
+                 * np.exp(self.reactionsList[i].kf_log(np.log(energy))) / energy
+        else:
+            kf_T = self.reactionsList[i].kf_T(energy)
         kf_T[indFix,0] = 0
 
         return kf_T #a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
