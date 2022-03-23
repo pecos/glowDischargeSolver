@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
 class Reaction(object):
     def __init__(self, *initial_data, **kwargs):
         for dictionary in initial_data:
@@ -94,7 +97,8 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     #dH = np.array([15.7,0.0,0.0,0.0,0.0])        # energy lost per electron due to ionization rxn [eV]
 
     # nominal
-    Ck = np.array([1.235e-7,3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
+    # Ck = np.array([1.235e-7,3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
+    Ck = np.array([1.235e-7,3.712e-8,2.05e-7,4.0e-13,2e-7,5.0e-10,2.5e-15]) # pre-exponential factors [cm^3/s]
 
     # slow excitation rate
     #Ck = np.array([1.235e-7,0.5*3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
@@ -102,9 +106,13 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     ## fast excitation rate
     #Ck = np.array([1.235e-7,2.0*3.712e-8,2.05e-7,1.818e-9,2e-7,6.2e-10,3.0e-15,1.1e-31]) # pre-exponential factors [cm^3/s]
 
-    A  = np.array([18.687,15.06,4.95,2.14,0.0,0.0,0.0,0.0]) # activation temperature [eV]
-    dH = np.array([15.7,11.56,4.14,-11.56,0.0,0.0,0.0,0.0]) # energy lost per electron due to ionization rxn [eV]
-    dEps = np.array([0.0,15.7,11.56,0.0])
+    # A  = np.array([18.687,15.06,4.95,2.14,0.0,0.0,0.0,0.0]) # activation temperature [eV]
+    # dH = np.array([15.7,11.56,4.14,-11.56,0.0,0.0,0.0,0.0]) # energy lost per electron due to ionization rxn [eV]
+    # dEps = np.array([0.0,15.7,11.56,0.0])
+
+    A  = np.array([18.687,15.06,4.95,0.0,0.0,0.0,0.0]) # activation temperature [eV]
+    dH = np.array([15.76,11.56,4.2,0.0,-11.56,-7.56,-11.56]) # energy lost per electron due to ionization rxn [eV]
+    dEps = np.array([0.0,15.76,11.56,0.0])
 
     # BC parameters
     # ks = 1.19e7  # electron recombination rate [cm/s]
@@ -131,7 +139,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     nmue *= 100. # 1/(V*m*s)
     nmui *= 100. # 1/(V*m*s)
     Ck   *= 1e-6 # m^3/s
-    Ck[7] *= 1e-6 # Ck[7] is now in m^6/s
+    # Ck[7] *= 1e-6 # Ck[7] is now in m^6/s
     ks   *= 0.01 # m/s
     se   *= 1.0e-20  # m^2
 
@@ -157,7 +165,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     #Ck[2:5] = Ck[2:5]*tau*np0
     Ck[2:6] = Ck[2:6]*tau*np0
     Ck[6]  *= tau*nAr
-    Ck[7]  *= tau*nAr*nAr
+    # Ck[7]  *= tau*nAr*nAr
     A       = A*1.5/e0  # 1.5 to convert from temperature to energy
     dH      = dH/e0
     qStar   = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
@@ -172,8 +180,10 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
     #params.beta = np.array([[2,1,2,1],[1,0,1,0],[0,1,0,0],[0,0,0,1]], dtype=np.int)
     #params.alfa = np.array([[1,1,1,1],[0,0,0,0],[0,0,1,1],[1,1,0,0]], dtype=np.int)
-    params.beta = np.array([[2,1,2,1,1,1,0,0],[1,0,1,0,0,1,0,0],[0,1,0,0,0,0,0,0],[0,0,0,1,0,1,2,1]], dtype=np.int64)
-    params.alfa = np.array([[1,1,1,1,1,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,2,1,1],[1,1,0,0,0,0,1,2]], dtype=np.int64)
+    # params.beta = np.array([[2,1,2,1,1,1,0,0],[1,0,1,0,0,1,0,0],[0,1,0,0,0,0,0,0],[0,0,0,1,0,1,2,1]], dtype=np.int64)
+    # params.alfa = np.array([[1,1,1,1,1,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,2,1,1],[1,1,0,0,0,0,1,2]], dtype=np.int64)
+    params.beta = np.array([[2,1,2,0,1,1,0],[1,0,1,0,0,1,0],[0,1,0,1,0,0,0],[0,0,0,0,1,1,2]], dtype=np.int64)
+    params.alfa = np.array([[1,1,1,1,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,1,2,1],[1,1,0,0,0,0,1]], dtype=np.int64)
 
     # 4) Set values in params class
     params.D[0]    = De
@@ -215,32 +225,161 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
 
+    # reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
+    #                            f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
+    #                            f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
+    #                            f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
+    #                            f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
+    #                            f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
+    #                            f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
+    #                            f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)"]
+
+    # reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
+    #                             f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
+    #                             f"{params.A[2]} * (energy**({params.B[2]}-1)) * np.exp(-{params.C[2]}/energy) * ({params.B[2]} + {params.C[2]}/energy)",
+    #                             f"{params.A[3]} * (energy**({params.B[3]}-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]} + {params.C[3]}/energy)",
+    #                             f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
+    #                             f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
+    #                             f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
+    #                             f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)"]
+
     reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
-                               f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
-                               f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
-                               f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
-                               f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
-                               f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
-                               f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
-                               f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)"]
+                                f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
+                                f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
+                                f"{params.A[3]} * energy**({params.B[3]}-0.5)",
+                                f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
+                                f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
+                                f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)"]
 
     reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
                                 f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
                                 f"{params.A[2]} * (energy**({params.B[2]}-1)) * np.exp(-{params.C[2]}/energy) * ({params.B[2]} + {params.C[2]}/energy)",
-                                f"{params.A[3]} * (energy**({params.B[3]}-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]} + {params.C[3]}/energy)",
+                                f"{params.A[3]} * (energy**({params.B[3]}-0.5-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]}-0.5 + {params.C[3]}/energy)",
                                 f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
                                 f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
-                                f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-                                f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)"]
+                                f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)"]
+
+    reactionExpressionTypelist =  np.array([True,True,True,False,False,False,False])
 
     reactionsList = []
     for i in range(Nr):
-        rxn   = eval("lambda energy :" + reactionExpressionslist[i])
-        rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+        if reactionExpressionTypelist[i]:
+            # RateCoeff = np.load('./RateCoeff/RateCoeffLiu'+'.npy').T
+            rateCoeffTest = np.genfromtxt("./RateCoeff/RateCoeffTable.csv", dtype=str,
+                                          encoding=None, delimiter=",").astype(np.float64)
 
-        reaction = Reaction(rxnAlfa = params.alfa[:,[i]], rxnBeta = params.beta[:,[i]],
-                            kf = rxn, kf_T = rxn_T)
-        reactionsList.append(reaction)
+            Nsample = 72
+            N300 = 200
+
+            rateCoeff = np.fromfile('./BOLSIGChemistry/reaction300K_%s.dat' %str(i))
+            rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,0]
+
+            Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
+            Te = np.reshape(Te,[Nsample, N300]).T[:,0]
+
+            # Te[:,0] *= 1.5
+            # TeLog = np.log(Te[:, 0])
+
+            # nonZeroIndex = np.nonzero(rateCoeff[:, 0])
+            # rateCoeffYLog = np.zeros(rateCoeff.shape[0])
+            # rateCoeffYLog[nonZeroIndex[0][0]:] = np.log(rateCoeff[nonZeroIndex[0][0]:, 0])
+            # rateCoeffYLog[0:nonZeroIndex[0][0]] = rateCoeffYLog[nonZeroIndex[0][0]]
+            # rateCoeffYLog += - np.log(1.0/tau) + np.log(nAr)
+
+            # filtering = np.where(rateCoeffYLog<rateCoeffYLog[nonZeroIndex[0][0]+1])
+            # index = filtering[-1][-1]
+            # rateCoeffYLog[0:index] = rateCoeffYLog[index]
+
+            # reactionExpressionsLog = CubicSpline(TeLog[:], rateCoeffYLog[:])
+
+            # reactionTExpressionsLog = CubicSpline.derivative(reactionExpressionsLog)
+            # reactionTArrayLog = reactionTExpressionsLog(TeLog[:])
+            # reactionTArrayLog[0:index] = -1000 # reactionTArrayLog[index]
+
+            # reactionTExpressionsLogFiltered = CubicSpline(TeLog[:],
+            #                                               reactionTArrayLog)
+            
+            # Nondimensionalization of mean energy and transformation to log scale.
+            # Te *= 1.5
+            TeLog = np.log(Te)
+
+            # Find first non-zero value of the coefficient rate.
+            I = np.nonzero(rateCoeff)
+
+            # Compute the slope of the rate coefficient between its first two non-zero values.
+            # Finite differences are used.
+            dydx = (rateCoeff[I[0][0] + 1] - rateCoeff[I[0][0]]) \
+                 / (Te[I[0][0] + 1] - Te[I[0][0]])
+
+            # Arrhenius form: kf = A * exp(-C / Te)
+            # C = (dkf/dTe) / kf * Te**2.0
+            # A = kf / exp(-C / Te)
+            C = Te[I[0][0]]**2.0*dydx / rateCoeff[I[0][0]]
+            # A = rateCoeff[I[0][0]] / np.exp(-C/Te[I[0][0]])
+
+            # Compute pre-exponential coefficient, A, in log scale.
+            ALog = np.log(rateCoeff[I[0][0]]) + C / Te[I[0][0]]
+
+            # Transform rate coefficient in log scale.
+            rateCoeffLog = np.zeros(rateCoeff.shape)
+            rateCoeffLog[I[0][0]:] = np.log(rateCoeff[I[0][0]:])
+            # For the troublesome values, we use the Arrhenius form.
+            rateCoeffLog[0:I[0][0]] = ALog - C / Te[0:I[0][0]]
+            # Nondimensionalization in log scale.
+            if i < 2:
+                rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
+            else:
+                rateCoeffLog += - np.log(1.0/tau) + np.log(np0)
+            # Nondimensionalization of the original rate, used for the plot and comparison.
+            rateCoeff *= tau * nAr
+
+            # Interpolation in log scale.
+            reactionExpressionsLog = CubicSpline(TeLog, rateCoeffLog)
+            # Gradient in log scale
+            reactionTExpressionsLog = CubicSpline.derivative(reactionExpressionsLog)
+
+            reaction = Reaction(rxnAlfa = params.alfa[:,[i]], rxnBeta = params.beta[:,[i]],
+                                rxnBolsig = reactionExpressionTypelist[i],
+                                kf_log = reactionExpressionsLog,
+                                kf_T_log = reactionTExpressionsLog)
+            reactionsList.append(reaction)
+
+            # rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+            # rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+            # # setting the axes at the centre
+            # fig ,ax = plt.subplots(figsize=(9, 6))
+            # ax.spines["top"].set_visible(True)
+            # ax.spines["right"].set_visible(True)
+            # ax.set_yscale('log')
+            # ax.set_xscale('log')
+
+            # # plot the function
+            # # plt.plot(rateCoeffXFiner, np.exp(reactionExpressions_cubicSplineDerivative_log(rateCoeffXFiner)),
+            # #  		 color='salmon', linestyle='--', label='interBolsig')
+            # # plt.plot(rateCoeffXFine, np.exp(reactionExpressions_cubicSpline_log(rateCoeffXFine)),
+            # #  		 color='lightgreen', linestyle='--', label='interBolsig')
+            # # plt.plot(Te[:,0], reactionTExpressionsLogFiltered(TeLog[:]) * np.exp(reactionExpressionsLog(TeLog[:])) / Te[:,0],
+            # #  		 color='blue', linestyle='-', label='interBolsig')
+            # plt.plot(Te, np.exp(reactionExpressionsLog(TeLog[:])),
+            #  		 color='green', linestyle='-', label='Bolsig')
+            # plt.plot(Te, rxn(Te),
+            #  		 color='salmon', linestyle='--', label='Liu')
+            # # plt.plot(Te[:,0], rxn_T(Te[:,0]),
+            # #  		 color='red', linestyle='--', label='interBolsig')
+            # plt.xlim((0.05,100))
+            # plt.ylim((1e-50,300))
+            # plt.legend()
+            # plt.savefig("./Rates_%s.pdf" %str(i), dpi=300)
+            # # plt.xlim((-0.0001,0.0255))
+            # plt.show()
+        else:
+            rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+            rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+
+            reaction = Reaction(rxnAlfa = params.alfa[:,[i]], rxnBeta = params.beta[:,[i]],
+                                rxnBolsig = reactionExpressionTypelist[i],
+                                kf = rxn, kf_T = rxn_T)
+            reactionsList.append(reaction)
 
     params.reactionsList = reactionsList
     #params.Nr = 1

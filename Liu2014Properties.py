@@ -1,5 +1,8 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
 
 class Reaction(object):
     def __init__(self, *initial_data, **kwargs):
@@ -198,6 +201,35 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr):
                                 kf_log = reactionExpressionsLog,
                                 kf_T_log = reactionTExpressionsLogFiltered)
             reactionsList.append(reaction)
+
+            # rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+            # rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+
+            # # setting the axes at the centre
+            # fig ,ax = plt.subplots(figsize=(9, 6))
+            # ax.spines["top"].set_visible(True)
+            # ax.spines["right"].set_visible(True)
+            # # ax.set_yscale('log')
+            # # ax.set_xscale('log')
+
+            # # plot the function
+            # # plt.plot(rateCoeffXFiner, np.exp(reactionExpressions_cubicSplineDerivative_log(rateCoeffXFiner)),
+            # #  		 color='salmon', linestyle='--', label='interBolsig')
+            # # plt.plot(rateCoeffXFine, np.exp(reactionExpressions_cubicSpline_log(rateCoeffXFine)),
+            # #  		 color='lightgreen', linestyle='--', label='interBolsig')
+            # plt.plot(Te, reactionTExpressionsLogFiltered(TeLog) * np.exp(reactionExpressionsLog(TeLog)) / Te,
+            #  		 color='blue', linestyle='-', label='interBolsig')
+            # plt.plot(Te, np.exp(reactionExpressionsLog(TeLog)),
+            #  		 color='green', linestyle='-', label='interBolsig')
+            # plt.plot(Te, rxn(Te),
+            #  		 color='salmon', linestyle='--', label='interBolsig')
+            # plt.plot(Te, rxn_T(Te),
+            #  		 color='red', linestyle='--', label='interBolsig')
+            # plt.xlim((0.05,100))
+            # plt.ylim((1e-200,300))
+            # plt.savefig("./VoltageTimeSeries/VoltageTimeSeries_50mTorr_20W" + ".pdf", dpi=300)
+            # # plt.xlim((-0.0001,0.0255))
+            # plt.show()
 
         else:
             rxn   = eval("lambda energy :" + reactionExpressionslist[i])
