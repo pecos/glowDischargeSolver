@@ -294,9 +294,7 @@ class modelClosures:
         energy[indFix,0] = 1.0
         if self.reactionsList[i].rxnBolsig:
             kf = np.exp(self.reactionsList[i].kf_log(np.log(energy)))
-            print(kf)
         else:
-            print(i)
             kf = self.reactionsList[i].kf(energy)
         kf[indFix,0] = 0
 
@@ -403,7 +401,7 @@ class timeDomainCollocationSolver:
         elif(scenario==1):
             Nr = 1
         elif(scenario==2):
-            Nr = 8
+            Nr = 7
         elif(scenario==3):
             Nr = 8
         elif(scenario==4):
@@ -1893,7 +1891,7 @@ if __name__ == "__main__":
 
     # Default IC (overwritten below if we are restarting)
     #tds.U1[0:tds.Ns*tds.Np] = 1e-4
-    tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
+    tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-1             # 'usual' species
     tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
     tds.U1[tds.Ns*tds.Np:] = tds.params.EeBC*tds.U1[0:tds.Np] # electron energy
 
