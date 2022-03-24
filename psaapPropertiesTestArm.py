@@ -273,32 +273,66 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
             Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
             Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
 
+            # Sorting mean energy array and rate coefficient array based on
+            # the mean energy array.
+            Teinds = Te.argsort()
+            rateCoeff = rateCoeff[Teinds]
+            Te = Te[Teinds]
+
+            # Find duplicates
+            TeDuplicateinds = np.where(np.abs(np.diff(Te, axis=0)) > 0.0)
+            rateCoeff = rateCoeff[TeDuplicateinds]
+            Te = Te[TeDuplicateinds]
+
+            # Nondimensionalization of mean energy and transformation to log scale.
+            # Te *= 1.5
+            # TeLog = np.log(Te)
+
+            # Find first non-zero value of the coefficient rate.
+            # I = np.nonzero(rateCoeff)
+
+            diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
+            diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
+
+            Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
+            Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
+
+            Nan = np.isnan(Monotonicity)
+            Inf = np.isinf(Monotonicity)
+            indexPositive = np.where(Monotonicity>0.0)
+            Positive = np.full(Monotonicity.shape, False, dtype=bool)
+            Positive[indexPositive] = True
+
+            indices = Nan + Inf + Positive
+
+            lastFalse = np.where(indices==False)[-1][-1] + 2
+
             # Nondimensionalization of mean energy and transformation to log scale.
             # Te *= 1.5
             TeLog = np.log(Te)
 
             # Find first non-zero value of the coefficient rate.
-            I = np.nonzero(rateCoeff)
+            # I = np.nonzero(rateCoeff)
 
             # Compute the slope of the rate coefficient between its first two non-zero values.
             # Finite differences are used.
-            dydx = (rateCoeff[I[0][0] + 1] - rateCoeff[I[0][0]]) \
-                 / (Te[I[0][0] + 1] - Te[I[0][0]])
+            dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) \
+                 / (Te[lastFalse + 1] - Te[lastFalse])
 
             # Arrhenius form: kf = A * exp(-C / Te)
             # C = (dkf/dTe) / kf * Te**2.0
             # A = kf / exp(-C / Te)
-            C = Te[I[0][0]]**2.0*dydx / rateCoeff[I[0][0]]
-            # A = rateCoeff[I[0][0]] / np.exp(-C/Te[I[0][0]])
+            C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+            # A = rateCoeff[lastFalse] / np.exp(-C/Te[lastFalse])
 
             # Compute pre-exponential coefficient, A, in log scale.
-            ALog = np.log(rateCoeff[I[0][0]]) + C / Te[I[0][0]]
+            ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
 
             # Transform rate coefficient in log scale.
             rateCoeffLog = np.zeros(rateCoeff.shape)
-            rateCoeffLog[I[0][0]:] = np.log(rateCoeff[I[0][0]:])
+            rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
             # For the troublesome values, we use the Arrhenius form.
-            rateCoeffLog[0:I[0][0]] = ALog - C / Te[0:I[0][0]]
+            rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
             # Nondimensionalization in log scale.
             if i < 2:
                 rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
