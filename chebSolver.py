@@ -366,7 +366,7 @@ class timeDomainCollocationSolver:
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
                  backgroundSpecieActivationFactor, EinsteinForm,
                  gam=0.01, V0 = 100.0, VDC = 0.0,
-                 scenario=0, scheme="BE"):
+                 scenario=0, scheme="BE", iSample = 0):
         """Initializes storage and operaters required for solve."""
 
         # parameters of the time marching scheme
@@ -419,18 +419,17 @@ class timeDomainCollocationSolver:
         self.params = modelClosures(self.Ns, Nr)
 
         if(scenario==0):
-            setLiu2014Properties(gam, V0, VDC, self.params, Nr)
+            setLiu2014Properties(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==1):
-            setPsaapProperties(gam, V0, VDC, self.params, Nr)
+            setPsaapProperties(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==2):
-            setPsaapPropertiesTestArm(gam, V0, VDC, self.params, Nr)
+            setPsaapPropertiesTestArm(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==3):
-            setPsaapPropertiesCurrentTestCase(gam, V0, VDC, self.params, Nr)
+            setPsaapPropertiesCurrentTestCase(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==4):
-            setPsaapPropertiesCurrentTestCase100mTorr(gam, V0, VDC, self.params, Nr)
+            setPsaapPropertiesCurrentTestCase100mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
-            setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr)
-
+            setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -1799,6 +1798,8 @@ if __name__ == "__main__":
                         action='store_true', help="Activate the background specie density equation.")
     parser.add_argument('--EinsteinForm', default=False,
                         action='store_true', help="Activate Einstein's form for diffusion coefficient.")
+    parser.add_argument('--iSample', metavar='iSample', default=0,
+                        type=int, help='Sample index, if BOLSIG chemistry is used.')
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -1887,7 +1888,8 @@ if __name__ == "__main__":
     tds = timeDomainCollocationSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
                                       backgroundSpecieActivationFactor, EinsteinForm,
                                       gam=0.01, V0 = args.V0, VDC = args.VDC,
-                                      scenario=args.scenario, scheme=args.tscheme)
+                                      scenario=args.scenario, scheme=args.tscheme,
+                                      iSample = args.iSample)
 
     # Default IC (overwritten below if we are restarting)
     #tds.U1[0:tds.Ns*tds.Np] = 1e-4

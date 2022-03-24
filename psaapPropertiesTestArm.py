@@ -28,7 +28,7 @@ class Mobility(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
+def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -264,41 +264,15 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     reactionsList = []
     for i in range(Nr):
         if reactionExpressionTypelist[i]:
-            # RateCoeff = np.load('./RateCoeff/RateCoeffLiu'+'.npy').T
-            rateCoeffTest = np.genfromtxt("./RateCoeff/RateCoeffTable.csv", dtype=str,
-                                          encoding=None, delimiter=",").astype(np.float64)
-
             Nsample = 72
             N300 = 200
 
             rateCoeff = np.fromfile('./BOLSIGChemistry/reaction300K_%s.dat' %str(i))
-            rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,0]
+            rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
 
             Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
-            Te = np.reshape(Te,[Nsample, N300]).T[:,0]
+            Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
 
-            # Te[:,0] *= 1.5
-            # TeLog = np.log(Te[:, 0])
-
-            # nonZeroIndex = np.nonzero(rateCoeff[:, 0])
-            # rateCoeffYLog = np.zeros(rateCoeff.shape[0])
-            # rateCoeffYLog[nonZeroIndex[0][0]:] = np.log(rateCoeff[nonZeroIndex[0][0]:, 0])
-            # rateCoeffYLog[0:nonZeroIndex[0][0]] = rateCoeffYLog[nonZeroIndex[0][0]]
-            # rateCoeffYLog += - np.log(1.0/tau) + np.log(nAr)
-
-            # filtering = np.where(rateCoeffYLog<rateCoeffYLog[nonZeroIndex[0][0]+1])
-            # index = filtering[-1][-1]
-            # rateCoeffYLog[0:index] = rateCoeffYLog[index]
-
-            # reactionExpressionsLog = CubicSpline(TeLog[:], rateCoeffYLog[:])
-
-            # reactionTExpressionsLog = CubicSpline.derivative(reactionExpressionsLog)
-            # reactionTArrayLog = reactionTExpressionsLog(TeLog[:])
-            # reactionTArrayLog[0:index] = -1000 # reactionTArrayLog[index]
-
-            # reactionTExpressionsLogFiltered = CubicSpline(TeLog[:],
-            #                                               reactionTArrayLog)
-            
             # Nondimensionalization of mean energy and transformation to log scale.
             # Te *= 1.5
             TeLog = np.log(Te)

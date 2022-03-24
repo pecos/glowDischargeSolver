@@ -9,7 +9,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesCurrentTestCase(gam, inputV0, inputVDC, params, Nr):
+def setPsaapPropertiesCurrentTestCase(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:

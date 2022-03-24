@@ -12,7 +12,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr):
+def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -170,36 +170,54 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr):
             N300 = 200
 
             rateCoeff = np.fromfile('./BOLSIGChemistry/reaction300K_%s.dat' %str(i))
-            rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T
+            rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
 
             Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
-            Te = np.reshape(Te,[Nsample, N300]).T
+            Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
 
-            Te[:,0] *= 1.5
-            TeLog = np.log(Te[:, 0])
+            # Nondimensionalization of mean energy and transformation to log scale.
+            # Te *= 1.5
+            TeLog = np.log(Te)
 
-            nonZeroIndex = np.nonzero(rateCoeff[:, 0])
-            rateCoeffYLog = np.zeros(rateCoeff.shape[0])
-            rateCoeffYLog[nonZeroIndex[0][0]:] = np.log(rateCoeff[nonZeroIndex[0][0]:, 0])
-            rateCoeffYLog[0:nonZeroIndex[0][0]] = rateCoeffYLog[nonZeroIndex[0][0]]
-            rateCoeffYLog += - np.log(1.0/tau) + np.log(nAr)
+            # Find first non-zero value of the coefficient rate.
+            I = np.nonzero(rateCoeff)
 
-            filtering = np.where(rateCoeffYLog<rateCoeffYLog[nonZeroIndex[0][0]+1])
-            index = filtering[-1][-1]
-            rateCoeffYLog[0:index] = rateCoeffYLog[index]
+            # Compute the slope of the rate coefficient between its first two non-zero values.
+            # Finite differences are used.
+            dydx = (rateCoeff[I[0][0] + 1] - rateCoeff[I[0][0]]) \
+                 / (Te[I[0][0] + 1] - Te[I[0][0]])
 
-            reactionExpressionsLog = CubicSpline(TeLog[:], rateCoeffYLog[:])
+            # Arrhenius form: kf = A * exp(-C / Te)
+            # C = (dkf/dTe) / kf * Te**2.0
+            # A = kf / exp(-C / Te)
+            C = Te[I[0][0]]**2.0*dydx / rateCoeff[I[0][0]]
+            # A = rateCoeff[I[0][0]] / np.exp(-C/Te[I[0][0]])
 
+            # Compute pre-exponential coefficient, A, in log scale.
+            ALog = np.log(rateCoeff[I[0][0]]) + C / Te[I[0][0]]
+
+            # Transform rate coefficient in log scale.
+            rateCoeffLog = np.zeros(rateCoeff.shape)
+            rateCoeffLog[I[0][0]:] = np.log(rateCoeff[I[0][0]:])
+            # For the troublesome values, we use the Arrhenius form.
+            rateCoeffLog[0:I[0][0]] = ALog - C / Te[0:I[0][0]]
+            # Nondimensionalization in log scale.
+            if i < 2:
+                rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
+            else:
+                rateCoeffLog += - np.log(1.0/tau) + np.log(np0)
+            # Nondimensionalization of the original rate, used for the plot and comparison.
+            rateCoeff *= tau * nAr
+
+            # Interpolation in log scale.
+            reactionExpressionsLog = CubicSpline(TeLog, rateCoeffLog)
+            # Gradient in log scale
             reactionTExpressionsLog = CubicSpline.derivative(reactionExpressionsLog)
-            reactionTArrayLog = reactionTExpressionsLog(TeLog[:])
-            reactionTArrayLog[0:index] = -1000 # reactionTArrayLog[index]
 
-            reactionTExpressionsLogFiltered = CubicSpline(TeLog[:],
-                                                          reactionTArrayLog)
             reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
                                 rxnBolsig = reactionExpressionTypelist[i],
                                 kf_log = reactionExpressionsLog,
-                                kf_T_log = reactionTExpressionsLogFiltered)
+                                kf_T_log = reactionTExpressionsLog)
             reactionsList.append(reaction)
 
             # rxn   = eval("lambda energy :" + reactionExpressionslist[i])

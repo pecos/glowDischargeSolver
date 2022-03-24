@@ -7,13 +7,13 @@ class timePeriodicSolver:
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
                  backgroundSpecieActivationFactor, EinsteinForm,
                  gam, V0, VDC, restart=None, scenario=0, scheme='BE',
-                 alpha0 = 1.0, increaseFac = 1.0):
+                 alpha0 = 1.0, increaseFac = 1.0, iSample = 0):
         self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np,
                                                   elasticCollisionActivationFactor,
                                                   backgroundSpecieActivationFactor,
                                                   EinsteinForm,
                                                   gam, V0,
-                                                  VDC, scenario, scheme)
+                                                  VDC, scenario, scheme, iSample)
         self.res = np.zeros((self.tds.Ndof,1))
         self.jac = np.zeros((self.tds.Ndof,self.tds.Ndof))
 
@@ -141,7 +141,8 @@ if __name__ == "__main__":
                         type=float, help='Newton step under-relaxation factor')
     parser.add_argument('--increaseFac', metavar='increaseFac', default=1.0,
                         type=float, help='Increase alpha by this factor each step')
-
+    parser.add_argument('--iSample', metavar='iSample', default=0,
+                        type=int, help='Sample index, if BOLSIG chemistry is used.')
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -220,7 +221,8 @@ if __name__ == "__main__":
                              args.gam, args.V0, args.VDC,
                              restart=args.restart, scenario=args.scenario,
                              scheme=args.tscheme,
-                             alpha0 = args.alpha0, increaseFac = args.increaseFac)
+                             alpha0 = args.alpha0, increaseFac = args.increaseFac,
+                             iSample = args.iSample)
 
     # Get the IC, for use in computing the residual below
     Uic = np.copy(tps.tds.U1)
