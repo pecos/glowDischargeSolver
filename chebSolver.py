@@ -9,6 +9,7 @@ from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
 from psaapPropertiesCurrentTestCase import setPsaapPropertiesCurrentTestCase
 from psaapPropertiesCurrentTestCase100mTorr import setPsaapPropertiesCurrentTestCase100mTorr
+from psaapPropertiesWithSampling import setPsaapPropertiesWithSampling
 
 class modelClosures:
     """Class providing model parameters."""
@@ -406,6 +407,8 @@ class timeDomainCollocationSolver:
             Nr = 8
         elif(scenario==4):
             Nr = 8
+        elif(scenario==5):
+            Nr = 7
         elif(scenario==21):
             Nr = 8
         else:
@@ -428,6 +431,8 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesCurrentTestCase(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==4):
             setPsaapPropertiesCurrentTestCase100mTorr(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==5):
+            setPsaapPropertiesWithSampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
@@ -1844,11 +1849,14 @@ if __name__ == "__main__":
     elif(args.scenario==4):
         print("#   Running scenario = 4 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
+    elif(args.scenario==5):
+        print("#   Running scenario = 5 (4 species, 7 rxn, Bolsing and Lay, Moss et al, 2003)")
+        Ns = 4
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4
     else:
-        print("ERROR: Scenario = {0:d} not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.".format(args.scenario))
+        print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)
 
     elasticCollisionActivationFactor = 1.0

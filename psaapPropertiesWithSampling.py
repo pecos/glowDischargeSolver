@@ -3,6 +3,7 @@ from scipy.interpolate import CubicSpline
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+
 import logging
 
 class Reaction(object):
@@ -13,23 +14,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-class Diffusivity(object):
-    def __init__(self, *initial_data, **kwargs):
-        for dictionary in initial_data:
-            for key in dictionary:
-                setattr(self, key, dictionary[key])
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
-
-class Mobility(object):
-    def __init__(self, *initial_data, **kwargs):
-        for dictionary in initial_data:
-            for key in dictionary:
-                setattr(self, key, dictionary[key])
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
-
-def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapPropertiesWithSampling(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -226,24 +211,6 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
 
-    # reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
-    #                            f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
-    #                            f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
-    #                            f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
-    #                            f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
-    #                            f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
-    #                            f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
-    #                            f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)"]
-
-    # reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
-    #                             f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
-    #                             f"{params.A[2]} * (energy**({params.B[2]}-1)) * np.exp(-{params.C[2]}/energy) * ({params.B[2]} + {params.C[2]}/energy)",
-    #                             f"{params.A[3]} * (energy**({params.B[3]}-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]} + {params.C[3]}/energy)",
-    #                             f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
-    #                             f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
-    #                             f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-    #                             f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)"]
-
     reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
                                 f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
                                 f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
@@ -267,13 +234,13 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     f = open(LOGFilename, 'w')
     for i in range(Nr):
         if reactionExpressionTypelist[i]:
-            Nsample = 72
+            Nsample = 7200
             N300 = 200
 
-            rateCoeff = np.fromfile('./BOLSIGChemistry/reaction300K_%s.dat' %str(i))
+            rateCoeff = np.fromfile('./BOLSIGChemistryZeroIonDeg7200Samples/reaction300K_%s.dat' %str(i))
             rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
 
-            Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
+            Te = np.fromfile('./BOLSIGChemistryZeroIonDeg7200Samples/reaction300K.Te.dat')
             Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
 
             # Sorting mean energy array and rate coefficient array based on
@@ -289,7 +256,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
             Te = Te[TeDuplicateinds]
 
             # Nondimensionalization of mean energy.
-            # Te *= 1.5
+            Te *= 1.5
 
             # Find first non-zero value of the coefficient rate.
             I = np.nonzero(rateCoeff)
@@ -308,10 +275,13 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
 
             indices = Nan + Inf + Positive
 
-            lastFalse = np.where(indices==False)[-1][-1] + 2
+            lastFalse = np.where(indices==False)[-1][-1] + 4
 
             # Transformation to log scale.
             TeLog = np.log(Te)
+
+            # Find first non-zero value of the coefficient rate.
+            # I = np.nonzero(rateCoeff)
 
             # Compute the slope of the rate coefficient between its first two non-zero values.
             # Finite differences are used.
@@ -392,34 +362,6 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
 
     params.reactionsList = reactionsList
     #params.Nr = 1
-
-    diffList = []
-    Te = np.linspace(0, 1000, 10)
-    De_interp = params.D[0]*np.ones(10)
-    De_spline = CubicSpline(Te, De_interp)
-    De_Te_spline = CubicSpline.derivative(De_spline)
-    diffusivity = Diffusivity(interpolate = False, D_expression = De_spline, D_T_expression = De_Te_spline)
-    diffList.append(diffusivity)
-
-    Ns = 4
-    for i in range(1, Ns):
-        diffList.append(Diffusivity(interpolate = False))
-
-    params.diffusivityList = diffList
-
-    muList = []
-    Te = np.linspace(0, 1000, 10)
-    mue_interp = params.mu[0]*np.ones(10)
-    mue_spline = CubicSpline(Te, mue_interp)
-    mue_Te_spline = CubicSpline.derivative(mue_spline)
-    mobility = Mobility(interpolate = False, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
-    muList.append(mobility)
-
-    Ns = 4
-    for i in range(1, Ns):
-        muList.append(Mobility(interpolate = False))
-
-    params.mobilityList = muList
 
     # 5) Dump to screen
     params.print()
