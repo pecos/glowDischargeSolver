@@ -275,7 +275,7 @@ def setPsaapPropertiesWithSampling(gam, inputV0, inputVDC, params, Nr, iSample):
 
             indices = Nan + Inf + Positive
 
-            lastFalse = np.where(indices==False)[-1][-1] + 4
+            lastFalse = np.where(indices==False)[-1][-1] + 1
 
             # Transformation to log scale.
             TeLog = np.log(Te)
@@ -289,7 +289,9 @@ def setPsaapPropertiesWithSampling(gam, inputV0, inputVDC, params, Nr, iSample):
                  / (Te[lastFalse + 1] - Te[lastFalse])
 
             # Arrhenius form: kf = A * exp(-C / Te)
-            C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+            # C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+            C = (np.log(rateCoeff[lastFalse + 1]) - np.log(rateCoeff[lastFalse])) \
+              / (1.0 / Te[lastFalse] - 1.0 / Te[lastFalse + 1])
 
             # Compute pre-exponential coefficient, A, in log scale.
             ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
@@ -332,11 +334,14 @@ def setPsaapPropertiesWithSampling(gam, inputV0, inputVDC, params, Nr, iSample):
             # ax.set_yscale('log')
             # ax.set_xscale('log')
 
+            # TeFinerResolution = np.linspace(5.0e-4, 100, 20000)
+            # TeFinerResolutionLog = np.log(TeFinerResolution)
+
             # # plot the function
             # # plt.plot(rateCoeffXFiner, np.exp(reactionExpressions_cubicSplineDerivative_log(rateCoeffXFiner)),
             # #  		 color='salmon', linestyle='--', label='interBolsig')
-            # # plt.plot(rateCoeffXFine, np.exp(reactionExpressions_cubicSpline_log(rateCoeffXFine)),
-            # #  		 color='lightgreen', linestyle='--', label='interBolsig')
+            # plt.plot(TeFinerResolution, np.exp(reactionExpressionsLog(TeFinerResolutionLog)),
+            #  		 color='lightgreen', linestyle='--', label='interBolsig')
             # # plt.plot(Te[:,0], reactionTExpressionsLogFiltered(TeLog[:]) * np.exp(reactionExpressionsLog(TeLog[:])) / Te[:,0],
             # #  		 color='blue', linestyle='-', label='interBolsig')
             # plt.plot(Te, np.exp(reactionExpressionsLog(TeLog[:])),
