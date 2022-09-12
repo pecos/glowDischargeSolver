@@ -6,8 +6,9 @@ error_exit()
   exit 1
 }
 
-EXE="python3 ./chebSolver.py"
-NEWTEXE="python3 ./timePeriodicSolver.py"
+module load python/3.8.2
+EXE="python3 ../chebSolver.py"
+NEWTEXE="python3 ../timePeriodicSolver.py"
 
 # psaap 2 species case
 #Np=250
@@ -26,11 +27,11 @@ NEWTEXE="python3 ./timePeriodicSolver.py"
 #saveFile="newton_3spec_Np${Np}_fullsoln.npy"
 
 # Liu 4 species case
-Np=250
+Np=150
 Nt=25600
 Nt1=128
 dt=0.0078125
-scenario=2
+scenario=6
 baseFile="restart_4spec_Np${Np}_"
 newtFile="newton_4spec_Np${Np}.npy"
 saveFile="newton_4spec_Np${Np}_fullsoln.npy"

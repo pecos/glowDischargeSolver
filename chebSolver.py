@@ -1,6 +1,5 @@
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
-import matplotlib.pyplot as plt
 import time
 
 from Liu2014Properties import setLiu2014Properties
@@ -10,6 +9,7 @@ from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTra
 from psaapPropertiesCurrentTestCase import setPsaapPropertiesCurrentTestCase
 from psaapPropertiesCurrentTestCase100mTorr import setPsaapPropertiesCurrentTestCase100mTorr
 from psaapPropertiesWithSampling import setPsaapPropertiesWithSampling
+from psaapPropertiesTestJP import setPsaapPropertiesTestJP
 
 class modelClosures:
     """Class providing model parameters."""
@@ -409,6 +409,8 @@ class timeDomainCollocationSolver:
             Nr = 8
         elif(scenario==5):
             Nr = 7
+        elif(scenario==6):
+            Nr = 9
         elif(scenario==21):
             Nr = 8
         else:
@@ -433,6 +435,8 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesCurrentTestCase100mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==5):
             setPsaapPropertiesWithSampling(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==6):
+            setPsaapPropertiesTestJP(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
@@ -1851,6 +1855,9 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==5):
         print("#   Running scenario = 5 (4 species, 7 rxn, Bolsing and Lay, Moss et al, 2003)")
+        Ns = 4
+    elif(args.scenario==6):
+        print("#   Running scenario = 6 (4 species, 9 rxn, Juan's mechanism)")
         Ns = 4
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
