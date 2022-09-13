@@ -177,7 +177,7 @@ def setPsaapPropertiesTestJP(gam, inputV0, inputVDC, params, Nr, iSample):
     params.C[:]    = A[:]
 
     # Account for the 2/3 term to convert from electron temperature to electron energy
-    for i in params.A:
+    for i in range(len(params.A)):
         params.A[i] *= (2/3)**(params.B[i])
 
     params.dH[:]   = dH[:]
@@ -263,7 +263,9 @@ def setPsaapPropertiesTestJP(gam, inputV0, inputVDC, params, Nr, iSample):
             Nsample = 72
             N300 = 200
 
-            root_dir = "/g/g92/jbarbere/glowDischarge/toyProblems/timeDomain"
+            # FIXME: this assumes the rxn rate files live in a sub dir
+            # of where we are running.  It should be generalized.
+            root_dir = "./"
             rate_file = "{0:s}/BOLSIGChemistry/reaction300K_{1:d}.dat".format(root_dir, i)
             temp_file = "{0:s}/BOLSIGChemistry/reaction300K.Te.dat".format(root_dir)
 
