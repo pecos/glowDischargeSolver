@@ -36,7 +36,8 @@ newtFile="newton_4spec_CN_Np${Np}.npy"
 saveFile="newton_4spec_CN_Np${Np}_fullsoln.npy"
 
 baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario"
-newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 10 --scenario $scenario --tscheme CN"
+#newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 10 --scenario $scenario --tscheme CN"
+newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --alpha0 0.1 --increaseFac 1.5"
 saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt --scenario $scenario --tscheme CN"
 
 # Activation of background specie and elastic collisions.
@@ -56,9 +57,12 @@ $baseCmd --V0 100 --VDC 0.0 --t0 200.0 --restart "${baseFile}T200.npy"  \
 echo "Run 400 to 600...${baseFile}T600.npy"
 $baseCmd --V0 100 --VDC 0.0 --t0 400.0 --restart "${baseFile}T400.npy"  \
                 --outfile "${baseFile}T600.npy" >> $screenOut || error_exit "Second run failed"
+echo "Run 600 to 800...${baseFile}T800.npy"
+$baseCmd --V0 100 --VDC 0.0 --t0 600.0 --restart "${baseFile}T600.npy"  \
+                --outfile "${baseFile}T800.npy" >> $screenOut || error_exit "Second run failed"
 
 echo "Run time domain shooting...${newtFile}"
-$newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T600.npy" \
+$newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T800.npy" \
                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
 echo "Saving one period...${saveFile}"

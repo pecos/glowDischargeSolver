@@ -6,7 +6,8 @@ class timePeriodicSolver:
 
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
                  backgroundSpecieActivationFactor, EinsteinForm,
-                 gam, V0, VDC, restart=None, scenario=0, scheme='BE'):
+                 gam, V0, VDC, restart=None, scenario=0, scheme='BE',
+                 alpha0 = 1.0, increaseFac = 1.0):
         self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np,
                                                   elasticCollisionActivationFactor,
                                                   backgroundSpecieActivationFactor,
@@ -28,6 +29,8 @@ class timePeriodicSolver:
 
         self.tds.U2 = np.copy(self.tds.U1)
 
+        self.alpha = alpha0
+        self.increaseFac = increaseFac
 
 
     def periodicityResidual(self, Uic, Nt):
@@ -69,7 +72,25 @@ class timePeriodicSolver:
 
     def solveNewtonStep(self, Uic, Nt):
         # solve for newton update
-        Uic += np.linalg.solve(self.jac, -self.res)
+        #Uic += np.linalg.solve(self.jac, -self.res)
+        Uic += self.alpha * np.linalg.solve(self.jac, -self.res)
+
+        if (self.alpha < 1):
+            self.alpha *= self.increaseFac
+            self.alpha = min(self.alpha, 1)
+
+
+        # # eliminate any negative values in electron density
+        # idx = ( Uic[0:self.tds.Np] < 0 )
+        # Uic[0:self.tds.Np][idx] = 1e-8
+
+        # # eliminate any negative values in electron energy
+        # idx = ( Uic[4*self.tds.Np:] < 0 )
+        # Uic[4*self.tds.Np:][idx] = 0.75 * Uic[0:self.tds.Np][idx]
+
+        # # Make sure BC still satisfied
+        # Uic[4*self.tds.Np] = 0.75 * Uic[0]
+        # Uic[5*self.tds.Np-1] = 0.75 * Uic[self.tds.Np-1]
 
 
 if __name__ == "__main__":
@@ -119,6 +140,11 @@ if __name__ == "__main__":
                         action='store_true', help="Activate the background specie density equation.")
     parser.add_argument('--EinsteinForm', default=False,
                         action='store_true', help="Activate Einstein's form for diffusion coefficient.")
+    parser.add_argument('--alpha0', metavar='alpha0', default=1.0,
+                        type=float, help='Newton step under-relaxation factor')
+    parser.add_argument('--increaseFac', metavar='increaseFac', default=1.0,
+                        type=float, help='Increase alpha by this factor each step')
+
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -196,8 +222,8 @@ if __name__ == "__main__":
                              EinsteinForm,
                              args.gam, args.V0, args.VDC,
                              restart=args.restart, scenario=args.scenario,
-                             scheme=args.tscheme)
-
+                             scheme=args.tscheme,
+                             alpha0 = args.alpha0, increaseFac = args.increaseFac)
 
     # Get the IC, for use in computing the residual below
     Uic = np.copy(tps.tds.U1)
