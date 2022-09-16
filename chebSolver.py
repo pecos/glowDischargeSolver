@@ -10,6 +10,7 @@ from psaapPropertiesCurrentTestCase import setPsaapPropertiesCurrentTestCase
 from psaapPropertiesCurrentTestCase100mTorr import setPsaapPropertiesCurrentTestCase100mTorr
 from psaapPropertiesWithSampling import setPsaapPropertiesWithSampling
 from psaapPropertiesTestJP import setPsaapPropertiesTestJP
+from psaapPropertiesTestJP_Nominal import setPsaapPropertiesTestJP_Nominal
 
 class modelClosures:
     """Class providing model parameters."""
@@ -411,6 +412,8 @@ class timeDomainCollocationSolver:
             Nr = 7
         elif(scenario==6):
             Nr = 9
+        elif(scenario==7):
+            Nr = 9
         elif(scenario==21):
             Nr = 8
         else:
@@ -437,6 +440,8 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesWithSampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==6):
             setPsaapPropertiesTestJP(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==7):
+            setPsaapPropertiesTestJP_Nominal(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
@@ -1858,6 +1863,9 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==6):
         print("#   Running scenario = 6 (4 species, 9 rxn, Juan's mechanism)")
+        Ns = 4
+    elif(args.scenario==7):
+        print("#   Running scenario = 7 (4 species, 9 rxn, Nominal reaction rates)")
         Ns = 4
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
