@@ -51,7 +51,7 @@ class timePeriodicSolver:
 
         # Run from IC for 1 period
         self.tds.solve(0.0, 1.0/Nt, Nt,
-                       savedata=None, verbose=False, rtol=1e-8,
+                       savedata=None, verbose=True, rtol=1e-7,
                        computeSensitivity=True, weak_bc=False)
 
         # Compute difference between final state and Uic
@@ -158,8 +158,11 @@ if __name__ == "__main__":
     elif(args.scenario==4):
         print("#   Running scenario = 4 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
+    elif(args.scenario==21):
+        print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
+        Ns = 4
     else:
-        print("ERROR: Scenario not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.")
+        print("ERROR: Scenario = {0:d} not recognized.  Use --scenario i with i=0, 1, 2, or 3.  Exiting.".format(args.scenario))
         exit(-1)
 
     print("#")

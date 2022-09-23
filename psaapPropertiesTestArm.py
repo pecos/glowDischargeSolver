@@ -1,7 +1,23 @@
 import numpy as np
-
+from scipy.interpolate import CubicSpline
 
 class Reaction(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+class Diffusivity(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+class Mobility(object):
     def __init__(self, *initial_data, **kwargs):
         for dictionary in initial_data:
             for key in dictionary:
@@ -228,6 +244,34 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
 
     params.reactionsList = reactionsList
     #params.Nr = 1
+
+    diffList = []
+    Te = np.linspace(0, 1000, 10)
+    De_interp = params.D[0]*np.ones(10)
+    De_spline = CubicSpline(Te, De_interp)
+    De_Te_spline = CubicSpline.derivative(De_spline)
+    diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
+    diffList.append(diffusivity)
+
+    Ns = 4
+    for i in range(1, Ns):
+        diffList.append(Diffusivity(interpolate = False))
+
+    params.diffusivityList = diffList
+
+    muList = []
+    Te = np.linspace(0, 1000, 10)
+    mue_interp = params.mu[0]*np.ones(10)
+    mue_spline = CubicSpline(Te, mue_interp)
+    mue_Te_spline = CubicSpline.derivative(mue_spline)
+    mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    muList.append(mobility)
+
+    Ns = 4
+    for i in range(1, Ns):
+        muList.append(Mobility(interpolate = False))
+
+    params.mobilityList = muList
 
     # 5) Dump to screen
     params.print()
