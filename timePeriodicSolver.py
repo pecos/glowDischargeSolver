@@ -191,6 +191,13 @@ if __name__ == "__main__":
     elif(args.scenario==7):
         print("#   Running scenario = 7 (4 species, 9 rxn, Nominal Reaction Rates)")
         Ns = 4
+    elif(args.scenario==8):
+        Ns = 4
+    elif(args.scenario==9):
+        print("#   Running scenario = 9 (6 species, 23 rxn)")
+        Ns = 6
+    elif(args.scenario==10):
+        Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4

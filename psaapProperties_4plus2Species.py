@@ -14,7 +14,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapProperties_4plus2Species(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -66,11 +66,14 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     #nmum = 1 / (np.sqrt(16.0 * (mAr + mAr) * 300 * 8.62e-5 * c**2
     #                    / (3.0 * np.pi * mAr * mAr)) * se * mAr * 1.6e-19 / c**2)
     nmum = 0.0
+    nmur = 0.0
+    nmu4p = 0.0
     nmui = 8.0e19
-    #nmum = 9.35e19
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
+    nDr  = 2.42e18
+    nD4p = 2.42e18
     #nDm  = 3.914e20
 
     # reaction parameters (NB: k_i = Ck*Ee^B*exp(-A/Ee))
@@ -81,7 +84,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     B  = np.array([0.0,0.0,0.0,-0.5,0.0,0.74,0.0,0.0,-4.5])
     A  = np.array([18.687,15.06,4.95,0.0,0.0,0.0,0.0,0.0,0.0]) # activation temperature [eV]
     dH = np.array([15.76,11.56,4.2,0.0,-7.56,-11.56,-11.56,0.0,-4.2]) # energy lost per electron due to ionization rxn [eV]
-    dEps = np.array([0.0,15.76,11.56,0.0])
+    dEps = np.array([0.0,15.76,11.56,0.0,0.0,0.0])
 
     # BC parameters
     # ks = 1.19e7  # electron recombination rate [cm/s]
@@ -94,7 +97,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     qe   = 1.6e-19   # unit charge [C]
     eps0 = 8.86e-12  # permittivity of free space [F/m]
     kB   = 1.38e-23  # Boltzmann constant [J/K]
-    # kB   = 8.62e−5 # Boltzmann constant [eV/K]
+    # kB   = 8.62e-5 # Boltzmann constant [eV/K]
 
 
     ###################################################################
@@ -105,12 +108,13 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     nDe  *= 100. # 1/(m*s)
     nDi  *= 100. # 1/(m*s)
     nDm  *= 100.
+    nDr  *= 100.
+    nD4p *= 100.
     nmue *= 100. # 1/(V*m*s)
     nmui *= 100. # 1/(V*m*s)
     Ck[0:7] *= 1e-6 # m^3/s
     Ck[7] *= 1 # 1/s
     Ck[8] *= 1e-12 # m^6/s
-    # Ck[7] *= 1e-6 # Ck[7] is now in m^6/s
     ks   *= 0.01 # m/s
     se   *= 1.0e-20  # m^2
 
@@ -118,19 +122,27 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     De  = nDe/nAr
     Di  = nDi/nAr
     Dm  = nDm/nAr
+    Dr  = nDr/nAr
+    D4p = nD4p/nAr
 
     mue = nmue/nAr
     mui = nmui/nAr
     mum = nmum/nAr
+    mur = nmur/nAr
+    mu4p = nmu4p/nAr
 
     # 3) Compute non-dimensional properties required by solver
     De    = De*tau/(L*L)
     Di    = Di*tau/(L*L)
     Dm    = Dm*tau/(L*L)
+    Dr    = Dr*tau/(L*L)
+    D4p   = D4p*tau/(L*L)
 
     mue   = mue*V0*tau/(L*L)
     mui   = mui*V0*tau/(L*L)
     mum   = mum*V0*tau/(L*L)
+    mur   = mur*V0*tau/(L*L)
+    mu4p  = mu4p*V0*tau/(L*L)
 
     Ck[0:2] = Ck[0:2]*tau*nAr
     Ck[2:6] = Ck[2:6]*tau*np0
@@ -147,14 +159,18 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
                                 # (2/3)*tau/L**2*Kb/np0/kB,
                                 # where Kb is the thermal conductivity of background specie
 
-    #params.beta = np.array([[2,2,2,1,1],[1,0,1,0,0],[0,1,0,0,0],[0,0,0,1,1]])
-    #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
-    #params.beta = np.array([[2,1,2,1],[1,0,1,0],[0,1,0,0],[0,0,0,1]], dtype=np.int)
-    #params.alfa = np.array([[1,1,1,1],[0,0,0,0],[0,0,1,1],[1,1,0,0]], dtype=np.int)
-    # params.beta = np.array([[2,1,2,1,1,1,0,0],[1,0,1,0,0,1,0,0],[0,1,0,0,0,0,0,0],[0,0,0,1,0,1,2,1]], dtype=np.int64)
-    # params.alfa = np.array([[1,1,1,1,1,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,2,1,1],[1,1,0,0,0,0,1,2]], dtype=np.int64)
-    params.beta = np.array([[2,1,2,0,1,1,0,0,1],[1,0,1,0,1,0,0,0,0],[0,1,0,1,0,0,0,0,1],[0,0,0,0,1,1,2,1,0]], dtype=np.int64)
-    params.alfa = np.array([[1,1,1,1,0,1,0,0,2],[0,0,0,1,0,0,0,0,1],[0,0,1,0,2,1,1,1,0],[1,1,0,0,0,0,1,0,0]], dtype=np.int64)
+    params.beta = np.array([[2,1,2,0,1,1,0,0,1],
+                            [1,0,1,0,1,0,0,0,0],
+                            [0,1,0,1,0,0,0,0,1],
+                            [0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,1,1,2,1,0]], dtype=np.int64)
+    params.alfa = np.array([[1,1,1,1,0,1,0,0,2],
+                            [0,0,0,1,0,0,0,0,1],
+                            [0,0,1,0,2,1,1,1,0],
+                            [0,0,0,0,0,0,0,0,0],
+                            [0,0,0,0,0,0,0,0,0],
+                            [1,1,0,0,0,0,1,0,0]], dtype=np.int64)
 	# Rxn1:  E + AR   ->  2E  +  AR+
 	# Rxn2:  E + AR   ->  E   +  AR*
 	# Rxn3:  E + AR*  ->  2E  +  AR+
@@ -169,10 +185,14 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     params.D[0]    = De
     params.D[1]    = Di
     params.D[2]    = Dm
+    params.D[3]    = Dr
+    params.D[4]    = D4p
 
     params.mu[0]   = mue
     params.mu[1]   = mui
     params.mu[2]   = mum
+    params.mu[3]   = mur
+    params.mu[4]   = mu4p
 
     params.A[:]    = Ck[:]
     params.B[:]    = B[:]
@@ -209,23 +229,6 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
 
-    # reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
-    #                            f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
-    #                            f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
-    #                            f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
-    #                            f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
-    #                            f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
-    #                            f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
-    #                            f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)"]
-
-    # reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
-    #                             f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
-    #                             f"{params.A[2]} * (energy**({params.B[2]}-1)) * np.exp(-{params.C[2]}/energy) * ({params.B[2]} + {params.C[2]}/energy)",
-    #                             f"{params.A[3]} * (energy**({params.B[3]}-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]} + {params.C[3]}/energy)",
-    #                             f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
-    #                             f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
-    #                             f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-    #                             f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)"]
 
     reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
                                 f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
@@ -292,7 +295,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
             Te = Te[TeDuplicateinds]
 
             # Nondimensionalization of mean energy.
-            #Te *= 1.5
+            Te *= 1.5
 
             # Find first non-zero value of the coefficient rate.
             I = np.nonzero(rateCoeff)

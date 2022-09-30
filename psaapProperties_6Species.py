@@ -14,7 +14,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -39,7 +39,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     me = 0.511e6                 # mass of an electron [eV/c2]
     # mAr = 39.948               # mass of an argon atom [u]
     # mAr = 39.948 * 1.66054e-27 # mass of an argon atom [kg]
-    mAr = 37.2158e9              # mass of an electron [eV/c2]
+    mAr = 37.2158e9              # mass of an argon atom [eV/c2]
     # u = 931.4941e6             # eV/c2
     c = 299792458                # speed of light [m/s]
     se = 40                      # momentum cross section [A^2]
@@ -66,22 +66,26 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     #nmum = 1 / (np.sqrt(16.0 * (mAr + mAr) * 300 * 8.62e-5 * c**2
     #                    / (3.0 * np.pi * mAr * mAr)) * se * mAr * 1.6e-19 / c**2)
     nmum = 0.0
+    nmur = 0.0
+    nmu4p = 0.0
     nmui = 8.0e19
     #nmum = 9.35e19
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
-    nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
+    nDm  = 2.42e18   # argon number density times AR(m) diffusivity [1/(cm*s)]
+    nDr  = 2.42e18
+    nD4p = 2.42e18
     #nDm  = 3.914e20
 
     # reaction parameters (NB: k_i = Ck*Ee^B*exp(-A/Ee))
     #                          Ee = 3/2*Te (Te in eV)
     #                          -> k_i = [Ck*(2/3)^B] * Ee^B * exp[-(3/2)*A/Ee]
     # nominal
-    Ck = np.array([1.235e-7,3.712e-8,2.05e-7,4.0e-13,5.0e-10,4.3e-10,2.1e-15,10.0,5.0e-27]) # pre-exponential factors [cm^3/s]
-    B  = np.array([0.0,0.0,0.0,-0.5,0.0,0.74,0.0,0.0,-4.5])
-    A  = np.array([18.687,15.06,4.95,0.0,0.0,0.0,0.0,0.0,0.0]) # activation temperature [eV]
-    dH = np.array([15.76,11.56,4.2,0.0,-7.56,-11.56,-11.56,0.0,-4.2]) # energy lost per electron due to ionization rxn [eV]
-    dEps = np.array([0.0,15.76,11.56,0.0])
+    Ck = np.array([2.0e-7,2.1e-9,5.0e-10,6.4e-10,2.1e-15,1.0e5,3.2e7,3.0e7,3.0e7,0.0,0.0,0.0,0.0,4.3e-10,0.0,3.7e-8,8.9e-7,1.8e-7,3.0e-7,3.0e-7,4.3e-10,9.1e-7,8.9e-7]) # pre-exponential factors [cm^3/s]
+    B  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0.74,0,0,0.51,0.61,0.51,0.51,0.74,0,0.51])
+    A  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1.59,2.61,0,0,0,0,1.59]) # activation temperature [eV]
+    dH = np.array([0.0,-7.412,-10.054,-7.336,0.0,0.0,0.0,0.0,0.0,11.548,11.624,12.907,15.76,-11.548,4.212,0.076,1.359,2.853,-1.283,-1.359,-11.624,-0.076,0.983]) # energy lost per electron due to ionization rxn [eV]
+    dEps = np.array([0.0,15.76,11.548,11.624,12.907,0.0]) # E, AR+, AR(m), AR(r), AR(4p), AR
 
     # BC parameters
     # ks = 1.19e7  # electron recombination rate [cm/s]
@@ -94,7 +98,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     qe   = 1.6e-19   # unit charge [C]
     eps0 = 8.86e-12  # permittivity of free space [F/m]
     kB   = 1.38e-23  # Boltzmann constant [J/K]
-    # kB   = 8.62e−5 # Boltzmann constant [eV/K]
+    # kB   = 8.62e-5 # Boltzmann constant [eV/K]
 
 
     ###################################################################
@@ -105,12 +109,13 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     nDe  *= 100. # 1/(m*s)
     nDi  *= 100. # 1/(m*s)
     nDm  *= 100.
+    nDr  *= 100.
+    nD4p *= 100.
     nmue *= 100. # 1/(V*m*s)
     nmui *= 100. # 1/(V*m*s)
-    Ck[0:7] *= 1e-6 # m^3/s
-    Ck[7] *= 1 # 1/s
-    Ck[8] *= 1e-12 # m^6/s
-    # Ck[7] *= 1e-6 # Ck[7] is now in m^6/s
+    Ck[0:5] *= 1e-6 # m^3/s
+    Ck[5:9] *= 1 # 1/s
+    Ck[9:22] *= 1e-6 # m^3/s
     ks   *= 0.01 # m/s
     se   *= 1.0e-20  # m^2
 
@@ -118,61 +123,92 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     De  = nDe/nAr
     Di  = nDi/nAr
     Dm  = nDm/nAr
+    Dr  = nDr/nAr
+    D4p = nD4p/nAr
 
     mue = nmue/nAr
     mui = nmui/nAr
     mum = nmum/nAr
+    mur = nmur/nAr
+    mu4p = nmu4p/nAr
 
     # 3) Compute non-dimensional properties required by solver
     De    = De*tau/(L*L)
     Di    = Di*tau/(L*L)
     Dm    = Dm*tau/(L*L)
+    Dr    = Dr*tau/(L*L)
+    D4p   = D4p*tau/(L*L)
 
     mue   = mue*V0*tau/(L*L)
     mui   = mui*V0*tau/(L*L)
     mum   = mum*V0*tau/(L*L)
+    mur   = mur*V0*tau/(L*L)
+    mu4p  = mu4p*V0*tau/(L*L)
 
-    Ck[0:2] = Ck[0:2]*tau*nAr
-    Ck[2:6] = Ck[2:6]*tau*np0
-    Ck[6] *= tau*nAr
-    Ck[7] *= tau
-    Ck[8] *= tau*np0*np0
-    A       = A*1.5/e0  # 1.5 to convert from temperature to energy
-    dH      = dH/e0
-    qStar   = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
-    alpha   = qe*np0*L*L/(V0*eps0)
-    ks      = ks*tau/L
-    p0      = p/qe/np0
-    kappaB  = 4.878171165833662*1.6129 # non-dimensional thermal conductivity of background specie
+    Ck[0:4]  = Ck[0:4]*tau*np0
+    Ck[4]    = Ck[4]*tau*nAr
+    Ck[5:9] *= tau
+    Ck[9:13] = Ck[9:13]*tau*nAr
+    Ck[13:]  = Ck[13:]*tau*np0
+    A        = A*1.5/e0  # 1.5 to convert from temperature to energy
+    dH       = dH/e0
+    qStar    = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
+    alpha    = qe*np0*L*L/(V0*eps0)
+    ks       = ks*tau/L
+    p0       = p/qe/np0
+    kappaB   = 4.878171165833662*1.6129 # non-dimensional thermal conductivity of background specie
                                 # (2/3)*tau/L**2*Kb/np0/kB,
                                 # where Kb is the thermal conductivity of background specie
 
-    #params.beta = np.array([[2,2,2,1,1],[1,0,1,0,0],[0,1,0,0,0],[0,0,0,1,1]])
-    #params.alfa = np.array([[1,1,1,1,1],[0,0,0,0,0],[0,0,1,1,1],[1,1,0,0,0]])
-    #params.beta = np.array([[2,1,2,1],[1,0,1,0],[0,1,0,0],[0,0,0,1]], dtype=np.int)
-    #params.alfa = np.array([[1,1,1,1],[0,0,0,0],[0,0,1,1],[1,1,0,0]], dtype=np.int)
-    # params.beta = np.array([[2,1,2,1,1,1,0,0],[1,0,1,0,0,1,0,0],[0,1,0,0,0,0,0,0],[0,0,0,1,0,1,2,1]], dtype=np.int64)
-    # params.alfa = np.array([[1,1,1,1,1,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,2,1,1],[1,1,0,0,0,0,1,2]], dtype=np.int64)
-    params.beta = np.array([[2,1,2,0,1,1,0,0,1],[1,0,1,0,1,0,0,0,0],[0,1,0,1,0,0,0,0,1],[0,0,0,0,1,1,2,1,0]], dtype=np.int64)
-    params.alfa = np.array([[1,1,1,1,0,1,0,0,2],[0,0,0,1,0,0,0,0,1],[0,0,1,0,2,1,1,1,0],[1,1,0,0,0,0,1,0,0]], dtype=np.int64)
-	# Rxn1:  E + AR   ->  2E  +  AR+
-	# Rxn2:  E + AR   ->  E   +  AR*
-	# Rxn3:  E + AR*  ->  2E  +  AR+
-	# Rxn4:  E + AR+  ->  AR*
-	# Rxn5:  2AR*     ->  E   +  AR+  +  AR
-	# Rxn6:  E + AR*  ->  E   +  AR
-	# Rxn7:  AR* + AR ->  2AR
-	# Rxn8:  AR*      ->  AR
-	# Rxn9:  2E + AR+ ->  E   +  AR*
+    params.beta = np.array([[0,1,1,1,0,0,0,0,0,1,1,1,2,1,2,1,1,2,1,1,1,1,1],                     # E
+                            [0,1,1,1,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0],                     # AR+
+                            [0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0],                     # AR(m)
+                            [0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,1,0,0,0,0],                     # AR(r)
+                            [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],                     # AR(4p)
+                            [2,1,1,1,2,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0]], dtype=np.int64)    # AR
+
+    params.alfa = np.array([[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],                     # E
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],                     # AR+
+                            [2,1,0,2,1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],                     # AR(m)
+                            [0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],                     # AR(r)
+                            [0,0,2,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0],                     # AR(4p)
+                            [0,0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0]], dtype=np.int64)    # AR
+	# Rxn1:  2AR(m)         ->   2AR
+	# Rxn2:  AR(m) + AR(r)  ->   E + AR+ + AR
+	# Rxn3:  2AR(4p)        ->   E + AR+ + AR
+	# Rxn4:  2AR(m)         ->   E + AR+ + AR
+	# Rxn5:  AR(m) + AR     ->   2AR
+	# Rxn6:  AR(r)          ->   AR
+	# Rxn7:  AR(4p)         ->   AR
+	# Rxn8:  AR(4p)         ->   AR(m)
+	# Rxn9:  AR(4p)         ->   AR(r)
+        # Rxn10: E + AR         ->   E + AR(m)
+        # Rxn11: E + AR         ->   E + AR(r)
+        # Rxn12: E + AR         ->   E + AR(4p)
+        # Rxn13: E + AR         ->   2E + AR+
+        # Rxn14: E + AR(m)      ->   E + AR
+        # Rxn15: E + AR(m)      ->   2E + AR+
+        # Rxn16: E + AR(m)      ->   E + AR(r)
+        # Rxn17: E + AR(m)      ->   E + AR(4p)
+        # Rxn18: E + AR(4p)     ->   2E + AR+
+        # Rxn19: E + AR(4p)     ->   E + AR(r)
+        # Rxn20: E + AR(4p)     ->   E + AR(m)
+        # Rxn21: E + AR(r)      ->   E + AR
+        # Rxn22: E + AR(r)      ->   E + AR(m)
+        # Rxn23: E + AR(r)      ->   E + AR(4p)
 
     # 4) Set values in params class
     params.D[0]    = De
     params.D[1]    = Di
     params.D[2]    = Dm
+    params.D[3]    = Dr
+    params.D[4]    = D4p
 
     params.mu[0]   = mue
     params.mu[1]   = mui
     params.mu[2]   = mum
+    params.mu[3]   = mur
+    params.mu[4]   = mu4p
 
     params.A[:]    = Ck[:]
     params.B[:]    = B[:]
@@ -209,33 +245,30 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
 
-    # reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
-    #                            f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
-    #                            f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
-    #                            f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
-    #                            f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
-    #                            f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
-    #                            f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
-    #                            f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)"]
-
-    # reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
-    #                             f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
-    #                             f"{params.A[2]} * (energy**({params.B[2]}-1)) * np.exp(-{params.C[2]}/energy) * ({params.B[2]} + {params.C[2]}/energy)",
-    #                             f"{params.A[3]} * (energy**({params.B[3]}-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]} + {params.C[3]}/energy)",
-    #                             f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
-    #                             f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
-    #                             f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-    #                             f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)"]
 
     reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
-                                f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
-                                f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
-                                f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
-                                f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
-                                f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
-                                f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
-				f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)",
-				f"{params.A[8]} * energy**{params.B[8]} * np.exp(-{params.C[8]} / energy)"]
+                               f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
+                               f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
+                               f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
+                               f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
+                               f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
+                               f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
+                               f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)",
+                               f"{params.A[8]} * energy**{params.B[8]} * np.exp(-{params.C[8]} / energy)",
+                               f"{params.A[9]} * energy**{params.B[9]} * np.exp(-{params.C[9]} / energy)",
+                               f"{params.A[10]} * energy**{params.B[10]} * np.exp(-{params.C[10]} / energy)",
+                               f"{params.A[11]} * energy**{params.B[11]} * np.exp(-{params.C[11]} / energy)",
+                               f"{params.A[12]} * energy**{params.B[12]} * np.exp(-{params.C[12]} / energy)",
+                               f"{params.A[13]} * energy**{params.B[13]} * np.exp(-{params.C[13]} / energy)",
+                               f"{params.A[14]} * energy**{params.B[14]} * np.exp(-{params.C[14]} / energy)",
+                               f"{params.A[15]} * energy**{params.B[15]} * np.exp(-{params.C[15]} / energy)",
+                               f"{params.A[16]} * energy**{params.B[16]} * np.exp(-{params.C[16]} / energy)",
+                               f"{params.A[17]} * energy**{params.B[17]} * np.exp(-{params.C[17]} / energy)",
+                               f"{params.A[18]} * energy**{params.B[18]} * np.exp(-{params.C[18]} / energy)",
+                               f"{params.A[19]} * energy**{params.B[19]} * np.exp(-{params.C[19]} / energy)",
+                               f"{params.A[20]} * energy**{params.B[20]} * np.exp(-{params.C[20]} / energy)",
+                               f"{params.A[21]} * energy**{params.B[21]} * np.exp(-{params.C[21]} / energy)",
+                               f"{params.A[22]} * energy**{params.B[22]} * np.exp(-{params.C[22]} / energy)"]
 
     reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
                                 f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
@@ -245,9 +278,25 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
                                 f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
                                 f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
 				f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
-				f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)"]
+				f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
+                                f"{params.A[9]} * (energy**({params.B[9]}-1)) * np.exp(-{params.C[9]}/energy) * ({params.B[9]} + {params.C[9]}/energy)",
+                                f"{params.A[10]} * (energy**({params.B[10]}-1)) * np.exp(-{params.C[10]}/energy) * ({params.B[10]} + {params.C[10]}/energy)",
+                                f"{params.A[11]} * (energy**({params.B[11]}-1)) * np.exp(-{params.C[11]}/energy) * ({params.B[11]} + {params.C[11]}/energy)",
+                                f"{params.A[12]} * (energy**({params.B[12]}-1)) * np.exp(-{params.C[12]}/energy) * ({params.B[12]} + {params.C[12]}/energy)",
+                                f"{params.A[13]} * (energy**({params.B[13]}-1)) * np.exp(-{params.C[13]}/energy) * ({params.B[13]} + {params.C[13]}/energy)",
+                                f"{params.A[14]} * (energy**({params.B[14]}-1)) * np.exp(-{params.C[14]}/energy) * ({params.B[14]} + {params.C[14]}/energy)",
+                                f"{params.A[15]} * (energy**({params.B[15]}-1)) * np.exp(-{params.C[15]}/energy) * ({params.B[15]} + {params.C[15]}/energy)",
+                                f"{params.A[16]} * (energy**({params.B[16]}-1)) * np.exp(-{params.C[16]}/energy) * ({params.B[16]} + {params.C[16]}/energy)",
+                                f"{params.A[17]} * (energy**({params.B[17]}-1)) * np.exp(-{params.C[17]}/energy) * ({params.B[17]} + {params.C[17]}/energy)",
+                                f"{params.A[18]} * (energy**({params.B[18]}-1)) * np.exp(-{params.C[18]}/energy) * ({params.B[18]} + {params.C[18]}/energy)",
+                                f"{params.A[19]} * (energy**({params.B[19]}-1)) * np.exp(-{params.C[19]}/energy) * ({params.B[19]} + {params.C[19]}/energy)",
+                                f"{params.A[20]} * (energy**({params.B[20]}-1)) * np.exp(-{params.C[20]}/energy) * ({params.B[20]} + {params.C[20]}/energy)",
+                                f"{params.A[21]} * (energy**({params.B[21]}-1)) * np.exp(-{params.C[21]}/energy) * ({params.B[21]} + {params.C[21]}/energy)",
+                                f"{params.A[22]} * (energy**({params.B[22]}-1)) * np.exp(-{params.C[22]}/energy) * ({params.B[22]} + {params.C[22]}/energy)"]
+           
 
-    reactionExpressionTypelist =  np.array([True,True,True,False,False,False,False,False,False])
+    reactionExpressionTypelist =  np.array([False,False,False,False,False,False,False,False,False,
+                                           True,True,True,True,False,True,False,False,False,False,False,False,False,False])
 
     reactionsList = []
     LOGFilename = 'interpolationSample%s.log'%str(iSample)
@@ -266,8 +315,8 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
             N300 = 200
 
             root_dir = ".."
-            rate_file = open("{0:s}/BOLSIGChemistry_NominalRates/reaction300K_{1:d}.txt".format(root_dir, i), 'r')
-            temp_file = open("{0:s}/BOLSIGChemistry_NominalRates/reaction300K_Te.txt".format(root_dir), 'r')
+            rate_file = open("{0:s}/BOLSIGChemistry_6SpeciesRates/reaction300K_{1:d}.txt".format(root_dir, i), 'r')
+            temp_file = open("{0:s}/BOLSIGChemistry_6SpeciesRates/reaction300K_Te.txt".format(root_dir), 'r')
             
             #rateCoeff = np.fromfile(rate_file)
             rateCoeff = np.genfromtxt(rate_file)
@@ -292,7 +341,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
             Te = Te[TeDuplicateinds]
 
             # Nondimensionalization of mean energy.
-            #Te *= 1.5
+            Te *= 1.5
 
             # Find first non-zero value of the coefficient rate.
             I = np.nonzero(rateCoeff)
@@ -308,10 +357,14 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
             indexPositive = np.where(Monotonicity>0.0)
             Positive = np.full(Monotonicity.shape, False, dtype=bool)
             Positive[indexPositive] = True
-
+            
             indices = Nan + Inf + Positive
 
-            lastFalse = np.where(indices==False)[-1][-1] + 2
+
+            #lastFalse = np.where(indices==False)[-1][-1] + 2
+            for k in range(len(Te)):
+               if Te[k] < 4.5 and indices[k] == False:
+                  lastFalse = k + 2
 
             # Transformation to log scale.
             TeLog = np.log(Te)
@@ -333,7 +386,13 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
             # For the troublesome values, we use the Arrhenius form.
             rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
             # Nondimensionalization in log scale.
-            if i < 2:
+            if i == 9:
+                rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
+            elif i == 10:
+                rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
+            elif i == 11:
+                rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
+            elif i == 12:
                 rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
             else:
                 rateCoeffLog += - np.log(1.0/tau) + np.log(np0)
@@ -350,7 +409,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
             reactionsList.append(reaction)
 
             logging.basicConfig(filename=LOGFilename)
-            logging.warning('Interpolation info (Reaction %s):', i)
+            logging.warning('Interpolation info (Reaction %s):', i + 1)
             logging.warning('First non-zero entry in the rate coefficient: %s', I[0][0])
             logging.warning('Monotonicity of the rate coefficient start from entry: %s', lastFalse)
             logging.warning('Position of possible duplicates in mean energy array: %s',

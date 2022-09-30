@@ -11,6 +11,9 @@ from psaapPropertiesCurrentTestCase100mTorr import setPsaapPropertiesCurrentTest
 from psaapPropertiesWithSampling import setPsaapPropertiesWithSampling
 from psaapPropertiesTestJP import setPsaapPropertiesTestJP
 from psaapPropertiesTestJP_Nominal import setPsaapPropertiesTestJP_Nominal
+from psaapPropertiesTestJP_Arrhenius import setPsaapPropertiesTestJP_Arrhenius
+from psaapProperties_6Species import setPsaapProperties_6Species
+from psaapProperties_4plus2Species import setPsaapProperties_4plus2Species
 
 class modelClosures:
     """Class providing model parameters."""
@@ -91,13 +94,13 @@ class modelClosures:
         self.alfa = np.zeros((Ns,Nr),dtype=np.int64) # reactants
 
         # this represents a single rxn: Ar+e -> Ar+ + e + e
-        self.beta[0,0] = 2
-        self.beta[1,0] = 1
-        self.beta[2,0] = 0
+        #self.beta[0,0] = 2
+        #self.beta[1,0] = 1
+        #self.beta[2,0] = 0
 
-        self.alfa[0,0] = 1
-        self.alfa[1,0] = 0
-        self.alfa[2,0] = 1
+        #self.alfa[0,0] = 1
+        #self.alfa[1,0] = 0
+        #self.alfa[2,0] = 1
 
         # other non-dimensional parameters
         self.qStar = 100.0
@@ -193,6 +196,16 @@ class modelClosures:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
 
+        # Einstein for electrons only (for testing purposes)
+        # if EinsteinForm:
+        #     #V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+        #     #DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
+        #     if self.Z[i] == -1:   ## Added this to use Einstein Relation only with electrons and constant values for heavies
+        #         V0 = self.qStar * 1.0
+        #         DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
+        #     else:
+        #         DEf[:,0] = self.D[i] / nb
+
         else:
             DEf[:,0] = self.D[i] / nb
 
@@ -220,6 +233,12 @@ class modelClosures:
 
         if (j == self.Ns - 1):
             D_U[:,:] -= np.diag(D[:,i] / nb)
+
+        # Einstein for electrons only (for testing purposes)
+        # if EinsteinForm:
+        #     if self.Z[i] == -1:
+        #         V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+        #         D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
 
         return D_U
 
@@ -414,6 +433,12 @@ class timeDomainCollocationSolver:
             Nr = 9
         elif(scenario==7):
             Nr = 9
+        elif(scenario==8):
+            Nr = 9
+        elif(scenario==9):
+            Nr = 23
+        elif(scenario==10):
+            Nr = 9
         elif(scenario==21):
             Nr = 8
         else:
@@ -442,6 +467,12 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesTestJP(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==7):
             setPsaapPropertiesTestJP_Nominal(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==8):
+            setPsaapPropertiesTestJP_Arrhenius(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==9):
+            setPsaapProperties_6Species(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==10):
+            setPsaapProperties_4plus2Species(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
@@ -842,6 +873,15 @@ class timeDomainCollocationSolver:
             res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
                 - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
 
+        if (self.Ns == 6): # Dirichlet BCs for AR(m), AR(r) and AR(4p) in the 6-species mechanism
+            #res[2*self.Np  ] = dens[ 0,2] - 0.0
+            #res[3*self.Np-1] = dens[-1,2] - 0.0
+            res[3*self.Np  ] = dens[ 0,3] - 0.0
+            res[4*self.Np-1] = dens[-1,3] - 0.0
+            res[4*self.Np  ] = dens[ 0,4] - 0.0
+            res[5*self.Np-1] = dens[-1,4] - 0.0
+
+
         # enforce Dirichlet condition on heavy species temperature
         ntot = np.zeros(self.Np)
 
@@ -892,6 +932,14 @@ class timeDomainCollocationSolver:
         if (self.Ns>2):
             res[2*self.Np  ] = 0.0 #dens[ 0,2] - 0.0
             res[3*self.Np-1] = 0.0 #dens[-1,2] - 0.0
+
+        if (self.Ns == 6):
+            #res[2*self.Np  ] = 0.0
+            #res[3*self.Np-1] = 0.0
+            res[3*self.Np  ] = 0.0
+            res[4*self.Np-1] = 0.0
+            res[4*self.Np  ] = 0.0
+            res[5*self.Np-1] = 0.0
 
         # electron temperature
         res[self.Ns*self.Np  ] = 0.0 #(nT[ 0] - 0.75*dens[0,iele])
@@ -1289,6 +1337,7 @@ class timeDomainCollocationSolver:
 
             self.jac[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
             self.jac[(i+1)*self.Np-1,(i+1)*self.Np-1] = 1.0
+
 
         # Dirichlet on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
@@ -1867,6 +1916,13 @@ if __name__ == "__main__":
     elif(args.scenario==7):
         print("#   Running scenario = 7 (4 species, 9 rxn, Nominal reaction rates)")
         Ns = 4
+    elif(args.scenario==8):
+        Ns = 4
+    elif(args.scenario==9):
+        print("#   Running scenario = 9 (6 species, 23 rxn)")
+        Ns = 6
+    elif(args.scenario==10):
+        Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4
@@ -1916,7 +1972,9 @@ if __name__ == "__main__":
 
     # Default IC (overwritten below if we are restarting)
     #tds.U1[0:tds.Ns*tds.Np] = 1e-4
-    tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-1             # 'usual' species
+    #tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
+    tds.U1[0:(tds.Ns-3)*tds.Np] = 1e-4
+    tds.U1[(tds.Ns-3)*tds.Np:(tds.Ns-1)*tds.Np] = 0.0 # These two lines added for the 4+2 mechanism... delete otherwise
     tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
     tds.U1[tds.Ns*tds.Np:] = tds.params.EeBC*tds.U1[0:tds.Np] # electron energy
 

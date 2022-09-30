@@ -270,10 +270,16 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
             Nsample = 72
             N300 = 200
 
-            rateCoeff = np.fromfile('./BOLSIGChemistry/reaction300K_%s.dat' %str(i))
+            root_dir = "/g/g92/jbarbere/glowDischarge/toyProblems/timeDomain"
+            rate_file = "{0:s}/BOLSIGChemistry/reaction300K_{1:d}.dat".format(root_dir, i)
+            temp_file = "{0:s}/BOLSIGChemistry/reaction300K.Te.dat".format(root_dir)
+
+            #rateCoeff = np.fromfile('/usr/workspace/violetak/BOLSIGSamples/glowDischarge/toyProblems/timeDomain/BOLSIGChemistry/reaction300K_%s.dat' %str(i))
+            rateCoeff = np.fromfile(rate_file)
             rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
 
-            Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
+            #Te = np.fromfile('/usr/workspace/violetak/BOLSIGSamples/glowDischarge/toyProblems/timeDomain/BOLSIGChemistry/reaction300K.Te.dat')
+            Te = np.fromfile(temp_file)
             Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
 
             # Sorting mean energy array and rate coefficient array based on

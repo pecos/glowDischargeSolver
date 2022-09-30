@@ -42,7 +42,7 @@ def setPsaapPropertiesTestJP(gam, inputV0, inputVDC, params, Nr, iSample):
     mAr = 37.2158e9              # mass of an electron [eV/c2]
     # u = 931.4941e6             # eV/c2
     c = 299792458                # speed of light [m/s]
-    se = 40                      # momentum cross section [m^2]
+    se = 40                      # momentum cross section [A^2]
 
     # nominal electron energy
     e0 = 1.0  # [eV]
@@ -63,8 +63,9 @@ def setPsaapPropertiesTestJP(gam, inputV0, inputVDC, params, Nr, iSample):
     # transport parameters
     nmue = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
     nmui = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
-    nmum = 1 / (np.sqrt(16.0 * (mAr + mAr) * 300 * 8.62e-5 * c**2
-                        / (3.0 * np.pi * mAr * mAr)) * se * mAr * 1.6e-19 / c**2)
+    #nmum = 1 / (np.sqrt(16.0 * (mAr + mAr) * 300 * 8.62e-5 * c**2
+    #                    / (3.0 * np.pi * mAr * mAr)) * se * mAr * 1.6e-19 / c**2)
+    nmum = 0.0
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
@@ -76,7 +77,7 @@ def setPsaapPropertiesTestJP(gam, inputV0, inputVDC, params, Nr, iSample):
     Ck = np.array([1.235e-7,3.712e-8,2.05e-7,4.0e-13,5.0e-10,4.3e-10,2.1e-15,10.0,5.0e-27]) # pre-exponential factors [cm^3/s]
     B  = np.array([0.0,0.0,0.0,-0.5,0,0.74,0,0,-4.5])
     A  = np.array([18.687,15.06,4.95,0.0,0.0,0.0,0.0,0.0,0.0]) # activation temperature [eV]
-    dH = np.array([15.76,11.56,4.2,0.0,-11.56,-7.56,-11.56,0.0,-4.2]) # energy lost per electron due to ionization rxn [eV]
+    dH = np.array([15.76,11.56,4.2,0.0,-7.36,-11.56,-11.56,0.0,-4.2]) # energy lost per electron due to ionization rxn [eV]
     dEps = np.array([0.0,15.76,11.56,0.0])
 
     # BC parameters
@@ -106,7 +107,6 @@ def setPsaapPropertiesTestJP(gam, inputV0, inputVDC, params, Nr, iSample):
     Ck[0:7] *= 1e-6 # m^3/s
     Ck[7] *= 1 # 1/s
     Ck[8] *= 1e-12 # m^6/s
-    # Ck[7] *= 1e-6 # Ck[7] is now in m^6/s
     ks   *= 0.01 # m/s
     se   *= 1.0e-20  # m^2
 
@@ -263,9 +263,7 @@ def setPsaapPropertiesTestJP(gam, inputV0, inputVDC, params, Nr, iSample):
             Nsample = 72
             N300 = 200
 
-            # FIXME: this assumes the rxn rate files live in a sub dir
-            # of where we are running.  It should be generalized.
-            root_dir = "./"
+            root_dir = "/g/g92/jbarbere/glowDischarge/toyProblems/timeDomain"
             rate_file = "{0:s}/BOLSIGChemistry/reaction300K_{1:d}.dat".format(root_dir, i)
             temp_file = "{0:s}/BOLSIGChemistry/reaction300K.Te.dat".format(root_dir)
 

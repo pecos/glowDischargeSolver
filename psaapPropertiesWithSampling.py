@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+#import matplotlib.pyplot as plt
+#import matplotlib.colors as mcolors
 
 import logging
 
@@ -237,10 +237,20 @@ def setPsaapPropertiesWithSampling(gam, inputV0, inputVDC, params, Nr, iSample):
             Nsample = 7200
             N300 = 200
 
-            rateCoeff = np.fromfile('./BOLSIGChemistryZeroIonDeg7200Samples/reaction300K_%s.dat' %str(i))
+            #rateCoeff = np.fromfile("/g/g92/jbarbere/glowDischarge/toyProblems/timeDomain/BOLSIGChemistryZeroIonDeg7200Samples/reaction300K_%s.dat" %str(i))
+            #rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
+
+            #Te = np.fromfile("/g/92/jbarbere/glowDischarge/toyProblems/timeDomain/BOLSIGChemistryZeroIonDeg7200Samples/reaction300K.Te.dat")
+            #Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
+
+            root_dir = "/g/g92/jbarbere/glowDischarge/toyProblems/timeDomain"
+            rate_file = "{0:s}/BOLSIGChemistryZeroIonDeg7200Samples/reaction300K_{1:d}.dat".format(root_dir, i)
+            temp_file = "{0:s}/BOLSIGChemistryZeroIonDeg7200Samples/reaction300K.Te.dat".format(root_dir)
+
+            rateCoeff = np.fromfile(rate_file)
             rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
 
-            Te = np.fromfile('./BOLSIGChemistryZeroIonDeg7200Samples/reaction300K.Te.dat')
+            Te = np.fromfile(temp_file)
             Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
 
             # Sorting mean energy array and rate coefficient array based on

@@ -14,7 +14,7 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapPropertiesTestJP_Arrhenius(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -133,10 +133,12 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
     mum   = mum*V0*tau/(L*L)
 
     Ck[0:2] = Ck[0:2]*tau*nAr
+    #Ck[2:5] = Ck[2:5]*tau*np0
     Ck[2:6] = Ck[2:6]*tau*np0
     Ck[6] *= tau*nAr
     Ck[7] *= tau
     Ck[8] *= tau*np0*np0
+    # Ck[7]  *= tau*nAr*nAr
     A       = A*1.5/e0  # 1.5 to convert from temperature to energy
     dH      = dH/e0
     qStar   = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
@@ -247,7 +249,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
 				f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
 				f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)"]
 
-    reactionExpressionTypelist =  np.array([True,True,True,False,False,False,False,False,False])
+    reactionExpressionTypelist =  np.array([False,False,False,False,False,False,False,False,False])
 
     reactionsList = []
     LOGFilename = 'interpolationSample%s.log'%str(iSample)
@@ -292,7 +294,7 @@ def setPsaapPropertiesTestJP_Nominal(gam, inputV0, inputVDC, params, Nr, iSample
             Te = Te[TeDuplicateinds]
 
             # Nondimensionalization of mean energy.
-            #Te *= 1.5
+            Te *= 1.5
 
             # Find first non-zero value of the coefficient rate.
             I = np.nonzero(rateCoeff)

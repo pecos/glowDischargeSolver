@@ -159,7 +159,7 @@ def setPsaapProperties(gam, inputV0, inputVDC, params, Nr, iSample):
 
     reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)"]
 
-    reactionExpressionTypelist = [True]
+    reactionExpressionTypelist = [False]
 
     reactionsList = []
     for i in range(Nr):
