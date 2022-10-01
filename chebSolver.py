@@ -873,22 +873,6 @@ class timeDomainCollocationSolver:
             res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
                 - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
 
-        if (self.Ns == 6): # Dirichlet BCs for AR(m), AR(r) and AR(4p) in the 6-species mechanism
-            #res[2*self.Np  ] = dens[ 0,2] - 0.0
-            #res[3*self.Np-1] = dens[-1,2] - 0.0
-            res[3*self.Np  ] = dens[ 0,3] - 0.0
-            res[4*self.Np-1] = dens[-1,3] - 0.0
-            res[4*self.Np  ] = dens[ 0,4] - 0.0
-            res[5*self.Np-1] = dens[-1,4] - 0.0
-
-
-        # enforce Dirichlet condition on heavy species temperature
-        ntot = np.zeros(self.Np)
-
-        # add all heavies but background
-        for i in range(1, self.Ns-1):
-            ntot += dens[:,i]
-
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC*dens[0,iele])
         res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC*dens[-1,iele])
@@ -929,17 +913,22 @@ class timeDomainCollocationSolver:
         # change in the associated variables is zero.  However, this
         # *only* works if the IC satisfies the BC.  Any errors
         # introduced by the IC will never be eliminated.
-        if (self.Ns>2):
-            res[2*self.Np  ] = 0.0 #dens[ 0,2] - 0.0
-            res[3*self.Np-1] = 0.0 #dens[-1,2] - 0.0
+        #if (self.Ns>2):
+        #    res[2*self.Np  ] = 0.0 #dens[ 0,2] - 0.0
+        #    res[3*self.Np-1] = 0.0 #dens[-1,2] - 0.0
 
-        if (self.Ns == 6):
+        if (self.Ns > 2):
+            for i in range(2, self.Ns-1):
+                res[i*self.Np      ] = res[ 0,i] - 0.0
+                res[(i+1)*self.Np-1] = res[-1,i] - 0.0
+
+        #if (self.Ns == 6):
             #res[2*self.Np  ] = 0.0
             #res[3*self.Np-1] = 0.0
-            res[3*self.Np  ] = 0.0
-            res[4*self.Np-1] = 0.0
-            res[4*self.Np  ] = 0.0
-            res[5*self.Np-1] = 0.0
+        #    res[3*self.Np  ] = 0.0
+        #    res[4*self.Np-1] = 0.0
+        #    res[4*self.Np  ] = 0.0
+        #    res[5*self.Np-1] = 0.0
 
         # electron temperature
         res[self.Ns*self.Np  ] = 0.0 #(nT[ 0] - 0.75*dens[0,iele])
@@ -1338,7 +1327,6 @@ class timeDomainCollocationSolver:
             self.jac[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
             self.jac[(i+1)*self.Np-1,(i+1)*self.Np-1] = 1.0
 
-
         # Dirichlet on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
             self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
@@ -1433,12 +1421,20 @@ class timeDomainCollocationSolver:
             print("Error: Only weak electron flux BCs supported for linearized CN.")
             exit(-1)
 
-        if (self.Ns>2):
-            self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[2*self.Np,2*self.Np] = 1.0
+        #if (self.Ns>2):
+        #    self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        #    self.jac[2*self.Np,2*self.Np] = 1.0
 
-            self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[3*self.Np-1,3*self.Np-1] = 1.0
+        #    self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        #    self.jac[3*self.Np-1,3*self.Np-1] = 1.0
+
+        if (self.Ns > 2):
+            for i in range(2,self.Ns-1):
+                self.jac[i*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+                self.jac[i*self.Np,i*self.Np] = 1.0
+                self.jac[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+                self.jac[(i+1)*self.Np-1,(i+1)*self.Np-1] = 1.0
+
 
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
@@ -1481,9 +1477,15 @@ class timeDomainCollocationSolver:
             self.jac0[0        ,:] = np.zeros((1,self.Nv*self.Np))
             self.jac0[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
-        if (self.Ns>2):
-            self.jac0[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        #if (self.Ns>2):
+        #    self.jac0[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        #    self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+
+        if (self.Ns > 2):
+            for i in range(2,self.Ns-1):
+                self.jac0[i*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+                self.jac0[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+
 
         # Dirichlet on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
@@ -1972,9 +1974,7 @@ if __name__ == "__main__":
 
     # Default IC (overwritten below if we are restarting)
     #tds.U1[0:tds.Ns*tds.Np] = 1e-4
-    #tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
-    tds.U1[0:(tds.Ns-3)*tds.Np] = 1e-4
-    tds.U1[(tds.Ns-3)*tds.Np:(tds.Ns-1)*tds.Np] = 0.0 # These two lines added for the 4+2 mechanism... delete otherwise
+    tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
     tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
     tds.U1[tds.Ns*tds.Np:] = tds.params.EeBC*tds.U1[0:tds.Np] # electron energy
 
