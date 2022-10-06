@@ -150,9 +150,23 @@ class modelClosures:
 
         return mu[:,0]
 
-    def mobility_U(self, i, energy, nb):
+    def mobility_U(self, i, j, energy, energy_U, nb):
         mu_U = np.zeros((nb.shape[0],nb.shape[0]),dtype=np.float64)
-        #mu_U = np.diag(-self.mu[i]/ nb**2.0)
+
+        if self.mobilityList[i].interpolate:
+            indFixL = (energy[:,i]<=0.0)
+            energy[indFixL,i] = 0.0
+            energy_U[i,j,indFixL,:] = 0.0
+
+            indFixH = (energy[:,i]>10.0)
+            energy[indFixH,i] = 10.0
+            energy_U[i,j,indFixH,:] = 0.0
+
+            mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i])
+            mu_U_tmp = mu_ee * np.diag(energy_U[i,j,:,:])
+            mu_U[:,:] = np.diag(mu_U_tmp)
+
+
         return mu_U
 
     def diffusivity(self, i, energy, nb, EinsteinForm):
@@ -946,8 +960,10 @@ class timeDomainCollocationSolver:
                 diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j,
                                                                    energy, energy_U,
                                                                    self.EinsteinForm)
+                mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, dens[:,self.Ns-1])
+
             # TODO(trevilo): Extend mu_U usage beyond Ns-1
-            mu_U[i,self.Ns-1,:,:] = self.params.mobility_U(i, energy, dens[:,self.Ns-1])
+            #mu_U[i,self.Ns-1,:,:] = self.params.mobility_U(i, energy, dens[:,self.Ns-1])
 
             # TODO(trevilo): Chain rule out diffusivity_U dependence on mu_U
             # This should happen in diffusivity_U function!
@@ -999,14 +1015,14 @@ class timeDomainCollocationSolver:
             fspec_U[i,1,:,:] += self.params.charge(i) \
                 * np.multiply(mu[:,[i]], np.multiply(dens[:,[i]],-phi_x_ni))
 
-        for i in range(1,self.Ns-1):
-            for j in range(1,self.Nv):
+        for i in range(0,self.Ns-1):
+            for j in range(0,self.Nv):
                 fspec_U[i,j,:,:] += self.params.charge(i) * np.multiply(mu_U[i,j,:,:], np.multiply(dens[:,[i]],-phi_x))
                 fspec_U[i,j,:,:] -= np.multiply(diffusivity_U[i,j,:,:], dens_x[:,[i]])
 
-        fspec_U[0,0,:,:] -= np.multiply(diffusivity_U[0, 0, :, :], dens_x[:,iele])
-        fspec_U[0,self.Ns-1,:,:] -= np.multiply(diffusivity_U[0, self.Ns-1, :, :], dens_x[:,iele])
-        fspec_U[0,self.Ns,:,:] -= np.multiply(diffusivity_U[0, self.Ns, :, :], dens_x[:,iele])
+        #fspec_U[0,0,:,:] -= np.multiply(diffusivity_U[0, 0, :, :], dens_x[:,iele])
+        #fspec_U[0,self.Ns-1,:,:] -= np.multiply(diffusivity_U[0, self.Ns-1, :, :], dens_x[:,iele])
+        #fspec_U[0,self.Ns,:,:] -= np.multiply(diffusivity_U[0, self.Ns, :, :], dens_x[:,iele])
 
         # energy equations
         #fT = (5./3.)*(-np.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - np.multiply(diffusivity[:,0], nT_x[:,0]))
@@ -1017,7 +1033,8 @@ class timeDomainCollocationSolver:
         fT_U[1,:,:] = (5./3.)*(-mu[:,iele]*np.multiply(nT,-phi_x_ni))
         # TODO: Check mu_U dependence
         fT_U[self.Ns-1,:,:] = (5./3.) * np.multiply(-mu_U[0,self.Ns-1,:,:], np.multiply(nT,-phi_x))
-        fT_U[self.Ns,:,:] = (5./3.)*( -np.multiply(mu[:,iele],np.multiply(np.identity(self.Np),-phi_x))
+        fT_U[self.Ns,:,:] = (5./3.)*( np.multiply(-mu_U[0,self.Ns,:,:], np.multiply(nT,-phi_x))
+                                      -np.multiply(mu[:,iele],np.multiply(np.identity(self.Np),-phi_x))
                                       -np.multiply(diffusivity[:,iele], self.Dp))
         fT_U[0,:,:] -= (5./3.) * np.multiply(diffusivity_U[0, 0, :, :], nT_x[:,0])
         fT_U[self.Ns-1,:,:] -= (5./3.) * np.multiply(diffusivity_U[0, self.Ns-1, :, :], nT_x[:,0])
@@ -1026,14 +1043,23 @@ class timeDomainCollocationSolver:
         # overwrite endpoints in fi (weakly impose BC)
         fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
         fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
+
         # TODO: Check mu_U dependence
-        fspec_U[1,self.Ns-1,0,:] = mu_U[1,self.Ns-1,0,:] * dens[0,1] * (-phi_x[0,0])
+        # here
+        for i in range(0,self.Nv):
+            fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])
+
         fspec_U[1,1,0,0] += -self.params.ksion + mu[0,1] * (-phi_x[ 0])
 
         fspec_U[1,0,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
         fspec_U[1,1,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
+
         # TODO: Check mu_U dependence
-        fspec_U[1,self.Ns-1,-1,:] = mu_U[1,self.Ns-1,-1,:] * dens[-1,1] * (-phi_x[-1,0])
+        #fspec_U[1,self.Ns-1,-1,:] = mu_U[1,self.Ns-1,-1,:] * dens[-1,1] * (-phi_x[-1,0])
+        # here
+        for i in range(0,self.Nv):
+            fspec_U[1,i,-1,:] += mu_U[1,i,-1,:] * dens[-1,1] * (-phi_x[-1,0])
+
         fspec_U[1,1,-1,-1] += self.params.ksion + mu[-1,1] * (-phi_x[-1])
 
         rstrg_U = np.zeros((2,self.Nv*self.Np))
@@ -1130,13 +1156,16 @@ class timeDomainCollocationSolver:
             fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg,-phi_x_ne)))
             fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(naTg,-phi_x_ni)))
             # TODO: Check mu_U dependence
-            fa_U[self.Ns-1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu_U[i,self.Ns-1,:,:], np.multiply(naTg,-phi_x[:,0])))
+            # here
+            #fa_U[self.Ns-1,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu_U[i,self.Ns-1,:,:], np.multiply(naTg,-phi_x[:,0])))
             fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*np.multiply(mu[:,[i]], np.multiply(np.diag(Tg[:,0]),-phi_x))
                                     -np.multiply(diffusivity[:,[i]], self.Dp @ np.diag(Tg[:,0])))
             for j in range(0, self.Nv):
                 fa_U[j,:,:] += (5./3.)*(self.params.charge(i)
                                         *np.multiply(mu[:,[i]], np.multiply(dens[:,i]*(-phi_x),np.diag(Tg_U[:,j]))) -
                                         np.multiply(diffusivity[:,[i]], (self.Dp @ np.multiply(dens[:,[i]],np.diag(Tg_U[:,j])))))
+                # here
+                fa_U[j,:,:] += (5./3.)*self.params.charge(i)*np.multiply(mu_U[i,j,:,:],np.multiply(naTg[:,0],(-phi_x[:,0])))
                 fa_U[j,:,:] -= (5./3.) * np.multiply(self.Dp @ naTg, diffusivity_U[i,j,:,:])
 
         # background thermal conductivity contribution
@@ -1415,8 +1444,8 @@ class timeDomainCollocationSolver:
             self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
         # Dirichlet on heavy species temperature
-        self.jac0[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-        self.jac0[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        #self.jac0[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        #self.jac0[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
         # Dirichlet on electron temperature
         self.jac0[self.Ns*self.Np  ,:] = np.zeros((1,self.Nv*self.Np))
@@ -1474,9 +1503,9 @@ class timeDomainCollocationSolver:
             print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
                 count, normr, normr/normr0))
         while( not converged and (count < iter_max) ):
-            self.jacobianFD(self.U2, time, dt)
+            #self.jacobianFD(self.U2, time, dt)
             #np.save("jacobian_FD.npy", self.jac)
-            #self.jacobian(self.U2, time, dt, weak_bc)
+            self.jacobian(self.U2, time, dt, weak_bc)
             #np.save("jacobian_AN.npy", self.jac)
 
             try:

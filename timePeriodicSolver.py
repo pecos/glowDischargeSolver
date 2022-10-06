@@ -62,10 +62,14 @@ class timePeriodicSolver:
 
         # Compute the Jacobian
         A = np.identity(self.tds.Ndof)
-        A[(self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1,
-          (self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1] -= np.identity(self.tds.Np-2) \
-            * (1.0 - self.tds.backgroundSpecieActivationFactor)
+        #A[(self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1,
+        #  (self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1] -= np.identity(self.tds.Np-2) \
+        #    * (1.0 - self.tds.backgroundSpecieActivationFactor)
         self.jac = self.tds.A1 - A
+
+        # fix background part
+        self.jac[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np,
+                 (self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = np.identity(self.tds.Np)
 
         # return norm of residual
         return np.linalg.norm(self.res)
@@ -73,7 +77,9 @@ class timePeriodicSolver:
     def solveNewtonStep(self, Uic, Nt):
         # solve for newton update
         #Uic += np.linalg.solve(self.jac, -self.res)
+        print("Solving sensitivity system...")
         Uic += self.alpha * np.linalg.solve(self.jac, -self.res)
+        print("Finished.")
 
         if (self.alpha < 1):
             self.alpha *= self.increaseFac
@@ -244,7 +250,9 @@ if __name__ == "__main__":
             tps.tds.plot('r-',create=True)
             plt.show()
 
+        print("Calling periodicityResidual...")
         rnorm = tps.periodicityResidual(Uic, args.Nt)
+        print("Done...")
         niter += 1
         print(resPrint.format(niter,rnorm,rnorm/rnorm0))
 
