@@ -1505,7 +1505,7 @@ class timeDomainCollocationSolver:
         while( not converged and (count < iter_max) ):
             #self.jacobianFD(self.U2, time, dt)
             #np.save("jacobian_FD.npy", self.jac)
-            self.jacobian(self.U2, time, dt, weak_bc)
+            self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
             #np.save("jacobian_AN.npy", self.jac)
 
             try:
