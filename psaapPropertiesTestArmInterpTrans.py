@@ -205,6 +205,8 @@ def setPsaapPropertiesTestArmInterpTrans(gam, inputV0, inputVDC, params, Nr):
 
     params.verticalShift = verticalShift / V0
 
+    params.EeBC = 1.5
+
     # Parameters needed to compute the current with dimensions
     params.V0Ltau  = V0 / (L * tau)
     params.V0L     = V0 / L

@@ -118,6 +118,9 @@ class modelClosures:
         # DC voltage (vertical shift in the driving voltage)
         self.verticalShift = 0.0
 
+        # electron energy Dirichlet BC
+        self.EeBC = 0.75
+
         # Parameters needed to compute the current with dimensions
         self.V0Ltau  = 100 / (2.54 * 0.005 * (1./13.6e6))
         self.V0L     = 100 / (2.54 * 0.005)
@@ -767,8 +770,8 @@ class timeDomainCollocationSolver:
         # electron temperature
         #res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
         #res[(self.Ns+1)*self.Np-1] = (nT[-1] - 0.75*dens[-1,iele])
-        res[self.Ns*self.Np  ] = (nT[ 0] - 1.5*dens[0,iele])
-        res[(self.Ns+1)*self.Np-1] = (nT[-1] - 1.5*dens[-1,iele])
+        res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC * dens[0,iele])
+        res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC * dens[-1,iele])
 
         return res
 
@@ -829,8 +832,8 @@ class timeDomainCollocationSolver:
         # electron temperature
         #res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
         #res[(self.Ns+1)*self.Np-1] = (nT[-1] - 0.75*dens[-1,iele])
-        res[self.Ns*self.Np  ] = (nT[ 0] - 1.5*dens[0,iele])
-        res[(self.Ns+1)*self.Np-1] = (nT[-1] - 1.5*dens[-1,iele])
+        res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC*dens[0,iele])
+        res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC*dens[-1,iele])
 
         return res
 
@@ -1310,12 +1313,12 @@ class timeDomainCollocationSolver:
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
         #self.jac[self.Ns*self.Np,0] = -0.75
-        self.jac[self.Ns*self.Np,0] = -1.5
+        self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
         self.jac[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
         #self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
-        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -1.5
+        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
 
     def jacobianCN(self, Uin, time, dt, weak_bc=False, solve_poisson=False):
@@ -1366,12 +1369,12 @@ class timeDomainCollocationSolver:
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
         #self.jac[self.Ns*self.Np,0] = -0.75
-        self.jac[self.Ns*self.Np,0] = -1.5
+        self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
         self.jac[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
         #self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
-        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -1.5
+        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
     def jacobianLCN(self, Uin, time, dt, weak_bc=False):
         """Evaluates the Jacobian for Crank-Nicolson time marching.
@@ -1399,12 +1402,12 @@ class timeDomainCollocationSolver:
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
         #self.jac[self.Ns*self.Np,0] = -0.75
-        self.jac[self.Ns*self.Np,0] = -1.5
+        self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
         self.jac[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
         #self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
-        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -1.5
+        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
 
     def jacobian0(self, time, dt, weak_bc=False):
@@ -1913,7 +1916,7 @@ if __name__ == "__main__":
     tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
     tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
     #tds.U1[tds.Ns*tds.Np:] = 0.75*tds.U1[0:tds.Np] # electron energy
-    tds.U1[tds.Ns*tds.Np:] = 1.5*tds.U1[0:tds.Np] # electron energy
+    tds.U1[tds.Ns*tds.Np:] = tds.params.EeBC*tds.U1[0:tds.Np] # electron energy
 
     # If restart file provided, read it.
     # NOTE: currently we do a lazy restart in that only the final
