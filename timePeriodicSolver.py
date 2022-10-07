@@ -62,14 +62,18 @@ class timePeriodicSolver:
 
         # Compute the Jacobian
         A = np.identity(self.tds.Ndof)
-        #A[(self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1,
-        #  (self.tds.Ns-1)*self.tds.Np+1:self.tds.Ns*self.tds.Np-1] -= np.identity(self.tds.Np-2) \
-        #    * (1.0 - self.tds.backgroundSpecieActivationFactor)
+
         self.jac = self.tds.A1 - A
 
-        # fix background part
-        self.jac[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np,
-                 (self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = np.identity(self.tds.Np)
+        # if we aren't solving for the background specie density, need
+        # to modify Jacobian to avoid having Np rows of 0 for the to
+        # the background specie equations, which obviously leads to a
+        # singular matrix.  This problem occurs b/c the time periodic
+        # condition is satisfied for any constant, and this fix simply
+        # enforces that the background specie doesn't change.
+        if (self.tds.backgroundSpecieActivationFactor == 0):
+            self.jac[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np,
+                     (self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = np.identity(self.tds.Np)
 
         # return norm of residual
         return np.linalg.norm(self.res)
@@ -84,19 +88,6 @@ class timePeriodicSolver:
         if (self.alpha < 1):
             self.alpha *= self.increaseFac
             self.alpha = min(self.alpha, 1)
-
-
-        # # eliminate any negative values in electron density
-        # idx = ( Uic[0:self.tds.Np] < 0 )
-        # Uic[0:self.tds.Np][idx] = 1e-8
-
-        # # eliminate any negative values in electron energy
-        # idx = ( Uic[4*self.tds.Np:] < 0 )
-        # Uic[4*self.tds.Np:][idx] = 0.75 * Uic[0:self.tds.Np][idx]
-
-        # # Make sure BC still satisfied
-        # Uic[4*self.tds.Np] = 0.75 * Uic[0]
-        # Uic[5*self.tds.Np-1] = 0.75 * Uic[self.tds.Np-1]
 
 
 if __name__ == "__main__":

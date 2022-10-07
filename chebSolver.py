@@ -753,23 +753,21 @@ class timeDomainCollocationSolver:
             res[2*self.Np  ] = dens[ 0,2] - 0.0
             res[3*self.Np-1] = dens[-1,2] - 0.0
 
-        # enforce Dirichlet condition on heavy species temperature
-        ntot = np.zeros(self.Np)
+        # if solving for background density, enforce Dirichlet condition on heavy species temperature
+        if (self.backgroundSpecieActivationFactor > 0):
+            ntot = np.zeros(self.Np)
 
-        # add all heavies but background
-        for i in range(1, self.Ns-1):
-            ntot += dens[:,i]
+            # add all heavies but background
+            for i in range(1, self.Ns-1):
+                ntot += dens[:,i]
 
-        # add background contribution (accounting for non-dim difference)
-        # ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+            # add background contribution (accounting for non-dim difference)
+            ntot += self.params.nAronp0 * dens[:,self.Ns-1]
 
-        #res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
-        #    - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0 #ntot[ 0]*self.params.Tg0 + nT[ 0] - self.params.p0
-        #res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
-        #    - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0 #ntot[-1]*self.params.Tg0 + nT[-1] - self.params.p0
-
-        #res[(self.Ns-1)*self.Np] *= self.backgroundSpecieActivationFactor
-        #res[ self.Ns*self.Np-1 ] *= self.backgroundSpecieActivationFactor
+            res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
+                - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0
+            res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
+                - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
 
         # electron temperature
         #res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
@@ -813,6 +811,22 @@ class timeDomainCollocationSolver:
             res[2*self.Np  ] = dens[ 0,2] - 0.0
             res[3*self.Np-1] = dens[-1,2] - 0.0
 
+        # if solving for background density, enforce Dirichlet condition on heavy species temperature
+        if (self.backgroundSpecieActivationFactor > 0):
+            ntot = np.zeros(self.Np)
+
+            # add all heavies but background
+            for i in range(1, self.Ns-1):
+                ntot += dens[:,i]
+
+            # add background contribution (accounting for non-dim difference)
+            ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+
+            res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
+                - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0
+            res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
+                - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
+
         # enforce Dirichlet condition on heavy species temperature
         ntot = np.zeros(self.Np)
 
@@ -820,22 +834,7 @@ class timeDomainCollocationSolver:
         for i in range(1, self.Ns-1):
             ntot += dens[:,i]
 
-        # add background contribution (accounting for non-dim difference)
-        # ntot += self.params.nAronp0 * dens[:,self.Ns-1]
-
-        #res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
-        #    - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0
-        #    #ntot[ 0]*self.params.Tg0 + nT[ 0] - self.params.p0
-        #res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
-        #    - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
-        #    #ntot[-1]*self.params.Tg0 + nT[-1] - self.params.p0
-
-        #res[(self.Ns-1)*self.Np] *= self.backgroundSpecieActivationFactor
-        #res[ self.Ns*self.Np-1 ] *= self.backgroundSpecieActivationFactor
-
         # electron temperature
-        #res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
-        #res[(self.Ns+1)*self.Np-1] = (nT[-1] - 0.75*dens[-1,iele])
         res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC*dens[0,iele])
         res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC*dens[-1,iele])
 
@@ -1276,37 +1275,32 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
-        # # Dirichlet on heavy species temperature
-        # self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        # Dirichlet on heavy species temperature
+        if (self.backgroundSpecieActivationFactor > 0):
+            self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
 
-        # for i in range(1,self.Ns-1):
-        #     self.jac[(self.Ns-1)*self.Np,i*self.Np] = 1.0 / self.params.nAronp0 \
-        #         * self.backgroundSpecieActivationFactor
+            for i in range(1,self.Ns-1):
+                self.jac[(self.Ns-1)*self.Np,i*self.Np] = 1.0 / self.params.nAronp0
 
-        # self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0 #self.params.nAronp0*self.params.Tg0
-        # self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0 / self.params.Tg0 / self.params.nAronp0 \
-        #     * self.backgroundSpecieActivationFactor
+            self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
+            self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
-        # self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
-        # for i in range(1,self.Ns-1):
-        #     self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = 1.0 / self.params.nAronp0 \
-        #         * self.backgroundSpecieActivationFactor
+            for i in range(1,self.Ns-1):
+                self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = 1.0 / self.params.nAronp0
 
-        # self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0 #self.params.nAronp0*self.params.Tg0
-        # self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0 / self.params.Tg0 / self.params.nAronp0 \
-        #     * self.backgroundSpecieActivationFactor
+            self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
+            self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
 
         # Dirichlet condition on electron energy
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
-        #self.jac[self.Ns*self.Np,0] = -0.75
         self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
         self.jac[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
-        #self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
         self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
 
@@ -1334,35 +1328,29 @@ class timeDomainCollocationSolver:
             self.jac[3*self.Np-1,3*self.Np-1] = 1.0
 
         # Dirichlet on heavy species temperature
-        #self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+        if (self.backgroundSpecieActivationFactor > 0):
+            self.jac[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
 
-        # for i in range(1,self.Ns-1):
-        #     self.jac[(self.Ns-1)*self.Np,i*self.Np] = 1.0 / self.params.nAronp0 \
-        #         * self.backgroundSpecieActivationFactor
+            for i in range(1,self.Ns-1):
+                self.jac[(self.Ns-1)*self.Np,i*self.Np] = 1.0 / self.params.nAronp0
 
-        # self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0 self.params.nAronp0*self.params.Tg0
-        # self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0 / self.params.Tg0 / self.params.nAronp0 \
-        #     * self.backgroundSpecieActivationFactor
+            self.jac[(self.Ns-1)*self.Np,(self.Ns-1)*self.Np] = 1.0
+            self.jac[(self.Ns-1)*self.Np,self.Ns*self.Np] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
-        # self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
-        # for i in range(1,self.Ns-1):
-        #     self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = 1.0 / self.params.nAronp0 \
-        #         * self.backgroundSpecieActivationFactor
+            for i in range(1,self.Ns-1):
+                self.jac[self.Ns*self.Np-1,(i+1)*self.Np-1] = 1.0 / self.params.nAronp0
 
-        # self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0 self.params.nAronp0*self.params.Tg0
-        # self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0 / self.params.Tg0 / self.params.nAronp0 \
-        #     * self.backgroundSpecieActivationFactor
-
+            self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
+            self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
-        #self.jac[self.Ns*self.Np,0] = -0.75
         self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
         self.jac[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
-        #self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
         self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
     def jacobianLCN(self, Uin, time, dt, weak_bc=False):
@@ -1436,8 +1424,9 @@ class timeDomainCollocationSolver:
             self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
         # Dirichlet on heavy species temperature
-        #self.jac0[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-        #self.jac0[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        if (self.backgroundSpecieActivationFactor > 0):
+            self.jac0[(self.Ns-1)*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac0[self.Ns*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
         # Dirichlet on electron temperature
         self.jac0[self.Ns*self.Np  ,:] = np.zeros((1,self.Nv*self.Np))
