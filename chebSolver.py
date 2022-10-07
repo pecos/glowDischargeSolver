@@ -147,13 +147,13 @@ class modelClosures:
             indFix = (energy[:,0]>10.0)
             energy[indFix,0] = 10.0
 
-            mu = self.mobilityList[i].mu_expression((2./3)*energy[:,[i]])
+            mu = self.mobilityList[i].mu_expression((2./3)*energy[:,[i]]) / nb
         else:
-            mu[:,0] = self.mu[i]
+            mu[:,0] = self.mu[i] / nb
 
         return mu[:,0]
 
-    def mobility_U(self, i, j, energy, energy_U, nb):
+    def mobility_U(self, i, j, energy, energy_U, mu, nb):
         mu_U = np.zeros((nb.shape[0],nb.shape[0]),dtype=np.float64)
 
         if self.mobilityList[i].interpolate:
@@ -165,16 +165,17 @@ class modelClosures:
             energy[indFixH,i] = 10.0
             energy_U[i,j,indFixH,:] = 0.0
 
-            mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i])
+            mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
             mu_U_tmp = mu_ee * np.diag(energy_U[i,j,:,:])
             mu_U[:,:] = np.diag(mu_U_tmp)
 
+        if (j == self.Ns - 1):
+            mu_U -= np.diag(mu[:,i] / nb / nb)
 
         return mu_U
 
-    def diffusivity(self, i, energy, nb, EinsteinForm):
+    def diffusivity(self, i, energy, mu, nb, EinsteinForm):
         DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
-
 
         if self.diffusivityList[i].interpolate:
             indFix = (energy[:,0]<=0.0)
@@ -184,12 +185,17 @@ class modelClosures:
             energy[indFix,0] = 10.0
 
             DEf[:,0] = self.diffusivityList[i].D_expression((2./3)*energy[:,i])
+
+        elif EinsteinForm:
+            V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+            DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
+
         else:
             DEf[:,0] = self.D[i]
 
         return DEf[:,0]
 
-    def diffusivity_U(self, i, j, energy, energy_U, EinsteinForm):
+    def diffusivity_U(self, i, j, energy, energy_U, mu, D, nb, EinsteinForm):
         D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
 
         if self.diffusivityList[i].interpolate:
@@ -201,22 +207,23 @@ class modelClosures:
             energy[indFixH,i] = 10.0
             energy_U[i,j,indFixH,:] = 0.0
 
-            D_ee = (2./3)*self.diffusivityList[i].D_T_expression((2./3)*energy[:,i])
+            D_ee = (2./3)*self.diffusivityList[i].D_T_expression((2./3)*energy[:,i]) / nb
             D_U_tmp = D_ee * np.diag(energy_U[i,j,:,:])
             D_U[:,:] = np.diag(D_U_tmp)
 
+        elif EinsteinForm:
+            # """The derivative of diffusivity over n_b is computed
+            # inside the spatial_jacobian function.
+            # !!! Please  check this line too when and if you adjust D_U here. !!!
+            # """
+            V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+            D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
+
+        if (j == self.Ns - 1):
+            D_U[:,:] -= np.diag(D[:,i] / nb / nb)
+
         return D_U
 
-
-        # """The derivative of diffusivity over n_b is computed in line 899 
-        # inside the spatial_jacobian function.
-        # !!! Please  check this line too when and if you adjust D_U here. !!!
-        # """
-        # D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
-        # if EinsteinForm:
-        #     V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-        #     D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
-        # return D_U
 
     def rxnSourceTerm(self, energy, density):
         G = self.progressRate(energy,density)
@@ -560,7 +567,7 @@ class timeDomainCollocationSolver:
 
         for i in range(0,self.Ns):
             mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
-            diffusivity[:,i] = self.params.diffusivity(i, energy,
+            diffusivity[:,i] = self.params.diffusivity(i, energy, mu,
                                                        dens[:,self.Ns-1],
                                                        self.EinsteinForm)
 
@@ -600,9 +607,6 @@ class timeDomainCollocationSolver:
         # form source terms at collocation points
         omega = self.params.rxnSourceTerm(Te, dens)
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
-        #import matplotlib.pyplot as plt
-        #plt.plot(SJ)
-        #plt.show()
 
         # elastic collision term at collocation points
         SEC  = -self.params.EC * (nT - np.multiply(dens[0, iele], Tg))
@@ -946,7 +950,7 @@ class timeDomainCollocationSolver:
 
         for i in range(0,self.Ns):
             mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
-            diffusivity[:,i] = self.params.diffusivity(i, energy,
+            diffusivity[:,i] = self.params.diffusivity(i, energy, mu,
                                                        dens[:,self.Ns-1],
                                                        self.EinsteinForm)
         energy_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
@@ -962,15 +966,10 @@ class timeDomainCollocationSolver:
             for j in range(0,self.Nv):
                 diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j,
                                                                    energy, energy_U,
+                                                                   mu, diffusivity, dens[:,self.Ns-1],
                                                                    self.EinsteinForm)
-                mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, dens[:,self.Ns-1])
+                mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, mu, dens[:,self.Ns-1])
 
-            # TODO(trevilo): Extend mu_U usage beyond Ns-1
-            #mu_U[i,self.Ns-1,:,:] = self.params.mobility_U(i, energy, dens[:,self.Ns-1])
-
-            # TODO(trevilo): Chain rule out diffusivity_U dependence on mu_U
-            # This should happen in diffusivity_U function!
-            #diffusivity_U[i,self.Ns-1,:,:] -= np.diag(diffusivity[:,i] / dens[:,self.Ns-1])
 
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
