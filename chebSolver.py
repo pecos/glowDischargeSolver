@@ -13,7 +13,7 @@ from psaapPropertiesTestJP import setPsaapPropertiesTestJP
 from psaapPropertiesTestJP_Nominal import setPsaapPropertiesTestJP_Nominal
 from psaapPropertiesTestJP_Arrhenius import setPsaapPropertiesTestJP_Arrhenius
 from psaapProperties_6Species import setPsaapProperties_6Species
-from psaapProperties_4plus2Species import setPsaapProperties_4plus2Species
+from psaapProperties_6Species_Sampling import setPsaapProperties_6Species_Sampling
 
 class modelClosures:
     """Class providing model parameters."""
@@ -438,7 +438,7 @@ class timeDomainCollocationSolver:
         elif(scenario==9):
             Nr = 23
         elif(scenario==10):
-            Nr = 9
+            Nr = 23
         elif(scenario==21):
             Nr = 8
         else:
@@ -472,7 +472,7 @@ class timeDomainCollocationSolver:
         elif(scenario==9):
             setPsaapProperties_6Species(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==10):
-            setPsaapProperties_4plus2Species(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_Sampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
@@ -919,8 +919,8 @@ class timeDomainCollocationSolver:
 
         if (self.Ns > 2):
             for i in range(2, self.Ns-1):
-                res[i*self.Np      ] = res[ 0,i] - 0.0
-                res[(i+1)*self.Np-1] = res[-1,i] - 0.0
+                res[i*self.Np      ] = 0.0
+                res[(i+1)*self.Np-1] = 0.0
 
         #if (self.Ns == 6):
             #res[2*self.Np  ] = 0.0
