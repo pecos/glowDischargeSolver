@@ -250,7 +250,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     De_interp = params.D[0]*np.ones(10)
     De_spline = CubicSpline(Te, De_interp)
     De_Te_spline = CubicSpline.derivative(De_spline)
-    diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
+    diffusivity = Diffusivity(interpolate = False, D_expression = De_spline, D_T_expression = De_Te_spline)
     diffList.append(diffusivity)
 
     Ns = 4
@@ -264,7 +264,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     mue_interp = params.mu[0]*np.ones(10)
     mue_spline = CubicSpline(Te, mue_interp)
     mue_Te_spline = CubicSpline.derivative(mue_spline)
-    mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    mobility = Mobility(interpolate = False, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
     muList.append(mobility)
 
     Ns = 4

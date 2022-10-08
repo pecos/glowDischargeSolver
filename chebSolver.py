@@ -170,7 +170,7 @@ class modelClosures:
             mu_U[:,:] = np.diag(mu_U_tmp)
 
         if (j == self.Ns - 1):
-            mu_U -= np.diag(mu[:,i] / nb / nb)
+            mu_U -= np.diag(mu[:,i] / nb)
 
         return mu_U
 
@@ -184,14 +184,14 @@ class modelClosures:
             indFix = (energy[:,0]>10.0)
             energy[indFix,0] = 10.0
 
-            DEf[:,0] = self.diffusivityList[i].D_expression((2./3)*energy[:,i])
+            DEf[:,0] = self.diffusivityList[i].D_expression((2./3)*energy[:,i]) / nb
 
         elif EinsteinForm:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
 
         else:
-            DEf[:,0] = self.D[i]
+            DEf[:,0] = self.D[i] / nb
 
         return DEf[:,0]
 
@@ -220,7 +220,7 @@ class modelClosures:
             D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
 
         if (j == self.Ns - 1):
-            D_U[:,:] -= np.diag(D[:,i] / nb / nb)
+            D_U[:,:] -= np.diag(D[:,i] / nb)
 
         return D_U
 
@@ -762,7 +762,7 @@ class timeDomainCollocationSolver:
                 ntot += dens[:,i]
 
             # add background contribution (accounting for non-dim difference)
-            ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+            #ntot += self.params.nAronp0 * dens[:,self.Ns-1]
 
             res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
                 - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0
@@ -820,7 +820,7 @@ class timeDomainCollocationSolver:
                 ntot += dens[:,i]
 
             # add background contribution (accounting for non-dim difference)
-            ntot += self.params.nAronp0 * dens[:,self.Ns-1]
+            #ntot += self.params.nAronp0 * dens[:,self.Ns-1]
 
             res[(self.Ns-1)*self.Np] = dens[  0,self.Ns-1] \
                 - ((self.params.p0 - nT[  0]) / self.params.Tg0 - ntot[ 0]) / self.params.nAronp0
