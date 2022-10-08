@@ -213,10 +213,6 @@ class modelClosures:
             D_U[:,:] = np.diag(D_U_tmp)
 
         elif EinsteinForm:
-            # """The derivative of diffusivity over n_b is computed
-            # inside the spatial_jacobian function.
-            # !!! Please  check this line too when and if you adjust D_U here. !!!
-            # """
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
 
@@ -771,8 +767,6 @@ class timeDomainCollocationSolver:
                 - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
 
         # electron temperature
-        #res[self.Ns*self.Np  ] = (nT[ 0] - 0.75*dens[0,iele])
-        #res[(self.Ns+1)*self.Np-1] = (nT[-1] - 0.75*dens[-1,iele])
         res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC * dens[0,iele])
         res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC * dens[-1,iele])
 
@@ -1379,12 +1373,10 @@ class timeDomainCollocationSolver:
 
         self.jac[self.Ns*self.Np,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
-        #self.jac[self.Ns*self.Np,0] = -0.75
         self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
         self.jac[(self.Ns+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
-        #self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -0.75
         self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
 
@@ -1894,7 +1886,6 @@ if __name__ == "__main__":
     #tds.U1[0:tds.Ns*tds.Np] = 1e-4
     tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
     tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
-    #tds.U1[tds.Ns*tds.Np:] = 0.75*tds.U1[0:tds.Np] # electron energy
     tds.U1[tds.Ns*tds.Np:] = tds.params.EeBC*tds.U1[0:tds.Np] # electron energy
 
     # If restart file provided, read it.
