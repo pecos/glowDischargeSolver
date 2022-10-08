@@ -140,7 +140,8 @@ class modelClosures:
 
     def mobility(self, i, energy, nb):
         mu = np.zeros((nb.shape[0],1),dtype=np.float64)
-        if self.mobilityList[i].interpolate:
+
+        if (len(self.mobilityList)>i and self.mobilityList[i].interpolate):
             indFix = (energy[:,0]<=0.0)
             energy[indFix,0] = 0.0
 
@@ -156,7 +157,7 @@ class modelClosures:
     def mobility_U(self, i, j, energy, energy_U, mu, nb):
         mu_U = np.zeros((nb.shape[0],nb.shape[0]),dtype=np.float64)
 
-        if self.mobilityList[i].interpolate:
+        if (len(self.mobilityList) > i and self.mobilityList[i].interpolate):
             indFixL = (energy[:,i]<=0.0)
             energy[indFixL,i] = 0.0
             energy_U[i,j,indFixL,:] = 0.0
@@ -177,7 +178,7 @@ class modelClosures:
     def diffusivity(self, i, energy, mu, nb, EinsteinForm):
         DEf = np.zeros((energy.shape[0],1),dtype=np.float64)
 
-        if self.diffusivityList[i].interpolate:
+        if (len(self.diffusivityList) > i and self.diffusivityList[i].interpolate):
             indFix = (energy[:,0]<=0.0)
             energy[indFix,0] = 0.0
 
@@ -198,7 +199,7 @@ class modelClosures:
     def diffusivity_U(self, i, j, energy, energy_U, mu, D, nb, EinsteinForm):
         D_U = np.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=np.float64)
 
-        if self.diffusivityList[i].interpolate:
+        if (len(self.diffusivityList) > i and self.diffusivityList[i].interpolate):
             indFixL = (energy[:,i]<=0.0)
             energy[indFixL,i] = 0.0
             energy_U[i,j,indFixL,:] = 0.0
@@ -749,9 +750,9 @@ class timeDomainCollocationSolver:
             res[0]           = rstrg[0] #fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
             res[self.Np-1]   = rstrg[1] #fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
 
-        if (self.Ns>2):
-            res[2*self.Np  ] = dens[ 0,2] - 0.0
-            res[3*self.Np-1] = dens[-1,2] - 0.0
+        for i in range(2,self.Ns-1):
+            res[i*self.Np  ] = dens[ 0,i] - 0.0
+            res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
 
         # if solving for background density, enforce Dirichlet condition on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
@@ -807,9 +808,9 @@ class timeDomainCollocationSolver:
             res[0]           = rstrg[0] #fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
             res[self.Np-1]   = rstrg[1] #fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
 
-        if (self.Ns>2):
-            res[2*self.Np  ] = dens[ 0,2] - 0.0
-            res[3*self.Np-1] = dens[-1,2] - 0.0
+        for i in range(2,self.Ns-1):
+            res[i*self.Np  ] = dens[ 0,i] - 0.0
+            res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
 
         # if solving for background density, enforce Dirichlet condition on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
@@ -1268,12 +1269,12 @@ class timeDomainCollocationSolver:
             self.jac[0,:] = rstrg_U[0,:]
             self.jac[self.Np-1,:] = rstrg_U[1,:]
 
-        if (self.Ns>2):
-            self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[2*self.Np,2*self.Np] = 1.0
+        for i in range(2,self.Ns-1):
+            self.jac[i*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[i*self.Np,i*self.Np] = 1.0
 
-            self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[3*self.Np-1,3*self.Np-1] = 1.0
+            self.jac[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[(i+1)*self.Np-1,(i+1)*self.Np-1] = 1.0
 
         # Dirichlet on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
@@ -1320,12 +1321,12 @@ class timeDomainCollocationSolver:
             self.jac[0,:] = rstrg_U[0,:]
             self.jac[self.Np-1,:] = rstrg_U[1,:]
 
-        if (self.Ns>2):
-            self.jac[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[2*self.Np,2*self.Np] = 1.0
+        for i in range(2,self.Ns-1):
+            self.jac[i*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[i*self.Np,i*self.Np] = 1.0
 
-            self.jac[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-            self.jac[3*self.Np-1,3*self.Np-1] = 1.0
+            self.jac[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac[(i+1)*self.Np-1,(i+1)*self.Np-1] = 1.0
 
         # Dirichlet on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
