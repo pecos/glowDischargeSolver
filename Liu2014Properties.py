@@ -1,7 +1,4 @@
 import numpy as np
-from scipy.interpolate import CubicSpline
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 
 
 class Reaction(object):
@@ -22,6 +19,8 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
     Outputs: None
       params data is overwritten using values from Liu 2014.
     """
+    assert iSample == 0, "This scenario is not set up for sampling"
+
     ###################################################################
     # User specified parameters (you may change these if you wish to
     # run a different scenario from Liu 2014)
@@ -161,102 +160,14 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
 
     reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)"]
 
-    reactionExpressionTypelist = [True]
-
     reactionsList = []
     for i in range(Nr):
-        if reactionExpressionTypelist[i]:
-            Nsample = 72
-            N300 = 200
+        rxn   = eval("lambda energy :" + reactionExpressionslist[i])
+        rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
 
-            rateCoeff = np.fromfile('./BOLSIGChemistry/reaction300K_%s.dat' %str(i))
-            rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
-
-            Te = np.fromfile('./BOLSIGChemistry/reaction300K.Te.dat')
-            Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
-
-            # Nondimensionalization of mean energy and transformation to log scale.
-            # Te *= 1.5
-            TeLog = np.log(Te)
-
-            # Find first non-zero value of the coefficient rate.
-            I = np.nonzero(rateCoeff)
-
-            # Compute the slope of the rate coefficient between its first two non-zero values.
-            # Finite differences are used.
-            dydx = (rateCoeff[I[0][0] + 1] - rateCoeff[I[0][0]]) \
-                 / (Te[I[0][0] + 1] - Te[I[0][0]])
-
-            # Arrhenius form: kf = A * exp(-C / Te)
-            # C = (dkf/dTe) / kf * Te**2.0
-            # A = kf / exp(-C / Te)
-            C = Te[I[0][0]]**2.0*dydx / rateCoeff[I[0][0]]
-            # A = rateCoeff[I[0][0]] / np.exp(-C/Te[I[0][0]])
-
-            # Compute pre-exponential coefficient, A, in log scale.
-            ALog = np.log(rateCoeff[I[0][0]]) + C / Te[I[0][0]]
-
-            # Transform rate coefficient in log scale.
-            rateCoeffLog = np.zeros(rateCoeff.shape)
-            rateCoeffLog[I[0][0]:] = np.log(rateCoeff[I[0][0]:])
-            # For the troublesome values, we use the Arrhenius form.
-            rateCoeffLog[0:I[0][0]] = ALog - C / Te[0:I[0][0]]
-            # Nondimensionalization in log scale.
-            if i < 2:
-                rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
-            else:
-                rateCoeffLog += - np.log(1.0/tau) + np.log(np0)
-            # Nondimensionalization of the original rate, used for the plot and comparison.
-            rateCoeff *= tau * nAr
-
-            # Interpolation in log scale.
-            reactionExpressionsLog = CubicSpline(TeLog, rateCoeffLog)
-            # Gradient in log scale
-            reactionTExpressionsLog = CubicSpline.derivative(reactionExpressionsLog)
-
-            reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
-                                rxnBolsig = reactionExpressionTypelist[i],
-                                kf_log = reactionExpressionsLog,
-                                kf_T_log = reactionTExpressionsLog)
-            reactionsList.append(reaction)
-
-            # rxn   = eval("lambda energy :" + reactionExpressionslist[i])
-            # rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
-
-            # # setting the axes at the centre
-            # fig ,ax = plt.subplots(figsize=(9, 6))
-            # ax.spines["top"].set_visible(True)
-            # ax.spines["right"].set_visible(True)
-            # # ax.set_yscale('log')
-            # # ax.set_xscale('log')
-
-            # # plot the function
-            # # plt.plot(rateCoeffXFiner, np.exp(reactionExpressions_cubicSplineDerivative_log(rateCoeffXFiner)),
-            # #  		 color='salmon', linestyle='--', label='interBolsig')
-            # # plt.plot(rateCoeffXFine, np.exp(reactionExpressions_cubicSpline_log(rateCoeffXFine)),
-            # #  		 color='lightgreen', linestyle='--', label='interBolsig')
-            # plt.plot(Te, reactionTExpressionsLogFiltered(TeLog) * np.exp(reactionExpressionsLog(TeLog)) / Te,
-            #  		 color='blue', linestyle='-', label='interBolsig')
-            # plt.plot(Te, np.exp(reactionExpressionsLog(TeLog)),
-            #  		 color='green', linestyle='-', label='interBolsig')
-            # plt.plot(Te, rxn(Te),
-            #  		 color='salmon', linestyle='--', label='interBolsig')
-            # plt.plot(Te, rxn_T(Te),
-            #  		 color='red', linestyle='--', label='interBolsig')
-            # plt.xlim((0.05,100))
-            # plt.ylim((1e-200,300))
-            # plt.savefig("./VoltageTimeSeries/VoltageTimeSeries_50mTorr_20W" + ".pdf", dpi=300)
-            # # plt.xlim((-0.0001,0.0255))
-            # plt.show()
-
-        else:
-            rxn   = eval("lambda energy :" + reactionExpressionslist[i])
-            rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
-
-            reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
-                                rxnBolsig = reactionExpressionTypelist[i],
-                                kf = rxn, kf_T = rxn_T)
-            reactionsList.append(reaction)
+        reaction = Reaction(rxnAlfa = params.alfa, rxnBeta = params.beta,
+                            kf = rxn, kf_T = rxn_T, rxnBolsig = False)
+        reactionsList.append(reaction)
 
     params.reactionsList = reactionsList
 
