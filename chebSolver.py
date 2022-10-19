@@ -1477,14 +1477,9 @@ class timeDomainCollocationSolver:
             self.jac0[0        ,:] = np.zeros((1,self.Nv*self.Np))
             self.jac0[self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
-        #if (self.Ns>2):
-        #    self.jac0[2*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-        #    self.jac0[3*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
-
-        if (self.Ns > 2):
-            for i in range(2,self.Ns-1):
-                self.jac0[i*self.Np,:] = np.zeros((1,self.Nv*self.Np))
-                self.jac0[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
+        for i in range(2,self.Ns-1):
+            self.jac0[i*self.Np,:] = np.zeros((1,self.Nv*self.Np))
+            self.jac0[(i+1)*self.Np-1,:] = np.zeros((1,self.Nv*self.Np))
 
 
         # Dirichlet on heavy species temperature
