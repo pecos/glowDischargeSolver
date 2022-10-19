@@ -422,7 +422,7 @@ class timeDomainCollocationSolver:
         elif(scenario==1):
             Nr = 1
         elif(scenario==2):
-            Nr = 7
+            Nr = 8
         elif(scenario==3):
             Nr = 8
         elif(scenario==4):

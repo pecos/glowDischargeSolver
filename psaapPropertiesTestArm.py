@@ -25,7 +25,7 @@ class Mobility(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
+def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -35,6 +35,8 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     Outputs: None
       params data is overwritten using values from Liu 2014.
     """
+    assert iSample == 0, "This scenario is not set up for sampling"
+
     ###################################################################
     # User specified parameters (you may change these if you wish to
     # run a different scenario from Liu 2014)
