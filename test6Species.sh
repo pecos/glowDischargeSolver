@@ -28,7 +28,7 @@ baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --EinsteinForm --e
 newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --alpha0 0.1 --increaseFac 1.5 --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
 saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt --scenario $scenario --tscheme CN --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
 
-diffCmd="python3 ../diffSolns.py --reference ../reference_solns/Nominal_Np250_solution.npy --Np $Np --Nv 5"
+diffCmd="python3 ../diffSolns.py --reference ../reference_solns/Nominal_Np250_solution.npy --Np $Np --Nv 7"
 
 
 screenOut="run6species.out"
