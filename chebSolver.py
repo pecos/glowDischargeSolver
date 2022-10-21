@@ -193,7 +193,7 @@ class modelClosures:
 
             DEf[:,0] = self.diffusivityList[i].D_expression((2./3)*energy[:,i]) / nb
 
-        elif EinsteinForm:
+        elif EinsteinForm and self.Z[i] == -1:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
 
