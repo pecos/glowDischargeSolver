@@ -38,3 +38,6 @@ $newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "../reference_solns
                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
 $diffCmd --solution $newtFile >> $screenOut || error_exit "Solution differs from reference"
+
+# if test passed, delete tmp dir
+rm -rf $tmp_dir
