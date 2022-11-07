@@ -14,6 +14,23 @@ class Reaction(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
+class Diffusivity(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+class Mobility(object):
+    def __init__(self, *initial_data, **kwargs):
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+
 def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
@@ -62,16 +79,11 @@ def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSa
 
     # transport parameters
     nmue = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
-    #nmui = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
-    #nmum = 1 / (np.sqrt(16.0 * (mAr + mAr) * 300 * 8.62e-5 * c**2
-    #                    / (3.0 * np.pi * mAr * mAr)) * se * mAr * 1.6e-19 / c**2)
     nmum = 0.0
     nmui = 8.0e19
-    #nmum = 9.35e19
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times metastable diffusivity [1/(cm*s)]
-    #nDm  = 3.914e20
 
     # reaction parameters (NB: k_i = Ck*Ee^B*exp(-A/Ee))
     #                          Ee = 3/2*Te (Te in eV)
@@ -109,7 +121,7 @@ def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSa
     nmui *= 100. # 1/(V*m*s)
     Ck[0:5]  *= 1e-6 # m^3/s
     Ck[5:9]  *= 1 # 1/s
-    Ck[9:22] *= 1e-6 # m^6/s
+    Ck[9:]   *= 1e-6 # m^6/s
     ks   *= 0.01 # m/s
     se   *= 1.0e-20  # m^2
 
@@ -183,29 +195,29 @@ def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSa
             # Rxn22: E + AR(r)      ->   E + AR(m)
             # Rxn23: E + AR(r)      ->   E + AR(4p)
 
-    rxnNameDict = {0: "2AR(m) => 2AR",
-                   1: "AR(m) + AR(r) => E + AR+ + AR",
-                   2: "2AR(4p) => E + AR+ + AR",
-                   3: "2AR(m) => E + AR+ + AR",
-                   4: "AR(m) + AR => 2AR",
-                   5: "AR(r) => AR",
-                   6: "AR(4p) => AR",
-                   7: "AR(4p) => AR(m)",
-                   8: "Ar(4p) => AR(r)",
+    rxnNameDict = {0: "Ar(m) + Ar(m) => Ar + Ar",
+                   1: "Ar(m) + Ar(r) => E + Ar + Ar+",
+                   2: "Ar(4p) + Ar(4p) => E + Ar + Ar+",
+                   3: "Ar(m) + Ar(m) => E + Ar + Ar+",
+                   4: "Ar + Ar(m) => Ar + Ar",
+                   5: "Ar(r) => Ar",
+                   6: "Ar(4p) => Ar",
+                   7: "Ar(4p) => Ar(m)",
+                   8: "Ar(4p) => Ar(r)",
                    9: "1s-metastable",
                    10: "1s-resonance",
                    11: "2p-lumped",
                    12: "Ionization",
-                   13: "E + AR(m) => E + AR",
+                   13: "E + Ar(m) => E + Ar",
                    14: "StepIonization",
-                   15: "E + AR(m) => E + AR(r)",
-                   16: "E + AR(m) => E + AR(4p)",
-                   17: "E + AR(4p) => 2E + AR+",
-                   18: "E + AR(4p) => E + AR(r)",
-                   19: "E + AR(4p) => E + AR(m)",
-                   20: "E + AR(r) => E + AR",
-                   21: "E + AR(r) => E + AR(m)",
-                   22: "E + AR(r) => E + AR(4p)"}
+                   15: "E + Ar(m) => E + Ar(r)",
+                   16: "E + Ar(m) => E + Ar(4p)",
+                   17: "E + Ar(4p) => E + E + Ar+",
+                   18: "E + Ar(4p) => E + Ar(r)",
+                   19: "E + Ar(4p) => E + Ar(m)",
+                   20: "E + Ar(r) => E + Ar",
+                   21: "E + Ar(r) => E + Ar(m)",
+                   22: "E + Ar(r) => E + Ar(4p)"}
 
     # 4) Set values in params class
     params.D[0]    = De
@@ -252,36 +264,31 @@ def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSa
     params.eArea   = electrodeArea # electrode area [m^2]
 
 
-    reactionExpressionTypelist = np.array([False,False,False,False,False,False,False,False,False,
-                                           True,True,True,True,False,True,False,False,False,False,False,False,False,False])
+    reactionExpressionTypelist =  np.array([False,False,False,False,False,False,False,False,False,
+                                           True,True,True,True,False,True,True,True,False,True,True,False,True,True])
 
     reactionsList = []
     LOGFilename = 'interpolationSample%s.log'%str(iSample)
     f = open(LOGFilename, 'w')
 
     for i in range(Nr):
-        Nsample = 20
-        N300 = 200
-        sample_root_dir = "../6species_SampleFiles"
+        sample_root_dir = "../../BOLSIGChemistry_6SpeciesRates"
         if reactionExpressionTypelist[i]:
-            #Nsample = 1
-            #N300 = 200
-            fileString = sample_root_dir + "/" + rxnNameDict[i]
-            fileName = "%s.%08d.h5" % (fileString, iSample)
-            f = h5.File(fileName, 'r')
-            dataset = f["table"]
+            if (i < 15):
+                fileString = sample_root_dir + "/" + rxnNameDict[i]
+                fileName = "%s.%08d.h5" % (fileString, iSample)
+                f = h5.File(fileName, 'r')
+                dataset = f["table"]
+            else:
+                fileString = sample_root_dir + "/" + "StepwiseExcitations"
+                fileName = "%s.%08d.h5" % (fileString, iSample)
+                f = h5.File(fileName, 'r')
+                dataset = f[rxnNameDict[i]]
             
-            #rateCoeff = np.fromfile(rate_file)
             rateCoeff = dataset[:,1]
             rateCoeff /= 6.022e23
-            #rateCoeff = np.reshape(rateCoeff,[Nsample, N300]).T[:,iSample]
-            #rateCoeff = np.reshape(rateCoeff,[1, N300]).T[:,1]
-
-            #Te = np.fromfile(temp_file)
             Te = dataset[:,0]
             Te /= 11604.
-            #Te = np.reshape(Te,[Nsample, N300]).T[:,iSample]
-            #Te = np.reshape(Te,[1, N300]).T[:,1]
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
@@ -318,7 +325,7 @@ def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSa
             #lastFalse = np.where(indices==False)[-1][-1] + 2
             for k in range(len(Te)):
                 if (Te[k] < 4.5 and indices[k] == False):
-                    lasFalse = k + 2
+                    lastFalse = k + 2
 
             # Transformation to log scale.
             TeLog = np.log(Te)
@@ -391,14 +398,11 @@ def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSa
                 A /= 6.022e23
                 A *= tau*np0
 
-            A *= 11604**B 
+            A *= ((2./3.)*11604)**B 
             C = C*1.5/e0
 
             rxn = eval("lambda energy :" + f"{A} * energy**{B} * np.exp(-{C} / energy)")
             rxn_T = eval("lambda energy :" + f"{A} * energy**({B}-1) * np.exp(-{C} / energy) * ({B} + {C} / energy)")
-
-            #rxn   = eval("lambda energy :" + reactionExpressionslist[i])
-            #rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
 
             reaction = Reaction(rxnAlfa = params.alfa[:,[i]], rxnBeta = params.beta[:,[i]],
                                 rxnBolsig = reactionExpressionTypelist[i],
@@ -406,6 +410,90 @@ def setPsaapProperties_6Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSa
             reactionsList.append(reaction)
 
     params.reactionsList = reactionsList
+
+    diffList = []
+    # Data from BOLSIG
+    # Te in [eV]
+    # De * N in [1/(m*s)]
+    #NDe_v_Te = np.array([ [-0.05, 1.8e25],         [0.0, 1.8e25],           [0.05, 1.8e25],          [0.1, 1.8e25],
+    #                      [0.2103718, 1.8e25],     [0.2244455, 1.8e25],     [0.2390528, 1.8e25],     [0.2544605, 1.8e25],
+    #                      [0.2710021, 1.8e25],     [0.2886776, 1.8e25],     [0.3078205, 1.8e25],     [0.3286309, 1.8e25],
+    #                      [0.3513089, 1.8e25],     [0.3760546, 1.8e25],     [0.4032682, 1.8e25],     [0.4331498, 1.8e25],
+    #                      [0.4659662, 1.8e25],     [0.5021843, 1.8e25],     [0.5424044, 1.8e25],     [0.5868266, 1.8e25],
+    #                      [0.6359845, 1.8e25],     [0.690345, 1.8e25],      [0.749041, 1.8e25],      [0.813073, 1.8e25],
+    #                      [1.217942, 1.46E+25],    [1.319326, 1.39E+25],    [1.430048, 1.32E+25],    [1.550108, 1.26E+25],
+    #                      [1.681507, 1.20E+25],    [1.823578, 1.15E+25],    [1.977655, 1.09E+25],    [2.143071, 1.05E+25],
+    #                      [2.319826, 9.98E+24],    [2.508587, 9.54E+24],    [2.709354, 9.13E+24],    [2.916124, 8.75E+24],
+    #                      [3.112889, 8.45E+24],    [3.272969, 8.24E+24],    [3.383691, 8.14E+24],    [3.456394, 8.09E+24],
+    #                      [3.505085, 8.07E+24],    [3.544438, 8.05E+24],    [3.579789, 8.03E+24],    [3.616474, 8.01E+24],
+    #                      [3.656494, 7.97E+24],    [3.701183, 7.93E+24],    [3.751875, 7.87E+24],    [3.807903, 7.81E+24],
+    #                      [3.871268, 7.75E+24],    [3.941303, 7.68E+24],    [4.018675, 7.61E+24],    [4.102717, 7.53E+24],
+    #                      [4.193429, 7.5E+24],     [4.290811, 7.5E+24],     [4.39553, 7.5E+24],      [4.507586, 7.5E+24],
+    #                      [5., 7.5E+24],           [6., 7.5E+24],           [7., 7.5E+24],           [8., 7.5E+24],
+    #                      [9., 7.5E+24],           [10., 7.5E+24],          [11., 7.5E+24],          [12., 7.5E+24]])
+
+    transport = h5.File("../../BOLSIGChemistry_6SpeciesRates/Transport.%08d.h5" % (iSample), 'r')
+    #Te = NDe_v_Te[:,0]
+    NDe_v_Te = transport["diffusivity"]
+    Te_trans = NDe_v_Te[:,0]
+    Te_trans /= 11604
+    print("Te_min = {0:.6e}".format(NDe_v_Te[0,0]))
+    print("Te_max = {0:.6e}".format(NDe_v_Te[-1,0]))
+    De_interp = (NDe_v_Te[:,1]/nAr)*tau/(L*L)
+    De_spline = CubicSpline(Te_trans, De_interp)
+    De_Te_spline = CubicSpline.derivative(De_spline)
+    diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
+    diffList.append(diffusivity)
+
+    Ns = 6
+    for i in range(1, Ns):
+        diffList.append(Diffusivity(interpolate = False))
+
+    params.diffusivityList = diffList
+
+    muList = []
+    # Data from BOLSIG
+    # Te in [eV]
+    # Mue * N in [1/(V*m*s)]
+    #Nmue_v_Te = np.array([[0.02846756, 1.289e+26], [0.02975487, 1.33e+26],   [0.03173586, 1.383e+26],  [0.03477738,1.448e+26],
+    #                      [0.03937968, 1.523e+26], [0.04614973, 1.604e+26],  [0.05561446, 1.679e+26],  [0.0681674,1.735e+26],
+    #                      [0.0835084, 1.749e+26],  [0.1008504, 1.718e+26],   [0.1187927, 1.639e+26],   [0.1363348,1.522e+26],
+    #                      [0.1528764, 1.386e+26],  [0.1682841, 1.245e+26],   [0.1826913, 1.108e+26],   [0.1965649,9.809e+25],
+    #                      [0.2103718, 8.662e+25],  [0.2244455, 7.641e+25],   [0.2390528, 6.74e+25],    [0.2544605,5.947e+25],
+    #                      [0.2710021, 5.249e+25],  [0.2886776, 4.636e+25],   [0.3078205, 4.097e+25],   [0.3286309,3.623e+25],
+    #                      [0.3513089, 3.206e+25],  [0.3760546, 2.839e+25],   [0.4032682, 2.517e+25],   [0.4331498,2.232e+25],
+    #                      [0.4659662, 1.981e+25],  [0.5021843, 1.76e+25],    [0.5424044, 1.565e+25],   [0.5868266,1.392e+25],
+    #                      [0.6359845, 1.239e+25],  [0.690345, 1.103e+25],    [0.749041,  9.8e+24],     [0.813073,8.699e+24],
+    #                      [0.882441, 7.711e+24],   [0.957145, 6.828e+24],    [1.037185,  6.04e+24],    [1.123895,5.344e+24],
+    #                      [1.217942, 4.729e+24],   [1.319326, 4.186e+24],    [1.430048,  3.707e+24],   [1.550108,3.283e+24],
+    #                      [1.681507, 2.907e+24],   [1.823578, 2.574e+24],    [1.977655,  2.278e+24],   [2.143071,2.015e+24],
+    #                      [2.319826, 1.779e+24],   [2.508587, 1.569e+24],    [2.709354,  1.384e+24],   [2.916124,1.228e+24],
+    #                      [3.112889, 1.115e+24],   [3.272969, 1.055e+24],    [3.383691,  1.038e+24],   [3.456394,1.044e+24],
+    #                      [3.505085, 1.054e+24],   [3.544438, 1.062e+24],    [3.579789,  1.064e+24],   [3.616474, 1.059e+24],
+    #                      [3.656494, 1.048e+24],   [3.701183, 1.033e+24],    [3.751875,  1.014e+24],   [3.807903, 9.928e+23],
+    #                      [3.871268, 9.697e+23],   [3.941303,  9.459e+23],   [4.018675, 9.22e+23],     [4.102717, 8.991e+23],
+    #                      [4.193429, 8.773e+23],   [4.290811,  8.57e+23],    [4.39553, 8.383e+23],     [4.507586, 8.21e+23],
+    #                      [4.627646, 8.051e+23],   [4.757711,  7.901e+23],   [4.899115, 7.757e+23],    [5.054526, 7.617e+23],
+    #                      [5.227946, 7.479e+23],   [5.423377,  7.339e+23],   [5.646822, 7.198e+23],    [5.905618, 7.056e+23],
+    #                      [6.20977, 6.91e+23],     [6.571284,  6.757e+23],   [7.01017, 6.607e+23],     [7.54377, 6.458e+23],
+    #                      [8.19743, 6.303e+23],    [9.01117,   6.155e+23],   [10.02501, 6e+23],        [11.30565, 5.843e+23],
+    #                      [12.89978, 5.677e+23],   [14.91412,  5.51e+23],    [17.41537, 5.326e+23],    [20.57028, 5.149e+23],
+    #                      [24.51225, 4.968e+23],   [29.45472,  4.784e+23],   [35.6845, 4.602e+23],     [43.58845, 4.421e+23],
+    #                      [53.86692, 4.269e+23],   [67.367,    4.134e+23],   [85.4427, 4.026e+23],     [100.0, 4.026e+23]])
+
+    #Te = Nmue_v_Te[:,0]
+    Nmue_v_Te = transport["mobility"]
+    mue_interp = (Nmue_v_Te[:,1]/nAr)*V0*tau/(L*L)
+    mue_spline = CubicSpline(Te_trans, mue_interp)
+    mue_Te_spline = CubicSpline.derivative(mue_spline)
+    mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    muList.append(mobility)
+
+    Ns = 6
+    for i in range(1, Ns):
+        muList.append(Mobility(interpolate = False))
+
+    params.mobilityList = muList
 
     # 5) Dump to screen
     params.print()
