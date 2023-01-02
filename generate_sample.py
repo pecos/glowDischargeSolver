@@ -47,7 +47,7 @@ if __name__ == '__main__':
                     # Take the nominal value from the input file
                     coeffs0 = np.array(rxn['arrhenius']['coefficients'], dtype = np.double)
                     # Add a relative error
-                    coeffs0[0] *= (1.0 + error) ** np.random.normal()
+                    coeffs0[0] *= (1.0 + error) ** np.random.normal(0, 1./3)
                     # Create a dataset for the reaction
                     dset = f.create_dataset(rxn['equation'], (3,), data = coeffs0)
                     dset.attrs['rate_unit'] = rateUnit

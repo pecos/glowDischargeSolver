@@ -31,7 +31,7 @@ class Mobility(object):
             setattr(self, key, kwargs[key])
 
 
-def setPsaapProperties_6Species_Sampling_500mTorr(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapProperties_6Species_Sampling_250mTorr(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -47,7 +47,7 @@ def setPsaapProperties_6Species_Sampling_500mTorr(gam, inputV0, inputVDC, params
     ###################################################################
 
     # densities
-    nAr = 1.61e22     # background number density of Ar [1/m^3] (corresponds to p=100 mTorr)
+    nAr = 8.05e21     # background number density of Ar [1/m^3] (corresponds to p=100 mTorr)
     np0 = 8e16        # "nominal" electron density [1/m^3]
 
     # masses
@@ -65,7 +65,7 @@ def setPsaapProperties_6Species_Sampling_500mTorr(gam, inputV0, inputVDC, params
     e0 = 1.0  # [eV]
 
     # pressure
-    p  = 66.67*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
+    p  = 33.33*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
 
     # gas energy at the wall
     Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot

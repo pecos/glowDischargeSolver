@@ -32,7 +32,7 @@ class Mobility(object):
             setattr(self, key, kwargs[key])
 
 
-def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapProperties_6Species_100mTorr_Expanded(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -48,7 +48,7 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
     ###################################################################
 
     # densities
-    nAr = 1.61e22     # background number density of Ar [1/m^3] (corresponds to p=100 mTorr)
+    nAr = 3.22e21     # background number density of Ar [1/m^3] (corresponds to p=100 mTorr)
     np0 = 8e16        # "nominal" electron density [1/m^3]
 
     # masses
@@ -66,7 +66,7 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
     e0 = 1.0  # [eV]
 
     # pressure
-    p  = 66.6*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
+    p  = 13.3*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
 
     # gas energy at the wall
     Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
@@ -94,10 +94,10 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
     #                          Ee = 3/2*Te (Te in eV)
     #                          -> k_i = [Ck*(2/3)^B] * Ee^B * exp[-(3/2)*A/Ee]
     # nominal
-    Ck = np.array([2.0e-7,2.1e-9,5.0e-10,6.4e-10,2.1e-15,1.32e8,0.0,3.0e7,3.0e7,0.0,0.0,0.0,0.0,4.3e-10,0.0,3.7e-8,8.9e-7,1.8e-7,3.0e-7,3.0e-7,4.3e-10,9.1e-7,8.9e-7]) # pre-exponential factors [cm^3/s]
-    B  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0.74,0,0,0.51,0.61,0.51,0.51,0.74,0,0.51])
-    A  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1.59,2.61,0,0,0,0,1.59]) # activation temperature [eV]
-    dH = np.array([0.0,-7.412,-10.054,-7.336,0.0,0.0,0.0,0.0,0.0,11.548,11.624,12.907,15.76,-11.548,4.212,0.076,1.359,2.853,-1.283,-1.359,-11.624,-0.076,0.983]) # energy lost per electron due to ionization rxn [eV]
+    Ck = np.array([2.0e-13,2.1e-15,5.0e-16,6.4e-16,2.1e-21,1.32e8,1.44e7,1.61e7,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0e-18,4.0e-19,0.0,0.0,0.0,0.0,2.5e-17,2.5e-17,1.0e-15,1.0e-15,0.0,0.0]) # pre-exponential factors [m^3/s]
+    B  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-0.5,0,0,0,0,0,0,0,0,0,0]) # Temperature Power
+    A  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) # activation temperature [eV]
+    dH = np.array([0.0,-7.412,-10.054,-7.336,0.0,0.0,0.0,0.0,11.548,11.624,12.907,15.76,-11.548,4.212,0.076,1.359,2.853,-1.283,-1.359,-11.624,-0.076,1.283,0.0,0.0,-4.212,-4.136,-2.853,-15.76,-1.359,-1.283,-8.695,-8.771,4.136,-12.907]) # energy lost per electron due to ionization rxn [eV]
     dEps = np.array([0.0,15.76,11.548,11.624,12.907,0.0]) # E, AR+, AR(m), AR(r), AR(4p), AR
 
     # BC parameters
@@ -126,9 +126,6 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
     nD4p *= 100.
     nmue *= 100. # 1/(V*m*s)
     nmui *= 100. # 1/(V*m*s)
-    Ck[0:5] *= 1e-6 # m^3/s
-    Ck[5:9] *= 1 # 1/s
-    Ck[9:]  *= 1e-6 # m^3/s
     ks   *= 0.01 # m/s
     se   *= 1.0e-20  # m^2
 
@@ -160,9 +157,12 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
 
     Ck[0:4]  *= tau*np0
     Ck[4]    *= tau*nAr
-    Ck[5:9]  *= tau
-    Ck[9:13] *= tau*nAr
-    Ck[13:]  *= tau*np0
+    Ck[5:8]  *= tau
+    Ck[8:12] *= tau*nAr
+    Ck[12:24]  *= tau*np0
+    Ck[24:28] *= tau*np0*np0
+    Ck[28:30] *= tau*nAr
+    Ck[30:] *= tau*np0
     A        = A*1.5/e0  # 1.5 to convert from temperature to energy
     dH       = dH/e0
     qStar    = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
@@ -173,42 +173,53 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
                                 # (2/3)*tau/L**2*Kb/np0/kB,
                                 # where Kb is the thermal conductivity of background specie
 
-    params.beta = np.array([[0,1,1,1,0,0,0,0,0,1,1,1,2,1,2,1,1,2,1,1,1,1,1],                     # E
-                            [0,1,1,1,0,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0],                     # AR+
-                            [0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0],                     # AR(m)
-                            [0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,1,0,0,0,0],                     # AR(r)
-                            [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],                     # AR(4p)
-                            [2,1,1,1,2,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0]], dtype=np.int64)    # AR
+    params.beta = np.array([[0,1,1,1,0,0,0,0,1,1,1,2,1,2,1,1,2,1,1,1,1,1,0,0,1,1,1,1,0,0,1,1,2,1],                     # E
+                            [0,1,1,1,0,0,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0],                     # AR+
+                            [0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,1,0,0,0,0,0],                     # AR(m)
+                            [0,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0],                     # AR(r)
+                            [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,1,0,0,0,0,0,0,0],                     # AR(4p)
+                            [2,1,1,1,2,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,1,1,1,0,1]], dtype=np.int64)    # AR
 
-    params.alfa = np.array([[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1],                     # E
-                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],                     # AR+
-                            [2,1,0,2,1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],                     # AR(m)
-                            [0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],                     # AR(r)
-                            [0,0,2,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0],                     # AR(4p)
-                            [0,0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0]], dtype=np.int64)    # AR
+    params.alfa = np.array([[0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,0,0,0,0,1,1],                     # E
+                            [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0],                     # AR+
+                            [2,1,0,2,1,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],                     # AR(m)
+                            [0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0],                     # AR(r)
+                            [0,0,2,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],                     # AR(4p)
+                            [0,0,0,0,1,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0]], dtype=np.int64)    # AR
 	# Rxn1:  2AR(m)         ->   2AR
 	# Rxn2:  AR(m) + AR(r)  ->   E + AR+ + AR
 	# Rxn3:  2AR(4p)        ->   E + AR+ + AR
 	# Rxn4:  2AR(m)         ->   E + AR+ + AR
 	# Rxn5:  AR(m) + AR     ->   2AR
-	# Rxn6:  AR(r)          ->   AR
-	# Rxn7:  AR(4p)         ->   AR
-	# Rxn8:  AR(4p)         ->   AR(m)
-	# Rxn9:  AR(4p)         ->   AR(r)
-    # Rxn10: E + AR         ->   E + AR(m)
-    # Rxn11: E + AR         ->   E + AR(r)
-    # Rxn12: E + AR         ->   E + AR(4p)
-    # Rxn13: E + AR         ->   2E + AR+
-    # Rxn14: E + AR(m)      ->   E + AR
-    # Rxn15: E + AR(m)      ->   2E + AR+
-    # Rxn16: E + AR(m)      ->   E + AR(r)
-    # Rxn17: E + AR(m)      ->   E + AR(4p)
-    # Rxn18: E + AR(4p)     ->   2E + AR+
-    # Rxn19: E + AR(4p)     ->   E + AR(r)
-    # Rxn20: E + AR(4p)     ->   E + AR(m)
-    # Rxn21: E + AR(r)      ->   E + AR
-    # Rxn22: E + AR(r)      ->   E + AR(m)
-    # Rxn23: E + AR(r)      ->   E + AR(4p)
+	# Rxn6:  AR(r)          ->   AR + hv
+	# Rxn7:  AR(4p)         ->   AR(m) + hv
+	# Rxn8:  AR(4p)         ->   AR(r) + hv
+    # Rxn9:  E + AR         ->   E + AR(m)
+    # Rxn10: E + AR         ->   E + AR(r)
+    # Rxn11: E + AR         ->   E + AR(4p)
+    # Rxn12: E + AR         ->   2E + AR+
+    # Rxn13: E + AR(m)      ->   E + AR
+    # Rxn14: E + AR(m)      ->   2E + AR+
+    # Rxn15: E + AR(m)      ->   E + AR(r)
+    # Rxn16: E + AR(m)      ->   E + AR(4p)
+    # Rxn17: E + AR(4p)     ->   2E + AR+
+    # Rxn18: E + AR(4p)     ->   E + AR(r)
+    # Rxn19: E + AR(4p)     ->   E + AR(m)
+    # Rxn20: E + AR(r)      ->   E + AR
+    # Rxn21: E + AR(r)      ->   E + AR(m)
+    # Rxn22: E + AR(r)      ->   E + AR(4p)
+    # Rxn23: E + AR+        ->   AR(m) + hv
+    # Rxn24: E + AR+        ->   AR(4p) + hv
+    # Rxn25: 2E + AR+       ->   E + AR(m)
+    # Rxn26: 2E + AR+       ->   E + AR(r)
+    # Rxn27: 2E + AR+       ->   E + AR(4p)
+    # Rxn28: 2E + AR+       ->   E + AR
+    # Rxn29: AR + AR(4p)    ->   AR + AR(m)
+    # Rxn30: AR + AR(4p)    ->   AR + AR(r)
+    # Rxn31: AR(m) + AR(4p) ->   E + AR+ + AR
+    # Rxn32: AR(r) + AR(4p) ->   E + AR+ + AR
+    # Rxn33: E + AR(r)      ->   2E + AR+
+    # Rxn34: E + AR(4p)     ->   E + AR
 
     rxnNameDict = { 0: "2Ar(m) => 2Ar",
                     1: "Ar(m) + Ar(r) => E + Ar+ + Ar",
@@ -216,23 +227,34 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
                     3: "2Ar(m) => E + Ar+ + Ar",
                     4: "Ar(m) + Ar => 2Ar",
                     5: "Ar(r) => Ar",
-                    6: "Ar(4p) => Ar",
-                    7: "Ar(4p) => Ar(m)",
-                    8: "Ar(4p) => Ar(r)",
-                    9: "lumped.metastable",
-                   10: "lumped.resonance",
-                   11: "lumped.2p",
-                   12: "ionization",
-                   13: "E + Ar(m) => E + Ar",
-                   14: "step_ionization",
-                   15: "E + Ar(m) => E + Ar(r)",
-                   16: "E + Ar(m) => E + Ar(4p)",
-                   17: "E + Ar(4p) => 2E + Ar+",
-                   18: "E + Ar(4p) => E + Ar(r)",
-                   19: "E + Ar(4p) => E + Ar(m)",
-                   20: "E + Ar(r) => E + Ar",
-                   21: "E + Ar(r) => E + Ar(m)",
-                   22: "E + Ar(r) => E + Ar(4p)"}
+                    6: "Ar(4p) => Ar(m)",
+                    7: "Ar(4p) => Ar(r)",
+                    8: "1s-metastable",
+                    9: "1s-resonance",
+                   10: "2p-lumped",
+                   11: "Ionization",
+                   12: "Deexci-metastable",
+                   13: "StepIonization",
+                   14: "E + Ar(m) => E + Ar(r)",
+                   15: "E + Ar(m) => E + Ar(4p)",
+                   16: "StepIonization",
+                   17: "E + Ar(4p) => E + Ar(r)",
+                   18: "E + Ar(4p) => E + Ar(m)",
+                   19: "Deexci-resonance",
+                   20: "E + Ar(r) => E + Ar(m)",
+                   21: "E + Ar(r) => E + Ar(4p)",
+                   22: "E + Ar+ => Ar(m)",
+                   23: "E + Ar+ => Ar(4p)",
+                   24: "3BdyRecomb-metastable",
+                   25: "3BdyRecomb-metastable",
+                   26: "3BdyRecomb-metastable",
+                   27: "3BdyRecomb-ground",
+                   28: "Ar + Ar(4p) => Ar + Ar(m)",
+                   29: "Ar + Ar(4p) => Ar + Ar(r)",
+                   30: "Ar(m) + Ar(4p) => E + Ar+ + Ar",
+                   31: "Ar(r) + Ar(4p) => E + Ar+ + Ar",
+                   32: "StepIonization",
+                   33: "Deexci-2p"}
 
     # 4) Set values in params class
     params.D[0]    = De
@@ -305,7 +327,19 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
                                f"{params.A[19]} * energy**{params.B[19]} * np.exp(-{params.C[19]} / energy)",
                                f"{params.A[20]} * energy**{params.B[20]} * np.exp(-{params.C[20]} / energy)",
                                f"{params.A[21]} * energy**{params.B[21]} * np.exp(-{params.C[21]} / energy)",
-                               f"{params.A[22]} * energy**{params.B[22]} * np.exp(-{params.C[22]} / energy)"]
+                               f"{params.A[22]} * energy**{params.B[22]} * np.exp(-{params.C[22]} / energy)",
+                               f"{params.A[23]} * energy**{params.B[23]} * np.exp(-{params.C[23]} / energy)",
+                               f"{params.A[24]} * energy**{params.B[24]} * np.exp(-{params.C[24]} / energy)",
+                               f"{params.A[25]} * energy**{params.B[25]} * np.exp(-{params.C[25]} / energy)",
+                               f"{params.A[26]} * energy**{params.B[26]} * np.exp(-{params.C[26]} / energy)",
+                               f"{params.A[27]} * energy**{params.B[27]} * np.exp(-{params.C[27]} / energy)",
+                               f"{params.A[28]} * energy**{params.B[28]} * np.exp(-{params.C[28]} / energy)",
+                               f"{params.A[29]} * energy**{params.B[29]} * np.exp(-{params.C[29]} / energy)",
+                               f"{params.A[30]} * energy**{params.B[30]} * np.exp(-{params.C[30]} / energy)",
+                               f"{params.A[31]} * energy**{params.B[31]} * np.exp(-{params.C[31]} / energy)",
+                               f"{params.A[32]} * energy**{params.B[32]} * np.exp(-{params.C[32]} / energy)",
+                               f"{params.A[33]} * energy**{params.B[33]} * np.exp(-{params.C[33]} / energy)"]
+
 
     reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
                                 f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
@@ -314,8 +348,8 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
                                 f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
                                 f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
                                 f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-				f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
-		                f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
+				                f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
+		                        f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
                                 f"{params.A[9]} * (energy**({params.B[9]}-1)) * np.exp(-{params.C[9]}/energy) * ({params.B[9]} + {params.C[9]}/energy)",
                                 f"{params.A[10]} * (energy**({params.B[10]}-1)) * np.exp(-{params.C[10]}/energy) * ({params.B[10]} + {params.C[10]}/energy)",
                                 f"{params.A[11]} * (energy**({params.B[11]}-1)) * np.exp(-{params.C[11]}/energy) * ({params.B[11]} + {params.C[11]}/energy)",
@@ -329,11 +363,23 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
                                 f"{params.A[19]} * (energy**({params.B[19]}-1)) * np.exp(-{params.C[19]}/energy) * ({params.B[19]} + {params.C[19]}/energy)",
                                 f"{params.A[20]} * (energy**({params.B[20]}-1)) * np.exp(-{params.C[20]}/energy) * ({params.B[20]} + {params.C[20]}/energy)",
                                 f"{params.A[21]} * (energy**({params.B[21]}-1)) * np.exp(-{params.C[21]}/energy) * ({params.B[21]} + {params.C[21]}/energy)",
-                                f"{params.A[22]} * (energy**({params.B[22]}-1)) * np.exp(-{params.C[22]}/energy) * ({params.B[22]} + {params.C[22]}/energy)"]
+                                f"{params.A[22]} * (energy**({params.B[22]}-1)) * np.exp(-{params.C[22]}/energy) * ({params.B[22]} + {params.C[22]}/energy)",
+                                f"{params.A[23]} * (energy**({params.B[23]}-1)) * np.exp(-{params.C[23]}/energy) * ({params.B[23]} + {params.C[23]}/energy)",
+                                f"{params.A[24]} * (energy**({params.B[24]}-1)) * np.exp(-{params.C[24]}/energy) * ({params.B[24]} + {params.C[24]}/energy)",
+                                f"{params.A[25]} * (energy**({params.B[25]}-1)) * np.exp(-{params.C[25]}/energy) * ({params.B[25]} + {params.C[25]}/energy)",
+                                f"{params.A[26]} * (energy**({params.B[26]}-1)) * np.exp(-{params.C[26]}/energy) * ({params.B[26]} + {params.C[26]}/energy)",
+                                f"{params.A[27]} * (energy**({params.B[27]}-1)) * np.exp(-{params.C[27]}/energy) * ({params.B[27]} + {params.C[27]}/energy)",
+                                f"{params.A[28]} * (energy**({params.B[28]}-1)) * np.exp(-{params.C[28]}/energy) * ({params.B[28]} + {params.C[28]}/energy)",
+                                f"{params.A[29]} * (energy**({params.B[29]}-1)) * np.exp(-{params.C[29]}/energy) * ({params.B[29]} + {params.C[29]}/energy)",
+                                f"{params.A[30]} * (energy**({params.B[30]}-1)) * np.exp(-{params.C[30]}/energy) * ({params.B[30]} + {params.C[30]}/energy)",
+                                f"{params.A[31]} * (energy**({params.B[31]}-1)) * np.exp(-{params.C[31]}/energy) * ({params.B[31]} + {params.C[31]}/energy)",
+                                f"{params.A[32]} * (energy**({params.B[32]}-1)) * np.exp(-{params.C[32]}/energy) * ({params.B[32]} + {params.C[32]}/energy)",
+                                f"{params.A[33]} * (energy**({params.B[33]}-1)) * np.exp(-{params.C[33]}/energy) * ({params.B[33]} + {params.C[33]}/energy)"]
            
 
-    reactionExpressionTypelist =  np.array([False,False,False,False,False,False,False,False,False,
-                                           True,True,True,True,False,True,True,True,False,True,True,False,True,True])
+    reactionExpressionTypelist =  np.array([False,False,False,False,False,False,False,False, # Rxns 1-8
+                                           True,True,True,True,True,True,True,True,True,True,True,True,True,True, # Rxns 9-22
+                                           False,False,True,True,True,True,False,False,False,False,True,True]) # Rxns 23-34
 
     reactionsList = []
     LOGFilename = 'interpolationSample.log'
@@ -341,17 +387,20 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
 
     for i in range(Nr):
         if reactionExpressionTypelist[i]:
-            if (i < 15):
-                f = h5.File("../BOLSIGChemistry_6SpeciesRates/{0:s}.h5".format(rxnNameDict[i]), 'r')
+            if i < 14 or i == 16 or i == 19 or i > 23:
+                f = h5.File("../../../BOLSIGChemistry_NominalRates/{0:s}.h5".format(rxnNameDict[i]), 'r')
                 dataset = f["table"]
             else:
-                f = h5.File("../BOLSIGChemistry_6SpeciesRates/StepwiseExcitations.nominal.h5", 'r')
+                f = h5.File("../../../BOLSIGChemistry_NominalRates/StepwiseExcitations.nominal.h5", 'r')
                 dataset = f[rxnNameDict[i]]
 
             Te = dataset[:,0]
             Te /= 11604
             rateCoeff = dataset[:,1]
-            rateCoeff /= 6.022e23
+            if i > 23 and i < 28:
+                rateCoeff /= 6.022e23**2
+            else:
+                rateCoeff /= 6.022e23
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
@@ -411,8 +460,10 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
             # For the troublesome values, we use the Arrhenius form.
             rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
             # Nondimensionalization in log scale.
-            if (i < 13):
+            if (i < 12):
                 rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
+            elif i > 23 and i < 28:
+                rateCoeffLog += - np.log(1.0/tau) + 2*np.log(np0)
             else:
                 rateCoeffLog += - np.log(1.0/tau) + np.log(np0)
 
@@ -445,28 +496,9 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
 
     params.reactionsList = reactionsList
 
+    ## Electron Transport Data
     diffList = []
-    # Data from BOLSIG
-    # Te in [eV]
-    # De * N in [1/(m*s)]
-    #NDe_v_Te = np.array([ [-0.05, 1.8e25],         [0.0, 1.8e25],           [0.05, 1.8e25],          [0.1, 1.8e25],
-    #                      [0.2103718, 1.8e25],     [0.2244455, 1.8e25],     [0.2390528, 1.8e25],     [0.2544605, 1.8e25],
-    #                      [0.2710021, 1.8e25],     [0.2886776, 1.8e25],     [0.3078205, 1.8e25],     [0.3286309, 1.8e25],
-    #                      [0.3513089, 1.8e25],     [0.3760546, 1.8e25],     [0.4032682, 1.8e25],     [0.4331498, 1.8e25],
-    #                      [0.4659662, 1.8e25],     [0.5021843, 1.8e25],     [0.5424044, 1.8e25],     [0.5868266, 1.8e25],
-    #                      [0.6359845, 1.8e25],     [0.690345, 1.8e25],      [0.749041, 1.8e25],      [0.813073, 1.8e25],
-    #                      [1.217942, 1.46E+25],    [1.319326, 1.39E+25],    [1.430048, 1.32E+25],    [1.550108, 1.26E+25],
-    #                      [1.681507, 1.20E+25],    [1.823578, 1.15E+25],    [1.977655, 1.09E+25],    [2.143071, 1.05E+25],
-    #                      [2.319826, 9.98E+24],    [2.508587, 9.54E+24],    [2.709354, 9.13E+24],    [2.916124, 8.75E+24],
-    #                      [3.112889, 8.45E+24],    [3.272969, 8.24E+24],    [3.383691, 8.14E+24],    [3.456394, 8.09E+24],
-    #                      [3.505085, 8.07E+24],    [3.544438, 8.05E+24],    [3.579789, 8.03E+24],    [3.616474, 8.01E+24],
-    #                      [3.656494, 7.97E+24],    [3.701183, 7.93E+24],    [3.751875, 7.87E+24],    [3.807903, 7.81E+24],
-    #                      [3.871268, 7.75E+24],    [3.941303, 7.68E+24],    [4.018675, 7.61E+24],    [4.102717, 7.53E+24],
-    #                      [4.193429, 7.5E+24],     [4.290811, 7.5E+24],     [4.39553, 7.5E+24],      [4.507586, 7.5E+24],
-    #                      [5., 7.5E+24],           [6., 7.5E+24],           [7., 7.5E+24],           [8., 7.5E+24],
-    #                      [9., 7.5E+24],           [10., 7.5E+24],          [11., 7.5E+24],          [12., 7.5E+24]])
-
-    transport = h5.File("../BOLSIGChemistry_Transport/nominal_transport.h5", 'r')
+    transport = h5.File("../../../BOLSIGChemistry_Transport/nominal_transport.h5", 'r')
     NDe_v_Te = transport["diffusivity"]
     Te_trans = NDe_v_Te[:,0]
     Te_trans /= 11604
@@ -485,38 +517,7 @@ def setPsaapProperties_6Species_500mTorr(gam, inputV0, inputVDC, params, Nr, iSa
     params.diffusivityList = diffList
 
     muList = []
-    # Data from BOLSIG
-    # Te in [eV]
-    # Mue * N in [1/(V*m*s)]
-    #Nmue_v_Te = np.array([[0.02846756, 1.289e+26], [0.02975487, 1.33e+26],   [0.03173586, 1.383e+26],  [0.03477738,1.448e+26],
-    #                      [0.03937968, 1.523e+26], [0.04614973, 1.604e+26],  [0.05561446, 1.679e+26],  [0.0681674,1.735e+26],
-    #                      [0.0835084, 1.749e+26],  [0.1008504, 1.718e+26],   [0.1187927, 1.639e+26],   [0.1363348,1.522e+26],
-    #                      [0.1528764, 1.386e+26],  [0.1682841, 1.245e+26],   [0.1826913, 1.108e+26],   [0.1965649,9.809e+25],
-    #                      [0.2103718, 8.662e+25],  [0.2244455, 7.641e+25],   [0.2390528, 6.74e+25],    [0.2544605,5.947e+25],
-    #                      [0.2710021, 5.249e+25],  [0.2886776, 4.636e+25],   [0.3078205, 4.097e+25],   [0.3286309,3.623e+25],
-    #                      [0.3513089, 3.206e+25],  [0.3760546, 2.839e+25],   [0.4032682, 2.517e+25],   [0.4331498,2.232e+25],
-    #                      [0.4659662, 1.981e+25],  [0.5021843, 1.76e+25],    [0.5424044, 1.565e+25],   [0.5868266,1.392e+25],
-    #                      [0.6359845, 1.239e+25],  [0.690345, 1.103e+25],    [0.749041,  9.8e+24],     [0.813073,8.699e+24],
-    #                      [0.882441, 7.711e+24],   [0.957145, 6.828e+24],    [1.037185,  6.04e+24],    [1.123895,5.344e+24],
-    #                      [1.217942, 4.729e+24],   [1.319326, 4.186e+24],    [1.430048,  3.707e+24],   [1.550108,3.283e+24],
-    #                      [1.681507, 2.907e+24],   [1.823578, 2.574e+24],    [1.977655,  2.278e+24],   [2.143071,2.015e+24],
-    #                      [2.319826, 1.779e+24],   [2.508587, 1.569e+24],    [2.709354,  1.384e+24],   [2.916124,1.228e+24],
-    #                      [3.112889, 1.115e+24],   [3.272969, 1.055e+24],    [3.383691,  1.038e+24],   [3.456394,1.044e+24],
-    #                      [3.505085, 1.054e+24],   [3.544438, 1.062e+24],    [3.579789,  1.064e+24],   [3.616474, 1.059e+24],
-    #                      [3.656494, 1.048e+24],   [3.701183, 1.033e+24],    [3.751875,  1.014e+24],   [3.807903, 9.928e+23],
-    #                      [3.871268, 9.697e+23],   [3.941303,  9.459e+23],   [4.018675, 9.22e+23],     [4.102717, 8.991e+23],
-    #                      [4.193429, 8.773e+23],   [4.290811,  8.57e+23],    [4.39553, 8.383e+23],     [4.507586, 8.21e+23],
-    #                      [4.627646, 8.051e+23],   [4.757711,  7.901e+23],   [4.899115, 7.757e+23],    [5.054526, 7.617e+23],
-    #                      [5.227946, 7.479e+23],   [5.423377,  7.339e+23],   [5.646822, 7.198e+23],    [5.905618, 7.056e+23],
-    #                      [6.20977, 6.91e+23],     [6.571284,  6.757e+23],   [7.01017, 6.607e+23],     [7.54377, 6.458e+23],
-    #                      [8.19743, 6.303e+23],    [9.01117,   6.155e+23],   [10.02501, 6e+23],        [11.30565, 5.843e+23],
-    #                      [12.89978, 5.677e+23],   [14.91412,  5.51e+23],    [17.41537, 5.326e+23],    [20.57028, 5.149e+23],
-    #                      [24.51225, 4.968e+23],   [29.45472,  4.784e+23],   [35.6845, 4.602e+23],     [43.58845, 4.421e+23],
-    #                      [53.86692, 4.269e+23],   [67.367,    4.134e+23],   [85.4427, 4.026e+23],     [100.0, 4.026e+23]])
-
     Nmue_v_Te = transport["mobility"]
-    #Te = Nmue_v_Te[:,0]
-    #Te /= 11604
     mue_interp = (Nmue_v_Te[:,1]/nAr)*V0*tau/(L*L)
     mue_spline = CubicSpline(Te_trans, mue_interp)
     mue_Te_spline = CubicSpline.derivative(mue_spline)

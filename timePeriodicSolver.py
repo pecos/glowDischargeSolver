@@ -23,7 +23,7 @@ class timePeriodicSolver:
         else:
             # Default initial guess.  This should be overwritten
             # by reading restart if you want this to work.
-            self.tds.U1[0:self.tds.Np] = 1e-4
+            self.tds.U1[0:self.tds.Np] = 1e-3
             self.tds.U1[self.tds.Np:2*self.tds.Np] = 1e-4
             self.tds.U1[2*self.tds.Np:] = 0.75
 
@@ -180,10 +180,10 @@ if __name__ == "__main__":
         print("#   Running scenario = 3 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
     elif(args.scenario==4):
-        print("#   Running scenario = 4 (4 species, 8 rxn, Liu 2017)")
+        print('#   Running scenario = 4 (4 species, 9 rxn, 1Torr, Nominal)')
         Ns = 4
     elif(args.scenario==5):
-        print("#   Running scenario = 5 (4 species, 7 rxn, Bolsing and Lay, Moss et al, 2003)")
+        print('# Running scenario = 5 (4 species, 9 rxn, 1Torr, Sampling)')
         Ns = 4
     elif(args.scenario==6):
         print('#   Running scenario = 6 (6 species, 23 rxn, 1Torr, 100V, Sampling)')
@@ -198,6 +198,7 @@ if __name__ == "__main__":
         print("#   Running scenario = 9 (6 species, 23 rxn)")
         Ns = 6
     elif(args.scenario==10):
+        print("#   Running scenario = 10 (6 species, 23 rxn, 100mTorr, Nominal)")
         Ns = 6
     elif(args.scenario==12):
         print('#   Running scenario = 12 (6 species, 23 rxn, 1Torr, 100V, Nominal)')
@@ -206,10 +207,22 @@ if __name__ == "__main__":
         print('#   Running scenario = 13 (6 species, 23 rxn, 500mTorr, 100V, Nominal)')
         Ns = 6
     elif(args.scenario==14):
+        print('#   Running scenario = 14 (6 species, 34 rxn, 1Torr, Nominal)')
         Ns = 6
     elif(args.scenario==15):
+        print('#   Running scenario = 15 (6 species, 34 rxn, 1Torr, Sampling)')
         Ns = 6
     elif(args.scenario==16):
+        print('#   Running scenario = 16 (6 species, 34 rxn, 250mTorr, Nominal)')
+        Ns = 6
+    elif(args.scenario==17):
+        print('#   Running scenario = 17 (6 species, 34 rxn, 500mTorr, Nominal)')
+        Ns = 6
+    elif(args.scenario==18):
+        print('#   Running scenario = 18 (6 species, 34 rxn, 250mTorr, Sampling)')
+        Ns = 6
+    elif(args.scenario==19):
+        print('#   Running scenario = 19 (6 species, 34 rxn, 500mTorr, Sampling)')
         Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")

@@ -8,9 +8,25 @@ from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
 
 from psaapProperties_4Species_Nominal import setPsaapProperties_4Species_Nominal
-from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
-from psaapProperties_6Species_Sampling import setPsaapProperties_6Species_Sampling
-from psaapProperties_6Species_Sampling_500mTorr import setPsaapProperties_6Species_Sampling_500mTorr
+from psaapProperties_5Species_100mTorr_Nominal import setPsaapProperties_5Species_100mTorr_Nominal
+from psaapProperties_5Species_250mTorr_Nominal import setPsaapProperties_5Species_250mTorr_Nominal
+from psaapProperties_5Species_500mTorr_Nominal import setPsaapProperties_5Species_500mTorr_Nominal
+from psaapProperties_5Species_1Torr_Nominal import setPsaapProperties_5Species_1Torr_Nominal
+from psaapProperties_5Species_5Torr_Nominal import setPsaapProperties_5Species_5Torr_Nominal
+from psaapProperties_5Species_10Torr_Nominal import setPsaapProperties_5Species_10Torr_Nominal
+from psaapProperties_5Species_Sampling_1Torr import setPsaapProperties_5Species_Sampling_1Torr
+from psaapProperties_6Species_1Torr_Expanded import setPsaapProperties_6Species_1Torr_Expanded
+from psaapProperties_6Species_100mTorr_Expanded import setPsaapProperties_6Species_100mTorr_Expanded
+from psaapProperties_6Species_250mTorr_Expanded import setPsaapProperties_6Species_250mTorr_Expanded
+from psaapProperties_6Species_500mTorr_Expanded import setPsaapProperties_6Species_500mTorr_Expanded
+from psaapProperties_6Species_5Torr_Expanded import setPsaapProperties_6Species_5Torr_Expanded
+from psaapProperties_6Species_10Torr_Expanded import setPsaapProperties_6Species_10Torr_Expanded
+from psaapProperties_6Species_Sampling_1Torr_Expanded import setPsaapProperties_6Species_Sampling_1Torr_Expanded
+from psaapProperties_6Species_Sampling_100mTorr_Expanded import setPsaapProperties_6Species_Sampling_100mTorr_Expanded
+from psaapProperties_6Species_Sampling_250mTorr_Expanded import setPsaapProperties_6Species_Sampling_250mTorr_Expanded
+from psaapProperties_6Species_Sampling_500mTorr_Expanded import setPsaapProperties_6Species_Sampling_500mTorr_Expanded
+from psaapProperties_6Species_Sampling_5Torr_Expanded import setPsaapProperties_6Species_Sampling_5Torr_Expanded
+from psaapProperties_6Species_Sampling_10Torr_Expanded import setPsaapProperties_6Species_Sampling_10Torr_Expanded
 
 class modelClosures:
     """Class providing model parameters."""
@@ -407,7 +423,7 @@ class timeDomainCollocationSolver:
         elif(scenario==3):
             Nr = 8
         elif(scenario==4):
-            Nr = 8
+            Nr = 9
         elif(scenario==5):
             Nr = 7
         elif(scenario==6):
@@ -419,15 +435,15 @@ class timeDomainCollocationSolver:
         elif(scenario==9):
             Nr = 23
         elif(scenario==10):
-            Nr = 23
+            Nr = 34
         elif(scenario==12):
             Nr = 23
         elif(scenario==13):
             Nr = 23
         elif(scenario==14):
-            Nr = 23
+            Nr = 34
         elif(scenario==15):
-            Nr = 23
+            Nr = 34
         elif(scenario==16):
             Nr = 23
         elif(scenario==21):
@@ -442,7 +458,6 @@ class timeDomainCollocationSolver:
 
         self.params = modelClosures(self.Ns, Nr)
 
-
         if(scenario==0):
             setLiu2014Properties(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==1):
@@ -452,7 +467,7 @@ class timeDomainCollocationSolver:
         elif(scenario==3):
             setPsaapPropertiesCurrentTestCase(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==4):
-            setPsaapPropertiesCurrentTestCase100mTorr(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_4Species_Nominal(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==5):
             setPsaapPropertiesWithSampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==6):
@@ -464,15 +479,15 @@ class timeDomainCollocationSolver:
         elif(scenario==9):
             setPsaapProperties_6Species(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==10):
-            setPsaapProperties_6Species_Sampling(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_100mTorr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==12):
             setPsaapProperties_6Species_Nominal(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==13):
             setPsaapProperties_6Species_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==14):
-            setPsaapProperties_6Species_100mTorr(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==15):
-            setPsaapProperties_6Species_250mTorr(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==16):
             setPsaapProperties_6Species_5Torr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
@@ -1904,10 +1919,10 @@ if __name__ == "__main__":
         print("#   Running scenario = 3 (4 species, 8 rxn, Liu 2017)")
         Ns = 4
     elif(args.scenario==4):
-        print("#   Running scenario = 4 (4 species, 8 rxn, Liu 2017)")
+        print('#   Running scenario = 4 (4 species, 9 rxn, 1Torr, Nominal)')
         Ns = 4
     elif(args.scenario==5):
-        print("#   Running scenario = 5 (4 species, 7 rxn, Bolsing and Lay, Moss et al, 2003)")
+        print('#   Running scenario = 5 (4 species, 9 rxn, 1Torr, Sampling)')
         Ns = 4
     elif(args.scenario==6):
         print('#   Running scenario = 6 (6 species, 23 rxn, 1Torr, 100V, Sampling)')
@@ -1922,6 +1937,7 @@ if __name__ == "__main__":
         print("#   Running scenario = 9 (6 species, 23 rxn)")
         Ns = 6
     elif(args.scenario==10):
+        print('#   Running scenario = 10 (6species, 34 rxn, 100mTorr, Nominal)')
         Ns = 6
     elif(args.scenario==12):
         print('#   Running scenario = 12 (6 species, 23 rxn, 1Torr, 100V, Nominal)')
@@ -1930,10 +1946,22 @@ if __name__ == "__main__":
         print('#   Running scenario = 13 (6 species, 23 rxn, 500mTorr, 100V, Nominal)')
         Ns = 6
     elif(args.scenario==14):
+        print('#   Running scenario = 14 (6 species, 34 rxn, 1Torr, Nominal)')
         Ns = 6
     elif(args.scenario==15):
+        print('#   Running scenario = 15 (6 species, 34 rxn, 1Torr, Sampling)')
         Ns = 6
     elif(args.scenario==16):
+        print('#   Running scenario = 16 (6 species, 34 rxn, 250mTorr, Nominal)')
+        Ns = 6
+    elif(args.scenario==17):
+        print('#   Running scenario = 17 (6 species, 34 rxn, 500mTorr, Nominal)')
+        Ns = 6
+    elif(args.scenario==18):
+        print('#   Running scenario = 18 (6 species, 34 rxn, 250mTorr, Sampling)')
+        Ns = 6
+    elif(args.scenario==19):
+        print('#   Running scenario = 19 (6 species, 34 rxn, 500mTorr, Sampling)')
         Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
