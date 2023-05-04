@@ -1,10 +1,9 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 import csv
-import h5py as h5
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
+import h5py as h5
 import logging
 
 class Reaction(object):
@@ -32,7 +31,7 @@ class Mobility(object):
             setattr(self, key, kwargs[key])
 
 
-def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapProperties_4Species_Sampling(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -66,7 +65,7 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     e0 = 1.0  # [eV]
 
     # pressure
-    p  = 133.33*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
+    p  = 133.3224*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
 
     # gas energy at the wall
     Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
@@ -93,7 +92,7 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     Ck = np.array([0.0,0.0,0.0,4.0e-13,0.0,4.3e-10,2.1e-15,10.0,5.0e-27]) # pre-exponential factors [cm^3/s]
     B  = np.array([0.0,0.0,0.0,-0.5,0.0,0.74,0.0,0.0,-4.5])
     A  = np.array([0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]) # activation temperature [eV]
-    dH = np.array([15.76,11.56,4.2,0.0,-7.56,-11.56,-11.56,0.0,-4.2]) # energy lost per electron due to ionization rxn [eV]
+    dH = np.array([15.76,11.56,4.2,0.0,-7.56,-11.56,0.0,0.0,-4.2]) # energy lost per electron due to ionization rxn [eV]
     dEps = np.array([0.0,15.76,11.56,0.0])
 
     # BC parameters
@@ -115,16 +114,17 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     ###################################################################
 
     # 1) Convert input units to base SI (except eV)
-    nDe     *= 100.     # 1/(m*s)
-    nDi     *= 100.     # 1/(m*s)
-    nDm     *= 100.     # 1/(m*s)
-    nmue    *= 100.     # 1/(V*m*s)
-    nmui    *= 100.     # 1/(V*m*s)
-    Ck[0:7] *= 1e-6     # m^3/s
-    Ck[7]   *= 1        # 1/s
-    Ck[8]   *= 1e-12    # m^6/s
-    ks      *= 0.01     # m/s
-    se      *= 1.0e-20  # m^2
+    nDe  *= 100. # 1/(m*s)
+    nDi  *= 100. # 1/(m*s)
+    nDm  *= 100.
+    nmue *= 100. # 1/(V*m*s)
+    nmui *= 100. # 1/(V*m*s)
+    Ck[0:7] *= 1e-6 # m^3/s
+    Ck[7] *= 1 # 1/s
+    Ck[8] *= 1e-12 # m^6/s
+    # Ck[7] *= 1e-6 # Ck[7] is now in m^6/s
+    ks   *= 0.01 # m/s
+    se   *= 1.0e-20  # m^2
 
     # 2) Compute "raw" transport parameters
     De  = nDe/nAr
@@ -144,11 +144,11 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     mui   = mui*V0*tau/(L*L)
     mum   = mum*V0*tau/(L*L)
 
-    Ck[0:2] *= tau*nAr
-    Ck[2:6] *= tau*np0
-    Ck[6]   *= tau*nAr
-    Ck[7]   *= tau
-    Ck[8]   *= tau*np0*np0
+    Ck[0:2] = Ck[0:2]*tau*nAr
+    Ck[2:6] = Ck[2:6]*tau*np0
+    Ck[6] *= tau*nAr
+    Ck[7] *= tau
+    Ck[8] *= tau*np0*np0
     A       = A*1.5/e0  # 1.5 to convert from temperature to energy
     dH      = dH/e0
     qStar   = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
@@ -159,15 +159,8 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
                                 # (2/3)*tau/L**2*Kb/np0/kB,
                                 # where Kb is the thermal conductivity of background specie
 
-    params.beta = np.array([[2,1,2,0,1,1,0,0,1],                    # E
-                            [1,0,1,0,1,0,0,0,0],                    # AR+
-                            [0,1,0,1,0,0,0,0,1],                    # AR*
-                            [0,0,0,0,1,1,2,1,0]], dtype=np.int64)   # AR
-
-    params.alfa = np.array([[1,1,1,1,0,1,0,0,2],                    # E
-                            [0,0,0,1,0,0,0,0,1],                    # AR+
-                            [0,0,1,0,2,1,1,1,0],                    # AR*
-                            [1,1,0,0,0,0,1,0,0]], dtype=np.int64)   # AR
+    params.beta = np.array([[2,1,2,0,1,1,0,0,1],[1,0,1,0,1,0,0,0,0],[0,1,0,1,0,0,0,0,1],[0,0,0,0,1,1,2,1,0]], dtype=np.int64)
+    params.alfa = np.array([[1,1,1,1,0,1,0,0,2],[0,0,0,1,0,0,0,0,1],[0,0,1,0,2,1,1,1,0],[1,1,0,0,0,0,1,0,0]], dtype=np.int64)
 	# Rxn1:  E + AR   ->  2E  +  AR+
 	# Rxn2:  E + AR   ->  E   +  AR*
 	# Rxn3:  E + AR*  ->  2E  +  AR+
@@ -178,12 +171,12 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
 	# Rxn8:  AR*      ->  AR
 	# Rxn9:  2E + AR+ ->  E   +  AR*
 
-    rxnNameDict = {0: "ionization",
-                   1: "lumped_1s.excite",
-                   2: "step_ionization",
+    rxnNameDict = {0: "Ionization",
+                   1: "1s-lumped",
+                   2: "StepIonization",
                    3: "Ar+ + E => Ar*",
                    4: "Ar* + Ar* => Ar + Ar+ + E",
-                   5: "Ar* + e => Ar + E",
+                   5: "Ar* + E => Ar + E",
                    6: "Ar* + Ar => Ar + Ar",
                    7: "Ar* => Ar",
                    8: "Ar+ + E + E => Ar* + E"}
@@ -232,41 +225,24 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
 
-
-    reactionExpressionslist =  [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
-                                f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
-                                f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
-                                f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
-                                f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
-                                f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
-                                f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
-				                f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)",
-				                f"{params.A[8]} * energy**{params.B[8]} * np.exp(-{params.C[8]} / energy)"]
-
-    reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
-                                f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
-                                f"{params.A[2]} * (energy**({params.B[2]}-1)) * np.exp(-{params.C[2]}/energy) * ({params.B[2]} + {params.C[2]}/energy)",
-                                f"{params.A[3]} * (energy**({params.B[3]}-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]} + {params.C[3]}/energy)",
-                                f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
-                                f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
-                                f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-				                f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
-				                f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)"]
-
     reactionExpressionTypelist =  np.array([True,True,False,False,False,False,False,False,False])
 
     reactionsList = []
-    LOGFilename = 'interpolationSample.log'
+    LOGFilename = './InterpolationLogs_Dir/interpolationSample%s.log'%str(iSample)
     f = open(LOGFilename, 'w')
-    for i in range(Nr):
-        if reactionExpressionTypelist[i]:
-            f = h5.File("../BOLSIGChemistry_NominalRates/{0:s}.h5".format(rxnNameDict[i]), 'r')
-            dataset = f["table"]
 
-            Te = dataset[:,0]
-            Te /= 11604
+    for i in range(Nr):
+        sample_root_dir = "../BOLSIGChemistry_4SpeciesRates"
+        if reactionExpressionTypelist[i]:
+            fileString = sample_root_dir + "/" + rxnNameDict[i]
+            fileName = "%s.%08d.h5" % (fileString, iSample)
+            f = h5.File(fileName, 'r')
+            dataset = f["table"]
+            
             rateCoeff = dataset[:,1]
             rateCoeff /= 6.022e23
+            Te = dataset[:,0]
+            Te /= 11604.
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
@@ -349,8 +325,34 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
                           TeDuplicateindsForLog[0])
 
         else:
-            rxn   = eval("lambda energy :" + reactionExpressionslist[i])
-            rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
+            if i == 2 or i == 4:
+                A = 0.0
+                B = 0.0
+                C = 0.0
+            else:
+                fileName = "%s/Arrhenius.%08d.h5" % (sample_root_dir, iSample)
+                f = h5.File(fileName, 'r')
+                arrh_Coeffs = f[rxnNameDict[i]][...]
+                A, B, C = arrh_Coeffs
+
+            # Non-dimensionalize the coefficients
+            if (i < 6):
+                A /= 6.022e23
+                A *= tau*np0
+            elif (i == 6):
+                A /= 6.022e23
+                A *= tau*nAr
+            elif (i == 7):
+                A *= tau
+            elif (i == 8):
+                A /= 6.022e23**2
+                A *= tau*np0*np0
+
+            A *= ((2./3.)*11604)**B 
+            C = C*1.5/e0
+
+            rxn = eval("lambda energy :" + f"{A} * energy**{B} * np.exp(-{C} / energy)")
+            rxn_T = eval("lambda energy :" + f"{A} * energy**({B}-1) * np.exp(-{C} / energy) * ({B} + {C} / energy)")
 
             reaction = Reaction(rxnAlfa = params.alfa[:,[i]], rxnBeta = params.beta[:,[i]],
                                 rxnBolsig = reactionExpressionTypelist[i],
@@ -363,8 +365,8 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     # Data from BOLSIG
     # Te in [eV]
     # De * N in [1/(m*s)]
-    transport = h5.File("../BOLSIGChemistry_Transport/nominal_transport.h5", 'r')
-    NDe_v_Te = transport['diffusivity']
+    transport = h5.File("../BOLSIGChemistry_4SpeciesRates/Transport.%08d.h5" % (iSample), 'r')
+    NDe_v_Te = transport["diffusivity"]
     Te_trans = NDe_v_Te[:,0]
     Te_trans /= 11604
     print("Te_min = {0:.6e}".format(NDe_v_Te[0,0]))
@@ -385,8 +387,7 @@ def setPsaapProperties_4Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     # Data from BOLSIG
     # Te in [eV]
     # Mue * N in [1/(V*m*s)]
-
-    Nmue_v_Te = transport['mobility']
+    Nmue_v_Te = transport["mobility"]
     mue_interp = (Nmue_v_Te[:,1]/nAr)*V0*tau/(L*L)
     mue_spline = CubicSpline(Te_trans, mue_interp)
     mue_Te_spline = CubicSpline.derivative(mue_spline)
