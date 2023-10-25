@@ -420,9 +420,7 @@ class timeDomainCollocationSolver:
         elif(scenario==13):
             Nr = 23
         elif(scenario==14):
-            Nr = 34
-        elif(scenario==15):
-            Nr = 34
+            Nr = 23
         elif(scenario==16):
             Nr = 23
         elif(scenario==21):
@@ -1856,6 +1854,7 @@ if __name__ == "__main__":
                         action='store_true', help="Activate Einstein's form for diffusion coefficient.")
     parser.add_argument('--iSample', metavar='iSample', default=0,
                         type=int, help='Sample index, if BOLSIG chemistry is used.')
+    parser.add_argument('--gam', metavar='gam', default=0.01, type=float, help='Secondary Electron Emission Coefficient')
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -1926,22 +1925,6 @@ if __name__ == "__main__":
         Ns = 6
     elif(args.scenario==14):
         print('#   Running scenario = 14 (6 species, 34 rxn, 1Torr, Nominal)')
-        Ns = 6
-    elif(args.scenario==15):
-        print('#   Running scenario = 15 (6 species, 34 rxn, 1Torr, Sampling)')
-        Ns = 6
-    elif(args.scenario==16):
-        print('#   Running scenario = 16 (6 species, 34 rxn, 250mTorr, Nominal)')
-        Ns = 6
-    elif(args.scenario==17):
-        print('#   Running scenario = 17 (6 species, 34 rxn, 500mTorr, Nominal)')
-        Ns = 6
-    elif(args.scenario==18):
-        print('#   Running scenario = 18 (6 species, 34 rxn, 250mTorr, Sampling)')
-        Ns = 6
-    elif(args.scenario==19):
-        print('#   Running scenario = 19 (6 species, 34 rxn, 500mTorr, Sampling)')
-        Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4
@@ -1985,7 +1968,7 @@ if __name__ == "__main__":
     # Instantiate solver class
     tds = timeDomainCollocationSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
                                       backgroundSpecieActivationFactor, EinsteinForm,
-                                      gam=0.01, V0 = args.V0, VDC = args.VDC,
+                                      gam=args.gam, V0 = args.V0, VDC = args.VDC,
                                       scenario=args.scenario, scheme=args.tscheme,
                                       iSample = args.iSample)
 

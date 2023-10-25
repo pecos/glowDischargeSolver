@@ -209,20 +209,29 @@ if __name__ == "__main__":
     elif(args.scenario==14):
         print('#   Running scenario = 14 (6 species, 34 rxn, 1Torr, Nominal)')
         Ns = 6
-    elif(args.scenario==15):
-        print('#   Running scenario = 15 (6 species, 34 rxn, 1Torr, Sampling)')
+    elif(args.scenario==7):
+        print('#   Running scenario = 7 (6 species, 34 rxn, 1Torr, Nominal)')
         Ns = 6
-    elif(args.scenario==16):
-        print('#   Running scenario = 16 (6 species, 34 rxn, 250mTorr, Nominal)')
+    elif(args.scenario==8):
+        print('#   Running scenario = 8 (6 species, 34 rxn, 1Torr, Sampling)')
         Ns = 6
-    elif(args.scenario==17):
-        print('#   Running scenario = 17 (6 species, 34 rxn, 500mTorr, Nominal)')
+    elif(args.scenario==9):
+        print('#   Running scenario = 9 (6 species, 34 rxn, 2Torr, Nominal)')
         Ns = 6
-    elif(args.scenario==18):
-        print('#   Running scenario = 18 (6 species, 34 rxn, 250mTorr, Sampling)')
+    elif(args.scenario==10):
+        print('#   Running scenario = 10 (6 species, 34 rxn, 2Torr, Sampling)')
         Ns = 6
-    elif(args.scenario==19):
-        print('#   Running scenario = 19 (6 species, 34 rxn, 500mTorr, Sampling)')
+    elif(args.scenario==11):
+        print('#   Running scenario = 11 (6 species, 34 rxn, 5Torr, Nominal)')
+        Ns = 6
+    elif(args.scenario==12):
+        print('#   Running scenario = 12 (6 species, 34 rxn, 5Torr, Sampling)')
+        Ns = 6
+    elif(args.scenario==13):
+        print('#   Running scenario = 13 (6 species, 34 rxn, 10Torr, Nominal)')
+        Ns = 6
+    elif(args.scenario==14):
+        print('#   Running scenario = 14 (6 species, 34 rxn, 10Torr, Sampling)')
         Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
@@ -230,6 +239,7 @@ if __name__ == "__main__":
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)
+
 
     print("#")
 
