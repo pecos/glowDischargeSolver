@@ -393,10 +393,10 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     for i in range(Nr):
         if reactionExpressionTypelist[i]:
             if i < 14 or i == 16 or i == 19 or i > 23:
-                f = h5.File("../../../BOLSIGChemistry_NominalRates/{0:s}.h5".format(rxnNameDict[i]), 'r')
+                f = h5.File("../BOLSIGChemistry_NominalRates/{0:s}.h5".format(rxnNameDict[i]), 'r')
                 dataset = f["table"]
             else:
-                f = h5.File("../../../BOLSIGChemistry_NominalRates/StepExcitation.h5", 'r')
+                f = h5.File("../BOLSIGChemistry_NominalRates/StepExcitation.h5", 'r')
                 dataset = f[rxnNameDict[i]]
 
             Te = dataset[:,0]
@@ -518,7 +518,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
 
     ## Electron Transport Data
     diffList = []
-    transport = h5.File("../../../BOLSIGChemistry_NominalRates/nominal_transport.h5", 'r')
+    transport = h5.File("../BOLSIGChemistry_NominalRates/nominal_transport.h5", 'r')
     NDe_v_Te = transport["diffusivity"]
     Te_trans = NDe_v_Te[:,0]
     Te_trans /= 11604
