@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
-import time
+import time as cpu_time
 
 from Liu2014Properties import setLiu2014Properties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
@@ -233,7 +233,7 @@ class modelClosures:
         return omega
 
     def rxnSourceTermJac(self, energy, density):
-        G_U = self.progressRateJac(energy,density)
+        G_U = self.progressRateJac(energy,density) # For each reaction, we have the derivatives wrt species at all locations
 
         omega_U = np.zeros((self.Ns+1,self.Ns+1,energy.shape[0]),dtype=np.float64)
         for i in range(0,self.Ns):
@@ -1155,7 +1155,7 @@ class timeDomainCollocationSolver:
         omega = self.params.rxnSourceTerm(Te, dens)
         omega_V = self.params.rxnSourceTermJac(Te, dens)
 
-        # chain rule to get derivatives wrt ne, ni, ..., nT
+        # chain rule to get derivatives wrt ne, ni, ..., nT #NOTE(Malamas T.): Why do we do that?
         omega_U = np.ndarray(np.shape(omega_V))
         for i in range(0,self.Ns+1):
             omega_U[i,0,:] = omega_V[i,0,:] + omega_V[i,self.Ns,:]*np.diag(Te_ne)
@@ -1666,6 +1666,8 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
+            start_time = cpu_time.time()
+            
             # prepare for next step
             self.U0 = np.copy(self.U1)
             self.U1 = np.copy(self.U2)
@@ -1691,7 +1693,9 @@ class timeDomainCollocationSolver:
 
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
-
+            
+            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            
         if(savedata!=None):
             np.save(savedata,Usave)
             np.save("TotalCurrent_" + savedata, TotalCurrentSave)

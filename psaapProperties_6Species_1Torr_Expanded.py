@@ -349,8 +349,8 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
                                 f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
                                 f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
                                 f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-				f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
-		                f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
+				                f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
+		                        f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
                                 f"{params.A[9]} * (energy**({params.B[9]}-1)) * np.exp(-{params.C[9]}/energy) * ({params.B[9]} + {params.C[9]}/energy)",
                                 f"{params.A[10]} * (energy**({params.B[10]}-1)) * np.exp(-{params.C[10]}/energy) * ({params.B[10]} + {params.C[10]}/energy)",
                                 f"{params.A[11]} * (energy**({params.B[11]}-1)) * np.exp(-{params.C[11]}/energy) * ({params.B[11]} + {params.C[11]}/energy)",
@@ -389,14 +389,14 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     reactionsList = []
     LOGFilename = 'interpolationSample.log'
     f = open(LOGFilename, 'w')
-
+        
     for i in range(Nr):
         if reactionExpressionTypelist[i]:
             if i < 14 or i == 16 or i == 19 or i > 23:
-                f = h5.File("../BOLSIGChemistry_NominalRates/{0:s}.h5".format(rxnNameDict[i]), 'r')
+                f = h5.File("./BOLSIGChemistry_NominalRates/{0:s}.h5".format(rxnNameDict[i]), 'r')
                 dataset = f["table"]
             else:
-                f = h5.File("../BOLSIGChemistry_NominalRates/StepExcitation.h5", 'r')
+                f = h5.File("./BOLSIGChemistry_NominalRates/StepExcitation.h5", 'r')
                 dataset = f[rxnNameDict[i]]
 
             Te = dataset[:,0]
@@ -421,6 +421,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
             Teinds = Te.argsort()
             rateCoeff = rateCoeff[Teinds]
             Te = Te[Teinds]
+
 
             # Find duplicates
             TeDuplicateinds = np.where(np.abs(np.diff(Te, axis=0)) > 0.0)
@@ -470,6 +471,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
 
             # Arrhenius form: kf = A * exp(-C / Te)
             C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+            
 
             # Compute pre-exponential coefficient, A, in log scale.
             ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
@@ -518,7 +520,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
 
     ## Electron Transport Data
     diffList = []
-    transport = h5.File("../BOLSIGChemistry_NominalRates/nominal_transport.h5", 'r')
+    transport = h5.File("./BOLSIGChemistry_NominalRates/nominal_transport.h5", 'r')
     NDe_v_Te = transport["diffusivity"]
     Te_trans = NDe_v_Te[:,0]
     Te_trans /= 11604
