@@ -1,3 +1,7 @@
+import sys 
+sys.path.append('./Cases/')  # Add the path to the folder containing my_module.py
+sys.path.append('./CRModel/src/')  # Add the path to the folder containing my_module.py
+
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
 import time as cpu_time
@@ -6,6 +10,10 @@ from Liu2014Properties import setLiu2014Properties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
+
+from psaapProperties_CRModel_1Torr import setPsaapProperties_CRModel_1Torr
+
+from CRModel import CollisionalRadiativeModel
 
 class modelClosures:
     """Class providing model parameters."""
@@ -109,6 +117,16 @@ class modelClosures:
         self.nAronp0 = 3.22e22 / 8e16
         self.Tg0     = 0.038778
 
+        # Non-dimensionalization parameters
+        self.nAr     = 3.22e22          # "nominal" ground number density [1/m^3]
+        self.np0     = 8e16             # "nominal" electron density [1/m^3]
+        self.tau     = 1./13.56e6
+        self.tauOvernp0 = self.tau/self.np0
+        self.tauOvernAr = self.tau/self.nAr
+
+        self.TwoOverThree = 2.0/3.0     
+        self.ThreeOverTwo = 3.0/2.0     
+
         # coefficient for the elastic collision term
         self.EC = 2.0 * 0.511e6 / 37.2158e9 * 3.8e9 * (1./13.6e6)
 
@@ -123,10 +141,15 @@ class modelClosures:
         self.V0L     = 100 / (2.54 * 0.005)
         self.LLV0tau = (2.54 * 0.005)**2 / (100 * (1./13.6e6))
         self.tauL    = 2.54 * 0.005 / (1./13.6e6)
-        self.np0     = 8e16             # "nominal" electron density [1/m^3]
+        # self.np0     = 8e16             # "nominal" electron density [1/m^3]
         self.qe      = 1.6e-19          # unit charge [C]
         self.eps0    = 8.86e-12         # unit charge [C]
         self.eArea   = np.pi * 0.05**2  # electrode area [m^2]
+
+        # Parameters needed for the Collisional-Radiative model
+        self.Pressure = 133.3224 # [Pa] 
+        self.GasTemperature = 300.0 # [K]
+
 
         self.reactionsList =[]
         self.diffusivityList =[]
@@ -372,7 +395,15 @@ class timeDomainCollocationSolver:
             print("ERROR: Unrecognized temporal scheme.")
             print("Please use 'BE' (backward Euler), 'CN' (Crank-Nicolson), or 'LCN' (linearized Crank-Nicolson).")
             exit(-1)
+        self.solveCRModel = False
 
+        # Indexing 
+        # i = 0       -> electrons 
+        # i = 1       -> ions        
+        # i = 2:Ns-2  -> excited levels
+        # i = Ns - 1  -> ground state
+        # i = Ns      -> electron energy
+        
         self.Ns = Ns    # Number of species
         self.NT = NT    # Number of temperatures
         self.Nv = Ns+NT # Total number of 'state' variables
@@ -425,6 +456,12 @@ class timeDomainCollocationSolver:
             Nr = 23
         elif(scenario==21):
             Nr = 8
+        elif(scenario==15):
+            Nr = 0 # It is evaluated within the model based on the number of species you include.            
+            self.solveCRModel = True
+            if self.temporal_scheme != "BE":
+                print("ERROR: Cuurently we suppport only the 'BE' (backward Euler) temporal scheme with the CR model.")
+                exit(-1)
         else:
             print("ERROR: scenario = {} not understood.".format(scenario))
             exit(-1)
@@ -463,12 +500,17 @@ class timeDomainCollocationSolver:
             setPsaapProperties_6Species_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==14):
             setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
-        elif(scenario==15):
-            setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==16):
             setPsaapProperties_6Species_5Torr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==15):
+            setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
+            self.cr = CollisionalRadiativeModel(Ns, NT, self.params.Pressure, self.params.GasTemperature,\
+                backgroundSpecieActivationFactor)
+            self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119
+            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]; self.params.dEps[self.Ns-1] = 0.0
+
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -568,7 +610,7 @@ class timeDomainCollocationSolver:
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]
         iion = [1]
-
+        
         # pull off state for convenience
         dens = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
@@ -590,7 +632,7 @@ class timeDomainCollocationSolver:
         # Temperature (from ideal gas law)
         Tg = np.zeros((self.Np, 1),dtype=np.float64)
         Tg = (self.params.p0 - nT)/ntot
-
+        
         # solve poisson equation for phi
         # now have self.phi
         self.solve_poisson(dens[:,iele],dens[:,iion],time)
@@ -647,7 +689,25 @@ class timeDomainCollocationSolver:
         fT_x = self.Dp @ fT
 
         # form source terms at collocation points
-        omega = self.params.rxnSourceTerm(Te, dens)
+        if (self.solveCRModel):
+             
+            vars_CR = np.ndarray((self.Np, self.Ns+1),dtype=np.float64)                
+            # ground state. background species is first in the CR model arrangement            
+            vars_CR[:,0:self.Ns] = dens[:, self.cr.FromGlowDischargeToCRIndexing[0:-1]]*self.params.np0
+            vars_CR[:,0] *= self.params.nAronp0
+            vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree              # electron temperature [eV]
+
+            # omega_CR = np.ndarray((self.Np, self.Ns+1),dtype=np.float64)                          
+            # for ip in range(0,self.Np): # NOTE(Mal): I need to vectorize this to imporve performance!
+            #     omega_CR[ip,:] = self.cr.rxnSourceTerm(vars_CR[ip,:])
+
+            omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)
+            
+                
+            omega = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
+            omega [:,self.Ns-1] /=  self.params.nAronp0                           
+        else:
+            omega = self.params.rxnSourceTerm(Te, dens)
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
         # elastic collision term at collocation points
@@ -669,7 +729,7 @@ class timeDomainCollocationSolver:
 
         sOmEp = np.zeros((self.Np,1),dtype=np.float64)
         for i in range(0, self.Ns-1):
-            sOmEp[:,0] += omega[:,i]*self.params.dEps[i]
+            sOmEp[:,0] += omega[:,i]*self.params.dEps[i] # NOTE(malamast): What is this? I need to check that with Todd?
 
         joule = np.zeros((self.Np,1),dtype=np.float64)
         for i in range(0, self.Ns-1):
@@ -686,7 +746,7 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns-1):
             res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
 
-        # background specie (fixed at IC for now)
+        # background species (fixed at IC for now)
         res[(self.Ns-1)*self.Np:self.Ns*self.Np] = -dt*S
         res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] *= self.backgroundSpecieActivationFactor
 
@@ -1152,10 +1212,48 @@ class timeDomainCollocationSolver:
 
         # form source terms at collocation points
         # omega_V returns derivatives of chemical src terms wrt ne, ni, ..., Te
-        omega = self.params.rxnSourceTerm(Te, dens)
-        omega_V = self.params.rxnSourceTermJac(Te, dens)
+        if (self.solveCRModel):
+ 
+            vars_CR = np.ndarray((self.Np, self.Ns+1),dtype=np.float64)                            
+            vars_CR[:,0:self.Ns] = dens[:, self.cr.FromGlowDischargeToCRIndexing[0:-1]]*self.params.np0
+            vars_CR[:,0] *= self.params.nAronp0
+            vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree   
+            
 
-        # chain rule to get derivatives wrt ne, ni, ..., nT #NOTE(Malamas T.): Why do we do that?
+            # omega_CR = np.ndarray((self.Np, self.Ns+1),dtype=np.float64)              
+            # omega_V_CR = np.zeros((self.Ns+1,self.Ns+1,self.Np),dtype=np.float64)
+            # for ip in range(0,self.Np): # NOTE(Mal): I need to vectorize this to imporve performance!
+            #     omega_CR[ip,:] = self.cr.rxnSourceTerm(vars_CR[ip,:])
+            #     # omega_V_CR[:,:,ip] = self.cr.rxnSourceTermJac(vars_CR[ip,:])
+            #     omega_V_CR[:,:,ip] = self.cr.rxnSourceTermJac_2(vars_CR[ip,:])
+
+            # omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)            
+            omega_CR, omega_V_CR = self.cr.rxnSourceTermJac_2_vec(vars_CR)
+
+
+            # omega = np.ndarray((self.Np, self.Ns+1),dtype=np.float64) 
+            omega = np.empty_like(omega_CR)
+
+            omega = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
+            omega [:,self.Ns-1] /=  self.params.nAronp0   
+
+            # omega_V = np.zeros((self.Ns+1,self.Ns+1,energy.shape[0]),dtype=np.float64)
+            omega_V = np.empty_like(omega_V_CR)
+
+            omega_V[:,:,:] = omega_V_CR[self.cr.FromCRToGlowDischargeIndexing,:,:][:,self.cr.FromCRToGlowDischargeIndexing,:]  
+            omega_V[:,0:self.Ns - 1,:] *= self.params.np0 # derivatives wrt ni
+            omega_V[:,self.Ns - 1,:] *= self.params.nAr # derivatives wrt ground state
+            omega_V[:,self.Ns,:] *=  self.params.TwoOverThree  # derivatives wrt temperature
+
+            omega_V *= self.params.tauOvernp0 # nondimensionalize rates for ni
+            omega_V[self.Ns - 1,:,:] /=  self.params.nAronp0  # correction for ground state
+            
+
+        else:
+            omega = self.params.rxnSourceTerm(Te, dens)
+            omega_V = self.params.rxnSourceTermJac(Te, dens)
+
+        # chain rule to get derivatives wrt ne, ni, ..., nT 
         omega_U = np.ndarray(np.shape(omega_V))
         for i in range(0,self.Ns+1):
             omega_U[i,0,:] = omega_V[i,0,:] + omega_V[i,self.Ns,:]*np.diag(Te_ne)
@@ -1929,9 +2027,13 @@ if __name__ == "__main__":
         Ns = 6
     elif(args.scenario==14):
         print('#   Running scenario = 14 (6 species, 34 rxn, 1Torr, Nominal)')
+        Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4
+    elif(args.scenario==15):
+        print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
+        Ns = 17 # background state + 4 4s levels + 10 4p levels + electrons + ions 
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)
