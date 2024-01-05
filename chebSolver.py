@@ -12,7 +12,6 @@ from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTra
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
 
 from psaapProperties_CRModel_1Torr import setPsaapProperties_CRModel_1Torr
-
 from CRModel import CollisionalRadiativeModel
 
 class modelClosures:
@@ -508,8 +507,8 @@ class timeDomainCollocationSolver:
             setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
             self.cr = CollisionalRadiativeModel(Ns, NT, self.params.Pressure, self.params.GasTemperature,\
                 backgroundSpecieActivationFactor)
-            self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119
-            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]; self.params.dEps[self.Ns-1] = 0.0
+            # self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119
+            # self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]; self.params.dEps[self.Ns-1] = 0.0
 
 
         # Points used to define state and collocation
@@ -711,8 +710,9 @@ class timeDomainCollocationSolver:
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
         # elastic collision term at collocation points
-        SEC  = -self.params.EC * (nT - np.multiply(dens[0, iele], Tg))
+        SEC  = -self.params.EC * (nT - np.multiply(dens[:, iele], Tg)) #NOTE(malamast): Why is this dens[0, iele] and not dens[:, iele]? I need to check this with Todd
         SEC *= self.elasticCollisionActivationFactor
+        
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
@@ -1315,7 +1315,7 @@ class timeDomainCollocationSolver:
             fa_x_U[j,:,:] = self.Dp @ fa_U[j,:,:]
 
         sOmEp = np.zeros((self.Np,1),dtype=np.float64)
-        sOmEp_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
+        sOmEp_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64) # NOTE(malamast): Why does it have these dimensions?
         for i in range(0, self.Ns-1):
             sOmEp[:,0] += omega[:,i]*self.params.dEps[i]
             for j in range(0,self.Nv):
@@ -2093,6 +2093,7 @@ if __name__ == "__main__":
     # Initialize rest of state
     tds.U0 = np.copy(tds.U1)
     tds.U2 = np.copy(tds.U1)
+    
 
     # Run for desired number of time steps
     if (args.tscheme=="LCN"):
@@ -2106,7 +2107,7 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    # Save the result
+    # Save the result    
     np.save(args.outfile, tds.U2)
     np.save("Current_" + args.outfile, tds.totalCurrent)
 

@@ -86,8 +86,8 @@ class CollisionalRadiativeModel:
             self.Ns = Ns    # Number of species (ground state + excited levels + ground ion state)
                         
         self.backgroundSpecieActivationFactor = backgroundSpecieActivationFactor
-        if (not backgroundSpecieActivationFactor):
-            self.Ns = self.Ns -1
+        # if (not backgroundSpecieActivationFactor):
+        #     self.Ns = self.Ns -1
         
         self.NT = NT    # Number of temperatures
         self.Nv = self.Ns+NT # Total number of 'state' variables
@@ -651,6 +651,8 @@ class CollisionalRadiativeModel:
         npop = np.zeros((y.shape[0],self.Ns-2)) # ground state + excited levels
         dydt = np.zeros((y.shape[0],self.Ns+1)) # ground state + excited levels + electrons + ions + Ee #+ Eh
         
+        # dEhdt = np.zeros((y.shape[0]))
+        
         npop[:,0] = n_g
         npop[:,1:] = y[:,1:self.Ns-2]
 
@@ -658,16 +660,18 @@ class CollisionalRadiativeModel:
         #  Ideal gas law: p_0 = p_n + p_i + p_e
         T_g = (p_0/spc.k - ne * T_e/K_eV) / (np.sum(npop, axis=1) + nion)   # [K]
  
+        # T_g[T_g < 290.0] = 290.0 # eeeeeeeeee???????
+        
+ 
         """
         Compute Electron Energy Distribution Function (EEDF) based on a Maxwellian distribution:
         """
-
         EEDF= self.MaxwellianDistribution_vec(self.eRange,T_e)
         AEDF= self.MaxwellianDistribution_vec(self.eRange,T_g*K_eV)
         EEDFnorm = np.trapz(EEDF,self.eRange, axis=0 )
         AEDFnorm = np.trapz(AEDF,self.eRange, axis=0 )
         
-            
+                
         # keylist = self.p.collDict.keys()
         
         ################## Elecrton impact Ionization ##################
@@ -773,6 +777,7 @@ class CollisionalRadiativeModel:
             dydt[:,i] = dydt[:,i] + Rspem # radiative transitions into lower state
             dydt[:,j] = dydt[:,j] - Rspem # radiative transitions out of higher state
             # dydt[:,iEh] = dydt[:,iEh] - eij * Rspem  # Do I need to include that???
+            # dEhdt = dEhdt - eij * Rspem
 
                 
         ################## Atom impact Ionization ##################
@@ -788,6 +793,7 @@ class CollisionalRadiativeModel:
         dydt[:,0] = dydt[:,0] - Rvm + Rwm  # remove particle in particular state due to ionization
         dydt[:,iNe] = dydt[:,iNe] + Rvm - Rwm # change number of ions 
         # dydt[:,iEh] = dydt[:,iEh] + deltaIon * (Rwm - Rvm) # rate of change of eletron energy
+        # dEhdt = dEhdt + deltaIon * (Rwm - Rvm)
 
         for i in range(1,self.Nv-3):
             
@@ -807,6 +813,7 @@ class CollisionalRadiativeModel:
             dydt[:,i] = dydt[:,i] - Rvm + Rwm # remove particle in particular state due to ionization
             dydt[:,iNe] = dydt[:,iNe] + Rvm - Rwm # change number of ions 
             # dydt[:,iEh] = dydt[:,iEh] + deltaIon * (Rwm - Rvm) # rate of change of eletron energy
+            # dEhdt = dEhdt + deltaIon * (Rwm - Rvm)
         
             
 
@@ -829,6 +836,7 @@ class CollisionalRadiativeModel:
             dydt[:,i] = dydt[:,i] - Rkij + Rlji 
             dydt[:,j] = dydt[:,j] + Rkij - Rlji
             # dydt[iEh] = dydt[iEh] + eij * (Rlji - Rkij)
+            # dEhdt = dEhdt + eij * (Rlji - Rkij)
 
 
         for itrans in self.p.itrans_Atom_Exc:
@@ -849,7 +857,7 @@ class CollisionalRadiativeModel:
             dydt[:,i] = dydt[:,i] - Rkij + Rlji 
             dydt[:,j] = dydt[:,j] + Rkij - Rlji
             # dydt[:,iEh] = dydt[:,iEh] + eij * (Rlji - Rkij)                
-
+            # dEhdt = dEhdt + eij * (Rlji - Rkij)
 
 
         ################# Photorecombination/photoionization ##################
@@ -895,13 +903,13 @@ class CollisionalRadiativeModel:
         
         # dydt[:,iEe] = dydt[:,iEe] #- Rbremsstrahlung + Rtransfer_n + Rtransfer_i
         # dydt[:,iEh] = dydt[:,iEh] - Rtransfer_n - Rtransfer_i
+        
+        # dEhdt = dEhdt - Rtransfer_n - Rtransfer_i
 
 
         dydt[:,iNion] = dydt[:,iNe] # These rates are always the same! 
                                     # I need to think how we can exploit this to make the computation faster. 
                                     # Especialy for the calculation of the jacobian
-
-
 
         return dydt
 

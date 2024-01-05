@@ -536,7 +536,8 @@ class modelParameters:
 
 
         self.CollTransition_Status,self.KimuraFactor_K = CharacteriseTransitions(*p)
-        
+        os.chdir(homeDir)
+
         self.makeSets()
 
 
