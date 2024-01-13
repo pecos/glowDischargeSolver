@@ -16,7 +16,7 @@ import scipy.constants as spc
 # from scipy.optimize import fsolve,least_squares,root
 # from scipy.integrate import solve_ivp
 from scipy.optimize import approx_fprime
-from scipy.optimize._numdiff import approx_derivative,_eps_for_method
+# from scipy.optimize._numdiff import _eps_for_method,approx_derivative
 
 
 
@@ -217,20 +217,19 @@ class CollisionalRadiativeModel:
         """Evaluates the Jacobian for backward Euler time marching.
         """
 
-        xk = np.asarray(Uin, float)
-        f0 = self.rxnSourceTerm(xk)
-        return approx_derivative(self.rxnSourceTerm, xk, method='2-point', abs_step=1e-8,f0=f0)
+        # xk = np.asarray(Uin, float)
+        # f0 = self.rxnSourceTerm(xk)
+        # return approx_derivative(self.rxnSourceTerm, xk, method='2-point', abs_step=1e-8,f0=f0)
 
         # eps=1.0e-12
-        # omega_U = approx_fprime(Uin, self.rxnSourceTerm, epsilon=1e-8)
-        # return omega_U
+        return approx_fprime(Uin, self.rxnSourceTerm, epsilon=1e-8)
 
 
     def rxnSourceTermJac_2(self, Uin):
         """Evaluates the Jacobian for backward Euler time marching.
         """
 
-        epsilon=1e-8
+        epsilon=np.sqrt(np.finfo(float).eps)
 
         # user specifies an absolute step
         x0 = Uin
@@ -240,12 +239,14 @@ class CollisionalRadiativeModel:
 
         # cannot have a zero step. This might happen if x0 is very large
         # or small. In which case fall back to relative step.
-        
+                
         dx = ((x0 + h) - x0)
-        h = np.where(dx == 0,
-                     _eps_for_method(x0.dtype, x0.dtype, method) *
-                     sign_x0 * np.maximum(1.0, np.abs(x0)),
-                     h)
+        h = np.where(dx == 0, epsilon * sign_x0 * np.maximum(1.0, np.abs(x0)), h)
+
+        # h = np.where(dx == 0,
+        #              _eps_for_method(x0.dtype, x0.dtype, method) *
+        #              sign_x0 * np.maximum(1.0, np.abs(x0)),
+        #              h)
 
         omega_U = np.zeros((self.Ns+1,self.Ns+1),dtype=np.float64)
 
@@ -271,7 +272,7 @@ class CollisionalRadiativeModel:
         """
 
 
-        epsilon=1e-8
+        epsilon=np.sqrt(np.finfo(float).eps)
 
         # user specifies an absolute step
         x0 = Uin
@@ -282,10 +283,7 @@ class CollisionalRadiativeModel:
         # cannot have a zero step. This might happen if x0 is very large
         # or small. In which case fall back to relative step.
         dx = ((x0 + h) - x0)
-        h = np.where(dx == 0,
-                     _eps_for_method(x0.dtype, x0.dtype, method) *
-                     sign_x0 * np.maximum(1.0, np.abs(x0)),
-                     h)
+        h = np.where(dx == 0, epsilon * sign_x0 * np.maximum(1.0, np.abs(x0)), h)
     
 
 

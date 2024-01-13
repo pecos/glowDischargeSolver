@@ -11,9 +11,15 @@ K_eV = spc.k/spc.e             # Convert energy units: from K to eV
 
 # Flags
 isPlot = True
-case1 = True; file1 = '../restart.npy'; clr1 = 'b-'; label1 = "CR"
-case2 = True; file2 = '../restart_crashed.npy'; clr2 = 'r-'; label2 = "CR 2"
+# case1 = True; file1 = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; clr1 = 'b-'; label1 = "6spec"
+# case1 = True; file1 = '../restart.npy'; clr1 = 'b-'; label1 = "CR"
+case1 = True; file1 = '../Results/CR/restart_CR_Np150_T345.npy'; clr1 = 'b-'; label1 = "CR"
+
+
+# case2 = False; file2 = '../restart_crashed.npy'; clr2 = 'r-'; label2 = "CR 2"
 # case2 = False; file2 = '../Results/6spec/restart.npy'; clr2 = 'r-'; label2 = "6spec"
+# case2 = True; file2 = '../Results/CR/restart_CR_Np150_T115.npy'; clr2 = 'r-'; label2 = "CR"
+case2 = True; file2 = '../Results/CR/restart_CR_Np150_T230.npy'; clr2 = 'r-'; label2 = "CR"
 
 
 # these values are required to "redimensionalize" the results

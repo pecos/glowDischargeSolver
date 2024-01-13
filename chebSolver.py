@@ -17,12 +17,18 @@ sys.path.append(crmodel_dir)
 
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
+# from scipy.sparse.linalg import cg
+# from scipy.linalg import solve
+# from scipy.sparse.linalg import gmres
+
 import time as cpu_time
 
 from Liu2014Properties import setLiu2014Properties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
+
+from psaapProperties_6Species_1Torr_Simplified import setPsaapProperties_6Species_1Torr_Simplified
 
 from psaapProperties_CRModel_1Torr import setPsaapProperties_CRModel_1Torr
 from CRModel import CollisionalRadiativeModel
@@ -499,7 +505,8 @@ class timeDomainCollocationSolver:
         elif(scenario==6):
             setPsaapProperties_6Species_Sampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==7):
-            setPsaapProperties_6Species_Sampling_250mTorr(gam, V0, VDC, self.params, Nr, iSample)
+            # setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_1Torr_Simplified(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==8):
             setPsaapProperties_6Species_Sampling_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==9):
@@ -1626,7 +1633,7 @@ class timeDomainCollocationSolver:
 
 
     def step(self, time, dt, iter_max=20,
-             rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False):
+             rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, freeze_jacobian=False):
         """Take a single time step.
 
         Inputs
@@ -1641,20 +1648,26 @@ class timeDomainCollocationSolver:
         """
         r = self.residual(self.U2, time, dt, weak_bc)
 
+        if freeze_jacobian:
+            self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+            jac_inv  = np.linalg.inv(self.jac)
+
         normr = normr0 = np.linalg.norm(r)
         count = 0
         converged = ((normr/normr0 < rtol) or (normr < atol))
         if (verbose):
             print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
                 count, normr, normr/normr0))
+
         while( not converged and (count < iter_max) ):
-            #self.jacobianFD(self.U2, time, dt)
-            #np.save("jacobian_FD.npy", self.jac)
-            self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
-            #np.save("jacobian_AN.npy", self.jac)
+            if (not freeze_jacobian):
+                self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
 
             try:
-                dU = np.linalg.solve(self.jac, -r)
+                if freeze_jacobian:
+                    dU = np.dot(jac_inv, -r)
+                else:
+                    dU = np.linalg.solve(self.jac, -r)
 
                 self.U2 += dU
 
