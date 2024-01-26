@@ -4,7 +4,7 @@ Created on Wed Jan 17 14:04:49 2023
 
 @author: Malamas Tsagkaridis
 """
-
+import sys
 import numpy as np
 # import matplotlib.pyplot as plt
 # import os
@@ -17,6 +17,20 @@ import scipy.constants as spc
 # from scipy.integrate import solve_ivp
 from scipy.optimize import approx_fprime
 # from scipy.optimize._numdiff import _eps_for_method,approx_derivative
+
+# import cupyx.scipy.sparse.linalg
+
+import time as cpu_time
+
+try:
+  import cupy as cp
+  #CUDA_NUM_DEVICES=cp.cuda.runtime.getDeviceCount()
+except ImportError:
+  print("Please install CuPy for GPU use")
+  #sys.exit(0)
+except:
+  print("CUDA not configured properly !!!")
+  sys.exit(0)
 
 
 
@@ -69,9 +83,12 @@ class CollisionalRadiativeModel:
     ############## Constructor ##############
     #----------------------------------------------------------------------------------
 
-    def __init__(self, Ns, NT, Pressure, GasTemperature, backgroundSpecieActivationFactor = 0):
+    def __init__(self, args, Ns, NT, Pressure, GasTemperature, backgroundSpecieActivationFactor = 0):
         """Initializes storage and operators required for solve."""
 
+        self.args       = args
+        self.xp_module  = np
+        
         # Input parameters
         self.p_0 = Pressure; self.T_g0 = GasTemperature
         
@@ -95,12 +112,12 @@ class CollisionalRadiativeModel:
         self.Ndof = self.Nv # total number of dofs
 
         # State vector (3 vectors for BDF2)
-        self.U2 = np.zeros((self.Ndof,1))
-        self.U1 = np.zeros((self.Ndof,1))
-        self.U0 = np.zeros((self.Ndof,1))
+        # self.U2 = np.zeros((self.Ndof,1))
+        # self.U1 = np.zeros((self.Ndof,1))
+        # self.U0 = np.zeros((self.Ndof,1))
 
         # Jacobian storage
-        self.jac  = np.zeros((self.Ndof, self.Ndof))
+        # self.jac  = np.zeros((self.Ndof, self.Ndof))
 
         # Length Scales 
         # # Glow discharge
@@ -170,19 +187,21 @@ class CollisionalRadiativeModel:
 
 
     def electronImpactIonRateIntegrand(self,Te): 
+        xp = self.xp_module
         # Te -> eV
         # eVel * EEDF * exp(-xi)       
-        return np.sqrt(8.0*spc.e/spc.m_e/np.pi/Te) * self.xi
+        return xp.sqrt(8.0*spc.e/spc.m_e/xp.pi/Te) * self.xi
 
     def atomImpactIonRateIntegrand(self,Tg): 
+        xp = self.xp_module
         # Tg -> eV
         # eVel * EEDF * exp(-xi)       
-        return np.sqrt(8.0*spc.e/M_Ar/np.pi/Tg) * self.xi
-
-
+        return xp.sqrt(8.0*spc.e/M_Ar/xp.pi/Tg) * self.xi
 
 
     def MaxwellianDistribution_vec(self, eRange,T):
+        xp = self.xp_module
+
         # T -> [eV]
         # eRange -> [eV]
         """
@@ -190,21 +209,83 @@ class CollisionalRadiativeModel:
         """
 
         # compute EEDF
-        EDF = 2 * np.sqrt(eRange/ np.pi) * (T[:] ** (-1.5)) * np.exp(-eRange / T[:])
-
-
-        # fig,ax = plt.subplots(dpi=140)
-        # ax.scatter(eRange,EDF,c='r',label='EDF')
-        # # plt.ylim([1e2,1e26])
-        # plt.legend()
-        # ax.semilogx()
-        # plt.xlabel('E [ev]')
-        # plt.ylabel('f(E)')
-        # plt.title(title)
-        # plt.grid(True)
-
+        EDF = 2 * xp.sqrt(eRange/ xp.pi) * (T[:] ** (-1.5)) * xp.exp(-eRange / T[:])
         
         return EDF
+
+
+
+
+    def copy_operators_Host2Device(self, dev_id):
+      
+      if self.args.use_gpu==0:
+        return
+      
+      with cp.cuda.Device(dev_id):     
+        
+        # self.U2             = cp.asarray(self.U2)
+        # self.U1             = cp.asarray(self.U1)
+        # self.U0             = cp.asarray(self.U0)
+
+        self.eRange         = cp.asarray(self.eRange)
+        self.eVel           = cp.asarray(self.eVel)
+        self.aVel           = cp.asarray(self.aVel)
+
+        # self.jac            = cp.asarray(self.jac)
+        self.xi             = cp.asarray(self.xi)
+        self.wi             = cp.asarray(self.wi)
+
+
+        for key in self.p.sigma_ij_Exc_BSR: 
+            self.p.sigma_ij_Exc_BSR[key] = cp.asarray(self.p.sigma_ij_Exc_BSR[key]) 
+
+        for key in self.p.sigma_ij_Exc: 
+            self.p.sigma_ij_Exc[key] = cp.asarray(self.p.sigma_ij_Exc[key])
+
+        self.p.sigma_ionBSR  = cp.asarray(self.p.sigma_ionBSR)
+
+        for key in self.p.sigma_ij_Ion:
+            self.p.sigma_ij_Ion[key] = cp.asarray(self.p.sigma_ij_Ion[key])  
+
+        self.p.sigma_1a_ion = cp.asarray(self.p.sigma_1a_ion)
+
+        for key in self.p.sigma_ia_ion:
+            self.p.sigma_ia_ion[key] = cp.asarray(self.p.sigma_ia_ion[key])
+
+        for key in self.p.sigma_ij_Atom_ExcFromGround:
+            self.p.sigma_ij_Atom_ExcFromGround[key]  = cp.asarray(self.p.sigma_ij_Atom_ExcFromGround[key] )
+
+        for key in self.p.sigma_ij_Atom_Exc:
+            self.p.sigma_ij_Atom_Exc[key] = cp.asarray(self.p.sigma_ij_Atom_Exc[key] )
+
+        for key in self.p.sigma_c_ion:
+            self.p.sigma_c_ion[key] = cp.asarray(self.p.sigma_c_ion[key])
+
+        self.p.sigma_el_e1 = cp.asarray(self.p.sigma_el_e1)
+        self.p.eRange_elastic_e1 = cp.asarray(self.p.eRange_elastic_e1)
+        self.p.sigma_elastic_e1 = cp.asarray(self.p.sigma_elastic_e1)
+
+        
+        # self.op_rate = [cp.asarray(self.op_rate[i]) for i in range(len(self.op_rate))]
+
+        
+      return
+    
+
+
+
+    def copy_operators_Device2Host(self, dev_id):
+      
+      if self.args.use_gpu==0:
+        return
+
+    #   with cp.cuda.Device(dev_id):     
+        
+    #     self.U2             = cp.asnumpy(self.U2)
+    #     self.U1             = cp.asnumpy(self.U1)
+    #     self.U0             = cp.asnumpy(self.U0)
+
+      return
 
 
 
@@ -228,8 +309,9 @@ class CollisionalRadiativeModel:
     def rxnSourceTermJac_2(self, Uin):
         """Evaluates the Jacobian for backward Euler time marching.
         """
+        xp = self.xp_module
 
-        epsilon=np.sqrt(np.finfo(float).eps)
+        epsilon=xp.sqrt(xp.finfo(float).eps)
 
         # user specifies an absolute step
         x0 = Uin
@@ -241,14 +323,9 @@ class CollisionalRadiativeModel:
         # or small. In which case fall back to relative step.
                 
         dx = ((x0 + h) - x0)
-        h = np.where(dx == 0, epsilon * sign_x0 * np.maximum(1.0, np.abs(x0)), h)
+        h = xp.where(dx == 0, epsilon * sign_x0 * xp.maximum(1.0, xp.abs(x0)), h)
 
-        # h = np.where(dx == 0,
-        #              _eps_for_method(x0.dtype, x0.dtype, method) *
-        #              sign_x0 * np.maximum(1.0, np.abs(x0)),
-        #              h)
-
-        omega_U = np.zeros((self.Ns+1,self.Ns+1),dtype=np.float64)
+        omega_U = xp.zeros((self.Ns+1,self.Ns+1),dtype=xp.float64)
 
         omega = self.rxnSourceTerm(Uin)
         Uin_perturbed = Uin.copy()
@@ -270,9 +347,9 @@ class CollisionalRadiativeModel:
     def rxnSourceTermJac_2_vec(self, Uin):
         """Evaluates the Jacobian for backward Euler time marching.
         """
+        xp = self.xp_module
 
-
-        epsilon=np.sqrt(np.finfo(float).eps)
+        epsilon=xp.sqrt(xp.finfo(float).eps)
 
         # user specifies an absolute step
         x0 = Uin
@@ -283,11 +360,11 @@ class CollisionalRadiativeModel:
         # cannot have a zero step. This might happen if x0 is very large
         # or small. In which case fall back to relative step.
         dx = ((x0 + h) - x0)
-        h = np.where(dx == 0, epsilon * sign_x0 * np.maximum(1.0, np.abs(x0)), h)
+        h = xp.where(dx == 0, epsilon * sign_x0 * xp.maximum(1.0, xp.abs(x0)), h)
     
 
 
-        omega_U = np.zeros((self.Ns+1,self.Ns+1,Uin.shape[0]),dtype=np.float64)
+        omega_U = xp.zeros((self.Ns+1,self.Ns+1,Uin.shape[0]),dtype=xp.float64)
 
         omega = self.rxnSourceTerm_vec(Uin)
         Uin_perturbed = Uin.copy()
@@ -301,7 +378,7 @@ class CollisionalRadiativeModel:
 
             # Compute the partial derivative with respect to the i-th input using finite differences
             h_i = h[:,i]
-            omega_U[:, i, :] = np.transpose((omega_perturbed[:,:] - omega[:,:]) / h_i[:, np.newaxis])
+            omega_U[:, i, :] = xp.transpose((omega_perturbed[:,:] - omega[:,:]) / h_i[:, xp.newaxis])
             
         return omega,omega_U
 
@@ -322,6 +399,7 @@ class CollisionalRadiativeModel:
                   
             T_e :  electron temperature in [eV] 
         """  
+        xp = self.xp_module
         
         # Indexing 
         # i = 0       -> ground state
@@ -334,7 +412,7 @@ class CollisionalRadiativeModel:
         # T_e -> [eV] 
 
         # Clip negative values
-        y[np.where(y <= 0.0)] = 0.0
+        y[xp.where(y <= 0.0)] = 0.0
 
         n_g = y[iNg]    # [#/m^3]
         ne = y[iNe]     # [#/m^3]
@@ -346,15 +424,15 @@ class CollisionalRadiativeModel:
         p_0 = self.p_0
 
         # allocate arrays
-        npop = np.zeros(self.Ns-2) # ground state + excited levels
-        dydt = np.zeros(self.Ns+1) # ground state + excited levels + electrons + ions + Ee #+ Eh
+        npop = xp.zeros(self.Ns-2) # ground state + excited levels
+        dydt = xp.zeros(self.Ns+1) # ground state + excited levels + electrons + ions + Ee #+ Eh
         
         npop[0] = n_g
         npop[1:] = y[1:self.Ns-2]
 
         # Temperature of heavy species (from ideal gas law)
         #  Ideal gas law: p_0 = p_n + p_i + p_e
-        T_g = (p_0/spc.k - ne * T_e/K_eV) / (np.sum(npop) + nion)   # [K]
+        T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop) + nion)   # [K]
         
  
         """
@@ -362,8 +440,10 @@ class CollisionalRadiativeModel:
         """
         EEDF= MaxwellianDistribution(self.eRange,T_e,"Electrons")
         AEDF= MaxwellianDistribution(self.eRange,T_g*K_eV,"Atoms")
-        EEDFnorm = np.trapz(EEDF,self.eRange,axis=0)
-        AEDFnorm = np.trapz(AEDF,self.eRange,axis=0)
+        EEDFnorm = xp.trapz(EEDF,self.eRange,axis=0)
+        AEDFnorm = xp.trapz(AEDF,self.eRange,axis=0)
+        # EEDF /= EEDFnorm
+        # AEDF /= AEDFnorm
         
         # keylist = self.p.collDict.keys()
         
@@ -374,10 +454,10 @@ class CollisionalRadiativeModel:
         i = iNg # from ground state (BSR Data from LXCat)
         deltaIon = Eion - self.p.E_lvl[i]*cm_eV 
                                     
-        Si = np.trapz(self.p.sigma_ionBSR*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm   
+        Si = xp.trapz(self.p.sigma_ionBSR*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm   
 
         
-        Qi = self.p.g_lvl[i]*Qi_factor*np.exp(deltaIon/T_e)*Si # I need to check again this one.
+        Qi = self.p.g_lvl[i]*Qi_factor*xp.exp(deltaIon/T_e)*Si # I need to check again this one.
             
         Rsi = n_g * ne * Si     # Electron impact ionization
         Rqi = nion * ne * ne * Qi 
@@ -392,12 +472,12 @@ class CollisionalRadiativeModel:
             # isPrimed_lvl    
             deltaIon = Eion - self.p.E_lvl[i]*cm_eV # Which Eion should I use? There are two!                    
             
-            Si = np.trapz(self.p.sigma_ij_Ion[i]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
+            Si = xp.trapz(self.p.sigma_ij_Ion[i]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
                         
-            # sigma_ion = np.interp(self.xi*T_e, self.eRange, self.p.sigma_ij_Ion[i])
-            # Si = np.sum(self.wi * sigma_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
+            # sigma_ion = xp.interp(self.xi*T_e, self.eRange, self.p.sigma_ij_Ion[i])
+            # Si = xp.sum(self.wi * sigma_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
                                      
-            Qi = self.p.g_lvl[i]*Qi_factor*np.exp(deltaIon/T_e)*Si # I need to check again this one.
+            Qi = self.p.g_lvl[i]*Qi_factor*xp.exp(deltaIon/T_e)*Si # I need to check again this one.
        
             Rsi = npop[i]*ne*Si # Electron impact ionization
             Rqi = nion*ne*ne*Qi 
@@ -414,14 +494,14 @@ class CollisionalRadiativeModel:
             j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                    
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                                   
-            Cij = np.trapz(self.p.sigma_ij_Exc_BSR[iCollTrans]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm                        
+            Cij = xp.trapz(self.p.sigma_ij_Exc_BSR[iCollTrans]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm                        
 
-            # sigma_ij = np.interp(self.xi*T_e ,self.p.collDict_list[iCollTrans][:,0],self.p.collDict_list[iCollTrans][:,1])
-            # sigma_ij[np.where(self.xi*T_e < eij)] = 0
-            # Cij = np.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
+            # sigma_ij = xp.interp(self.xi*T_e ,self.p.collDict_list[iCollTrans][:,0],self.p.collDict_list[iCollTrans][:,1])
+            # sigma_ij[xp.where(self.xi*T_e < eij)] = 0
+            # Cij = xp.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
             # print("diff = " , abs(Cij - Cij_2)/Cij*100)
 
-            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
+            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
             Rcij = Cij*npop[i]*ne
             Rfji = Fji*npop[j]*ne
             dydt[i] = dydt[i] - Rcij + Rfji 
@@ -434,13 +514,13 @@ class CollisionalRadiativeModel:
             j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                            
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                           
-            Cij = np.trapz(self.p.sigma_ij_Exc[iCollTrans]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
+            Cij = xp.trapz(self.p.sigma_ij_Exc[iCollTrans]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
 
-            # sigma_ij = np.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc[iCollTrans])
-            # Cij_2 = np.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
+            # sigma_ij = xp.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc[iCollTrans])
+            # Cij_2 = xp.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
             # print("diff = " , abs(Cij - Cij_2)/Cij*100)
 
-            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
+            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
             Rcij = Cij*npop[i]*ne
             Rfji = Fji*npop[j]*ne
             dydt[i] = dydt[i] - Rcij + Rfji 
@@ -477,8 +557,8 @@ class CollisionalRadiativeModel:
         
         deltaIon = Eion - self.p.E_lvl[0]*cm_eV
         
-        Vm = np.trapz(self.p.sigma_1a_ion*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm        
-        Wm = self.p.g_lvl[0]*Wm_factor*np.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
+        Vm = xp.trapz(self.p.sigma_1a_ion*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm        
+        Wm = self.p.g_lvl[0]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
     
         Rvm = n_g * n_g * Vm
         Rwm = n_g * ne * nion * Wm  
@@ -491,12 +571,12 @@ class CollisionalRadiativeModel:
             # Ionization due to atom impact from any level
             deltaIon = Eion - self.p.E_lvl[i]*cm_eV
                                  
-            Vm = np.trapz(self.p.sigma_ia_ion[i]*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm
+            Vm = xp.trapz(self.p.sigma_ia_ion[i]*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm
                         
-            # sigma_ia_ion = np.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ia_ion[i])
-            # Vm = np.sum(self.wi * sigma_ia_ion * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)
+            # sigma_ia_ion = xp.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ia_ion[i])
+            # Vm = xp.sum(self.wi * sigma_ia_ion * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)
                         
-            Wm = self.p.g_lvl[i]*Wm_factor*np.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
+            Wm = self.p.g_lvl[i]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
 
             Rvm = npop[i] * n_g * Vm
             Rwm = n_g * ne * nion * Wm 
@@ -514,12 +594,12 @@ class CollisionalRadiativeModel:
             j = self.p.j_Atom_ExcFromGround[itrans]
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
 
-            Kij = np.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans]*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm
-            # sigma_ij_a = np.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_ExcFromGround[itrans])
-            # Kij_2 = np.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)  
+            Kij = xp.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans]*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm
+            # sigma_ij_a = xp.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_ExcFromGround[itrans])
+            # Kij_2 = xp.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)  
             # print("diff = ", abs(Kij_2-Kij)/Kij*100)           
 
-            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
+            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
 
             Rkij = npop[i] * n_g * Kij
             Rlji = npop[j] * n_g * Lji  
@@ -534,12 +614,12 @@ class CollisionalRadiativeModel:
 
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             
-            Kij = np.trapz(self.p.sigma_ij_Atom_Exc[itrans]*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm
+            Kij = xp.trapz(self.p.sigma_ij_Atom_Exc[itrans]*self.aVel*AEDF,self.eRange,axis=0)/AEDFnorm
   
-            # sigma_ij_a = np.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_Exc[itrans])           
-            # Kij = np.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)            
+            # sigma_ij_a = xp.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_Exc[itrans])           
+            # Kij = xp.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)            
             
-            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
+            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
 
             Rkij = npop[i] * n_g * Kij
             Rlji = npop[j] * n_g * Lji  
@@ -553,12 +633,12 @@ class CollisionalRadiativeModel:
         nTrans = 5
         for i in range(0,nTrans): # We include also the photoionization from ground state which has a different cross section
 
-            Ri = np.trapz(self.p.sigma_c_ion[i]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
-            Ri_prime = np.trapz(self.p.sigma_c_ion[i]*self.eVel*self.eRange*EEDF,self.eRange,axis=0)/EEDFnorm
+            Ri = xp.trapz(self.p.sigma_c_ion[i]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
+            Ri_prime = xp.trapz(self.p.sigma_c_ion[i]*self.eVel*self.eRange*EEDF,self.eRange,axis=0)/EEDFnorm
 
-            # sigma_c_ion = np.interp(self.xi*T_e, self.eRange, self.p.sigma_c_ion[i])
-            # Ri = np.sum(self.wi * sigma_c_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
-            # Ri_prime = np.sum(self.wi * sigma_c_ion * self.xi*T_e * self.electronImpactIonRateIntegrand(T_e) * T_e)
+            # sigma_c_ion = xp.interp(self.xi*T_e, self.eRange, self.p.sigma_c_ion[i])
+            # Ri = xp.sum(self.wi * sigma_c_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
+            # Ri_prime = xp.sum(self.wi * sigma_c_ion * self.xi*T_e * self.electronImpactIonRateIntegrand(T_e) * T_e)
 
             Rri = ne * nion * Ri # What is the reverse process here?
             Rri_prime = ne * nion * Ri_prime
@@ -569,22 +649,22 @@ class CollisionalRadiativeModel:
 
 
         # Bremsstrahlung emission
-        # Rbremsstrahlung = 1.42e-40 * parameters.Zeff**2 * np.sqrt(T_e/K_eV) * ne * ne /spc.e  # [eV/m^3/s]
+        # Rbremsstrahlung = 1.42e-40 * parameters.Zeff**2 * xp.sqrt(T_e/K_eV) * ne * ne /spc.e  # [eV/m^3/s]
         
         # Energy transfer between electrons and heavy particles 
 
-        # # sigma_el_e1 = np.interp(self.eRange,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
-        # # sigma_el_e1[np.where(sigma_el_e1 < 0)] = 0
-        # ken = np.trapz(self.p.sigma_el_e1*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
+        # # sigma_el_e1 = xp.interp(self.eRange,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
+        # # sigma_el_e1[xp.where(sigma_el_e1 < 0)] = 0
+        # ken = xp.trapz(self.p.sigma_el_e1*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
 
-        # sigma_el_e1 = np.interp(self.xi*T_e,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
-        # sigma_el_e1[np.where(sigma_el_e1 < 0)] = 0
-        # ken = np.sum(self.wi * sigma_el_e1 *self.electronImpactIonRateIntegrand(T_e) * T_e)
+        # sigma_el_e1 = xp.interp(self.xi*T_e,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
+        # sigma_el_e1[xp.where(sigma_el_e1 < 0)] = 0
+        # ken = xp.sum(self.wi * sigma_el_e1 *self.electronImpactIonRateIntegrand(T_e) * T_e)
 
         
-        # MeanThermalVelocity_e = np.sqrt(8.0*spc.k*T_e/K_eV/np.pi/spc.m_e)
-        # Lambda_ei = 1.24e7 * np.sqrt((T_e/K_eV)**3/ne) # Check the units !!!?????
-        # MeanSigma_ei = 5.85e-10 * np.log(Lambda_ei)/(T_e/K_eV)**2 # Check the units !!!?????
+        # MeanThermalVelocity_e = xp.sqrt(8.0*spc.k*T_e/K_eV/xp.pi/spc.m_e)
+        # Lambda_ei = 1.24e7 * xp.sqrt((T_e/K_eV)**3/ne) # Check the units !!!?????
+        # MeanSigma_ei = 5.85e-10 * xp.log(Lambda_ei)/(T_e/K_eV)**2 # Check the units !!!?????
         # kei = MeanThermalVelocity_e * MeanSigma_ei
             
         # Rtransfer_n = 3.0 * spc.m_e * ne * n_g * (T_g*K_eV - T_e) * ken / M_Ar
@@ -620,7 +700,14 @@ class CollisionalRadiativeModel:
                   
             T_e :  electron temperature in [eV] 
         """  
-        
+
+        xp = self.xp_module
+
+
+        if xp == cp:
+          cp.cuda.runtime.deviceSynchronize()
+
+    
         # Indexing 
         # i = 0       -> ground state
         # i = 1:Ns-2  -> excited levels
@@ -633,7 +720,7 @@ class CollisionalRadiativeModel:
 
         # Clip negative values
         
-        # y[:,np.where(y <= 0.0)] = 0.0
+        # y[:,xp.where(y <= 0.0)] = 0.0
         y[y <= 0.0] = 0.0
 
         n_g = y[:,iNg]    # [#/m^3]
@@ -646,29 +733,30 @@ class CollisionalRadiativeModel:
         p_0 = self.p_0
 
         # allocate arrays
-        npop = np.zeros((y.shape[0],self.Ns-2)) # ground state + excited levels
-        dydt = np.zeros((y.shape[0],self.Ns+1)) # ground state + excited levels + electrons + ions + Ee #+ Eh
+        npop = xp.zeros((y.shape[0],self.Ns-2)) # ground state + excited levels
+        dydt = xp.zeros((y.shape[0],self.Ns+1)) # ground state + excited levels + electrons + ions + Ee #+ Eh
         
-        # dEhdt = np.zeros((y.shape[0]))
+        # dEhdt = xp.zeros((y.shape[0]))
         
         npop[:,0] = n_g
         npop[:,1:] = y[:,1:self.Ns-2]
 
         # Temperature of heavy species (from ideal gas law)
         #  Ideal gas law: p_0 = p_n + p_i + p_e
-        T_g = (p_0/spc.k - ne * T_e/K_eV) / (np.sum(npop, axis=1) + nion)   # [K]
+        T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion)   # [K]
  
         # T_g[T_g < 290.0] = 290.0 # eeeeeeeeee???????
         
- 
+
         """
         Compute Electron Energy Distribution Function (EEDF) based on a Maxwellian distribution:
         """
         EEDF= self.MaxwellianDistribution_vec(self.eRange,T_e)
         AEDF= self.MaxwellianDistribution_vec(self.eRange,T_g*K_eV)
-        EEDFnorm = np.trapz(EEDF,self.eRange, axis=0 )
-        AEDFnorm = np.trapz(AEDF,self.eRange, axis=0 )
-        
+        EEDFnorm = xp.trapz(EEDF,self.eRange, axis=0 )
+        AEDFnorm = xp.trapz(AEDF,self.eRange, axis=0 )
+        EEDF /= EEDFnorm
+        AEDF /= AEDFnorm        
                 
         # keylist = self.p.collDict.keys()
         
@@ -679,8 +767,8 @@ class CollisionalRadiativeModel:
         i = iNg # from ground state (BSR Data from LXCat)
         deltaIon = Eion - self.p.E_lvl[i]*cm_eV 
                                     
-        Si = np.trapz(self.p.sigma_ionBSR*self.eVel*EEDF,self.eRange, axis=0 )/EEDFnorm        
-        Qi = self.p.g_lvl[i]*Qi_factor*np.exp(deltaIon/T_e)*Si # I need to check again this one.
+        Si = xp.trapz(self.p.sigma_ionBSR*self.eVel*EEDF,self.eRange, axis=0 )        
+        Qi = self.p.g_lvl[i]*Qi_factor*xp.exp(deltaIon/T_e)*Si # I need to check again this one.
 
 
         Rsi = n_g * ne * Si     # Electron impact ionization
@@ -696,12 +784,12 @@ class CollisionalRadiativeModel:
             # isPrimed_lvl    
             deltaIon = Eion - self.p.E_lvl[i]*cm_eV # Which Eion should I use? There are two!                    
             
-            Si = np.trapz(self.p.sigma_ij_Ion[i]*self.eVel*EEDF,self.eRange, axis=0 )/EEDFnorm
+            Si = xp.trapz(self.p.sigma_ij_Ion[i]*self.eVel*EEDF,self.eRange, axis=0 )
                         
-            # sigma_ion = np.interp(self.xi*T_e, self.eRange, self.p.sigma_ij_Ion[i])
-            # Si = np.sum(self.wi * sigma_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
+            # sigma_ion = xp.interp(self.xi*T_e, self.eRange, self.p.sigma_ij_Ion[i])
+            # Si = xp.sum(self.wi * sigma_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
                                      
-            Qi = self.p.g_lvl[i]*Qi_factor*np.exp(deltaIon/T_e)*Si # I need to check again this one.
+            Qi = self.p.g_lvl[i]*Qi_factor*xp.exp(deltaIon/T_e)*Si # I need to check again this one.
        
             Rsi = npop[:,i]*ne*Si # Electron impact ionization
             Rqi = nion*ne*ne*Qi 
@@ -711,6 +799,7 @@ class CollisionalRadiativeModel:
             dydt[:,iEe] = dydt[:,iEe] + deltaIon * (Rqi - Rsi) # rate of change of eletron energy
 
 
+
         ################## Elecrton impact de/excitation ##################
         # From LXCat BSR data
         for iCollTrans in self.p.CollTransitions_LXCat_BSR: 
@@ -718,14 +807,14 @@ class CollisionalRadiativeModel:
             j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                    
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                                   
-            Cij = np.trapz(self.p.sigma_ij_Exc_BSR[iCollTrans]*self.eVel*EEDF,self.eRange, axis=0 )/EEDFnorm                        
+            Cij = xp.trapz(self.p.sigma_ij_Exc_BSR[iCollTrans]*self.eVel*EEDF,self.eRange, axis=0 )                        
 
-            # sigma_ij = np.interp(self.xi*T_e ,self.p.collDict_list[iCollTrans][:,0],self.p.collDict_list[iCollTrans][:,1])
-            # sigma_ij[np.where(self.xi*T_e < eij)] = 0
-            # Cij = np.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
+            # sigma_ij = xp.interp(self.xi*T_e ,self.p.collDict_list[iCollTrans][:,0],self.p.collDict_list[iCollTrans][:,1])
+            # sigma_ij[xp.where(self.xi*T_e < eij)] = 0
+            # Cij = xp.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
             # print("diff = " , abs(Cij - Cij_2)/Cij*100)
 
-            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
+            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
             Rcij = Cij*npop[:,i]*ne
             Rfji = Fji*npop[:,j]*ne
             dydt[:,i] = dydt[:,i] - Rcij + Rfji 
@@ -738,20 +827,20 @@ class CollisionalRadiativeModel:
             j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                            
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                           
-            Cij = np.trapz(self.p.sigma_ij_Exc[iCollTrans]*self.eVel*EEDF,self.eRange, axis=0 )/EEDFnorm
+            Cij = xp.trapz(self.p.sigma_ij_Exc[iCollTrans]*self.eVel*EEDF,self.eRange, axis=0 )
 
-            # sigma_ij = np.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc[iCollTrans])
-            # Cij_2 = np.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
+            # sigma_ij = xp.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc[iCollTrans])
+            # Cij_2 = xp.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
             # print("diff = " , abs(Cij - Cij_2)/Cij*100)
 
-            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
+            Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
             Rcij = Cij*npop[:,i]*ne
             Rfji = Fji*npop[:,j]*ne
             dydt[:,i] = dydt[:,i] - Rcij + Rfji 
             dydt[:,j] = dydt[:,j] + Rcij - Rfji 
             dydt[:,iEe] = dydt[:,iEe] + eij * (Rfji - Rcij) # rate of change of eletron energy
 
-
+ 
         ################# Radiation processes ##################
         for itrans in self.p.EmissionTransitions: 
             """
@@ -767,8 +856,12 @@ class CollisionalRadiativeModel:
 
             
             # Calculations for escape factor
-            eta = escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],self.p.g_j[itrans],self.p.g_i[itrans],\
+            if (i == 0):  # For now, we only calculate the escape factors for the reasonance lines. 
+                eta = escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],self.p.g_j[itrans],self.p.g_i[itrans],\
                                  self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L) 
+            else:
+                eta=1.0
+
 
             
             Rspem =  npop[:,j]*self.p.A_ji[itrans]*eta        
@@ -777,14 +870,15 @@ class CollisionalRadiativeModel:
             # dydt[:,iEh] = dydt[:,iEh] - eij * Rspem  # Do I need to include that???
             # dEhdt = dEhdt - eij * Rspem
 
+
                 
         ################## Atom impact Ionization ##################
         Wm_factor = 1.0/2.0/g_ion*(parameters.lambda_factor/T_e)**(1.5)
         
         deltaIon = Eion - self.p.E_lvl[0]*cm_eV
         
-        Vm = np.trapz(self.p.sigma_1a_ion*self.aVel*AEDF,self.eRange, axis=0 )/AEDFnorm        
-        Wm = self.p.g_lvl[0]*Wm_factor*np.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
+        Vm = xp.trapz(self.p.sigma_1a_ion*self.aVel*AEDF,self.eRange, axis=0 )        
+        Wm = self.p.g_lvl[0]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
     
         Rvm = n_g * n_g * Vm
         Rwm = n_g * ne * nion * Wm  
@@ -798,12 +892,12 @@ class CollisionalRadiativeModel:
             # Ionization due to atom impact from any level
             deltaIon = Eion - self.p.E_lvl[i]*cm_eV
                                  
-            Vm = np.trapz(self.p.sigma_ia_ion[i]*self.aVel*AEDF,self.eRange, axis=0 )/AEDFnorm
+            Vm = xp.trapz(self.p.sigma_ia_ion[i]*self.aVel*AEDF,self.eRange, axis=0 )
                         
-            # sigma_ia_ion = np.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ia_ion[i])
-            # Vm = np.sum(self.wi * sigma_ia_ion * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)
+            # sigma_ia_ion = xp.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ia_ion[i])
+            # Vm = xp.sum(self.wi * sigma_ia_ion * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)
                         
-            Wm = self.p.g_lvl[i]*Wm_factor*np.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
+            Wm = self.p.g_lvl[i]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
 
             Rvm = npop[:,i] * n_g * Vm
             Rwm = n_g * ne * nion * Wm 
@@ -813,21 +907,23 @@ class CollisionalRadiativeModel:
             # dydt[:,iEh] = dydt[:,iEh] + deltaIon * (Rwm - Rvm) # rate of change of eletron energy
             # dEhdt = dEhdt + deltaIon * (Rwm - Rvm)
         
-            
 
+            
         ################## Atom impact de/excitation ##################
+
 
         i = self.p.i_Atom_ExcFromGround 
         for itrans in self.p.itrans_Atom_ExcFromGround:
             j = self.p.j_Atom_ExcFromGround[itrans]
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
 
-            Kij = np.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans]*self.aVel*AEDF,self.eRange, axis=0 )/AEDFnorm
-            # sigma_ij_a = np.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_ExcFromGround[itrans])
-            # Kij_2 = np.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)  
+
+            Kij = xp.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans]*self.aVel*AEDF,self.eRange, axis=0 )
+            # sigma_ij_a = xp.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_ExcFromGround[itrans])
+            # Kij_2 = xp.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)  
             # print("diff = ", abs(Kij_2-Kij)/Kij*100)                    
 
-            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
+            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
 
             Rkij = npop[:,i] * n_g * Kij
             Rlji = npop[:,j] * n_g * Lji  
@@ -837,18 +933,19 @@ class CollisionalRadiativeModel:
             # dEhdt = dEhdt + eij * (Rlji - Rkij)
 
 
+
         for itrans in self.p.itrans_Atom_Exc:
             i = self.p.i_Atom_Exc[itrans]
             j = self.p.j_Atom_Exc[itrans] 
-
+            
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             
-            Kij = np.trapz(self.p.sigma_ij_Atom_Exc[itrans]*self.aVel*AEDF,self.eRange, axis=0 )/AEDFnorm
+            Kij = xp.trapz(self.p.sigma_ij_Atom_Exc[itrans]*self.aVel*AEDF,self.eRange, axis=0 )
   
-            # sigma_ij_a = np.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_Exc[itrans])           
-            # Kij = np.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)            
+            # sigma_ij_a = xp.interp(self.xi*T_g*K_eV, self.eRange, self.p.sigma_ij_Atom_Exc[itrans])           
+            # Kij = xp.sum(self.wi * sigma_ij_a * self.atomImpactIonRateIntegrand(T_g*K_eV) * T_g*K_eV)            
             
-            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*np.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
+            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
 
             Rkij = npop[:,i] * n_g * Kij
             Rlji = npop[:,j] * n_g * Lji  
@@ -858,16 +955,17 @@ class CollisionalRadiativeModel:
             # dEhdt = dEhdt + eij * (Rlji - Rkij)
 
 
+
         ################# Photorecombination/photoionization ##################
         nTrans = 5
         for i in range(0,nTrans): # We include also the photoionization from ground state which has a different cross section
 
-            Ri = np.trapz(self.p.sigma_c_ion[i]*self.eVel*EEDF,self.eRange, axis=0 )/EEDFnorm
-            Ri_prime = np.trapz(self.p.sigma_c_ion[i]*self.eVel*self.eRange*EEDF,self.eRange, axis=0 )/EEDFnorm
+            Ri = xp.trapz(self.p.sigma_c_ion[i]*self.eVel*EEDF,self.eRange, axis=0 )
+            Ri_prime = xp.trapz(self.p.sigma_c_ion[i]*self.eVel*self.eRange*EEDF,self.eRange, axis=0 )
 
-            # sigma_c_ion = np.interp(self.xi*T_e, self.eRange, self.p.sigma_c_ion[i])
-            # Ri = np.sum(self.wi * sigma_c_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
-            # Ri_prime = np.sum(self.wi * sigma_c_ion * self.xi*T_e * self.electronImpactIonRateIntegrand(T_e) * T_e)
+            # sigma_c_ion = xp.interp(self.xi*T_e, self.eRange, self.p.sigma_c_ion[i])
+            # Ri = xp.sum(self.wi * sigma_c_ion *self.electronImpactIonRateIntegrand(T_e) * T_e)
+            # Ri_prime = xp.sum(self.wi * sigma_c_ion * self.xi*T_e * self.electronImpactIonRateIntegrand(T_e) * T_e)
 
             Rri = ne * nion * Ri # What is the reverse process here?
             Rri_prime = ne * nion * Ri_prime
@@ -878,22 +976,22 @@ class CollisionalRadiativeModel:
 
 
         # Bremsstrahlung emission
-        # Rbremsstrahlung = 1.42e-40 * parameters.Zeff**2 * np.sqrt(T_e/K_eV) * ne * ne /spc.e  # [eV/m^3/s]
+        # Rbremsstrahlung = 1.42e-40 * parameters.Zeff**2 * xp.sqrt(T_e/K_eV) * ne * ne /spc.e  # [eV/m^3/s]
         
         # Energy transfer between electrons and heavy particles 
 
-        # # sigma_el_e1 = np.interp(self.eRange,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
-        # # sigma_el_e1[np.where(sigma_el_e1 < 0)] = 0
-        # ken = np.trapz(self.p.sigma_el_e1*self.eVel*EEDF,self.eRange, axis=0 )/EEDFnorm
+        # # sigma_el_e1 = xp.interp(self.eRange,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
+        # # sigma_el_e1[xp.where(sigma_el_e1 < 0)] = 0
+        # ken = xp.trapz(self.p.sigma_el_e1*self.eVel*EEDF,self.eRange, axis=0 )
 
-        # sigma_el_e1 = np.interp(self.xi*T_e,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
-        # sigma_el_e1[np.where(sigma_el_e1 < 0)] = 0
-        # ken = np.sum(self.wi * sigma_el_e1 *self.electronImpactIonRateIntegrand(T_e) * T_e)
+        # sigma_el_e1 = xp.interp(self.xi*T_e,parameters.eRange_elastic_e1,parameters.sigma_elastic_e1)*1e-20
+        # sigma_el_e1[xp.where(sigma_el_e1 < 0)] = 0
+        # ken = xp.sum(self.wi * sigma_el_e1 *self.electronImpactIonRateIntegrand(T_e) * T_e)
 
         
-        # MeanThermalVelocity_e = np.sqrt(8.0*spc.k*T_e/K_eV/np.pi/spc.m_e)
-        # Lambda_ei = 1.24e7 * np.sqrt((T_e/K_eV)**3/ne) # Check the units !!!?????
-        # MeanSigma_ei = 5.85e-10 * np.log(Lambda_ei)/(T_e/K_eV)**2 # Check the units !!!?????
+        # MeanThermalVelocity_e = xp.sqrt(8.0*spc.k*T_e/K_eV/xp.pi/spc.m_e)
+        # Lambda_ei = 1.24e7 * xp.sqrt((T_e/K_eV)**3/ne) # Check the units !!!?????
+        # MeanSigma_ei = 5.85e-10 * xp.log(Lambda_ei)/(T_e/K_eV)**2 # Check the units !!!?????
         # kei = MeanThermalVelocity_e * MeanSigma_ei
             
         # Rtransfer_n = 3.0 * spc.m_e * ne * n_g * (T_g*K_eV - T_e) * ken / M_Ar
@@ -908,6 +1006,9 @@ class CollisionalRadiativeModel:
         dydt[:,iNion] = dydt[:,iNe] # These rates are always the same! 
                                     # I need to think how we can exploit this to make the computation faster. 
                                     # Especialy for the calculation of the jacobian
+
+
+
 
         return dydt
 

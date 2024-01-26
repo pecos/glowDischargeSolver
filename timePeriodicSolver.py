@@ -4,11 +4,11 @@ import chebSolver as cs
 
 class timePeriodicSolver:
 
-    def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
+    def __init__(self, args, Ns, NT, Np, elasticCollisionActivationFactor,
                  backgroundSpecieActivationFactor, EinsteinForm,
                  gam, V0, VDC, restart=None, scenario=0, scheme='BE',
                  alpha0 = 1.0, increaseFac = 1.0, iSample = 0):
-        self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np,
+        self.tds = cs.timeDomainCollocationSolver(args, Ns, NT, Np,
                                                   elasticCollisionActivationFactor,
                                                   backgroundSpecieActivationFactor,
                                                   EinsteinForm,
@@ -143,6 +143,9 @@ if __name__ == "__main__":
                         type=float, help='Increase alpha by this factor each step')
     parser.add_argument('--iSample', metavar='iSample', default=0,
                         type=int, help='Sample index, if BOLSIG chemistry is used.')
+    parser.add_argument("-use_gpu", "--use_gpu", help="use GPUs", type=int, default=0)
+    parser.add_argument("-gpu_device_id", "--gpu_device_id", help="GPU device id to use", type=int, default=0)
+
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -267,7 +270,7 @@ if __name__ == "__main__":
         print("#   The Einstein's form for diffusion coefficient is not used.")
         EinsteinForm = False
 
-    tps = timePeriodicSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
+    tps = timePeriodicSolver(args, Ns, 1, args.Np, elasticCollisionActivationFactor,
                              backgroundSpecieActivationFactor,
                              EinsteinForm,
                              args.gam, args.V0, args.VDC,

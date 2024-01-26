@@ -757,5 +757,8 @@ class modelParameters:
 
         # Elastic Collisions
         self.sigma_el_e1 = np.interp(eRange,eRange_elastic_e1,sigma_elastic_e1)*1e-20
-        self.sigma_el_e1[np.where(self.sigma_el_e1 < 0)] = 0                
+        self.sigma_el_e1[np.where(self.sigma_el_e1 < 0)] = 0  
+        
+        self.eRange_elastic_e1 = eRange_elastic_e1
+        self.sigma_elastic_e1 = sigma_elastic_e1                       
 

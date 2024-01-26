@@ -6,15 +6,15 @@ error_exit()
   exit 1
 }
 
-EXE="python3 ./chebSolver.py"
+EXE="python3 ./chebSolver.py --use_gpu 1 --gpu_device_id 0"
 NEWTEXE="python3 ./timePeriodicSolver.py"
 
 
 # 6 species + 34 rxn - Nominal Rates case
 Np=150
-Nt=250
-# dt=0.03125
-dt=0.015625
+Nt=10
+dt=0.03125
+# dt=0.015625
 # dt=0.0000078125
 
 
@@ -36,7 +36,7 @@ rm -f $screenOut
 
 # Run an example case of the Chebyshev time domain solver
 echo "Run time marching case..."
-$baseCmd --V0 100 --VDC 0.0 --t0 25.5 --outfile  $baseFile --restart "restart_crashed.npy" --verbose #|| error_exit "First run failed"
+$baseCmd --V0 100 --VDC 0.0 --t0 25.5 --outfile  $baseFile --verbose #|| error_exit "First run failed"
 
 # echo "Run time domain shooting..."
 # $newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart $baseFile \

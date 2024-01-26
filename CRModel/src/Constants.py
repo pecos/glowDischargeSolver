@@ -47,7 +47,8 @@ RydEn = spc.Rydberg*spc.c*spc.h/spc.e # [eV]
 a0 = 71e-12 # [m] Bohr radius of argon
 g_ion = 4.0 # There should be two ionizasion levels. What do we do then??
 
-Eion = np.array([15.7596119]) # ionization energies of Ar in [eV]
+Eion = 15.7596119 # ionization energies of Ar in [eV]
+# Eion = np.array([15.7596119]) # ionization energies of Ar in [eV]
 Eion_Ar_1 = np.array([15.7596119]) # ionization energy of Ar in [eV]
 Eion_Ar_2 = np.array([15.7596119+0.17749368]) # ionization energy of Ar  in [eV]
 
