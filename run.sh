@@ -6,15 +6,15 @@ error_exit()
   exit 1
 }
 
-EXE="python3 ./chebSolver.py --use_gpu 1 --gpu_device_id 0"
+EXE="python3 ./chebSolver.py --use_gpu 0 --gpu_device_id 0"
 NEWTEXE="python3 ./timePeriodicSolver.py"
 
 
 # 6 species + 34 rxn - Nominal Rates case
 Np=150
 Nt=10
-dt=0.03125
-# dt=0.015625
+# dt=0.03125
+dt=0.015625
 # dt=0.0000078125
 
 
