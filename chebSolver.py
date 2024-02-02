@@ -17,7 +17,7 @@ sys.path.append(crmodel_dir)
 
 
 from os import environ
-N_THREADS = '3'
+N_THREADS = '8'
 environ['OMP_NUM_THREADS'] = N_THREADS
 environ['OPENBLAS_NUM_THREADS'] = N_THREADS
 environ['MKL_NUM_THREADS'] = N_THREADS
@@ -670,23 +670,23 @@ class timeDomainCollocationSolver:
       with cp.cuda.Device(dev_id):
 
 
-        self.U2             = cp.asarray(self.U2)
-        self.U1             = cp.asarray(self.U1)
-        self.U0             = cp.asarray(self.U0)
+        self.U2                 = cp.asarray(self.U2)
+        self.U1                 = cp.asarray(self.U1)
+        self.U0                 = cp.asarray(self.U0)
 
         self.totalCurrent       = cp.asarray(self.totalCurrent)
         self.ionCurrent         = cp.asarray(self.ionCurrent)
         self.electronCurrent    = cp.asarray(self.electronCurrent)
         
-        self.Dp            = cp.asarray(self.Dp)
-        self.LpD           = cp.asarray(self.LpD)
-        self.LpD_inv       = cp.asarray(self.LpD_inv)
+        self.Dp                 = cp.asarray(self.Dp)
+        self.LpD                = cp.asarray(self.LpD)
+        self.LpD_inv            = cp.asarray(self.LpD_inv)
 
-        self.phi_x_ne       = cp.asarray(self.phi_x_ne)
-        self.phi_x_ni       = cp.asarray(self.phi_x_ni)
+        self.phi_x_ne           = cp.asarray(self.phi_x_ne)
+        self.phi_x_ni           = cp.asarray(self.phi_x_ni)
 
-        self.I_Np       = cp.asarray(self.I_Np)
-        self.I_Ndof       = cp.asarray(self.I_Ndof)
+        self.I_Np               = cp.asarray(self.I_Np)
+        self.I_Ndof             = cp.asarray(self.I_Ndof)
 
 
 

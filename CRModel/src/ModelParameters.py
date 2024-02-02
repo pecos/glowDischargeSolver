@@ -472,6 +472,21 @@ class modelParameters:
                 self.CollTransitions_Rest.append(element)
 
 
+        self.CollTransitions_LXCat_BSR = np.array(self.CollTransitions_LXCat_BSR)
+        self.NCollTrans_LXCat_BSR = len(self.CollTransitions_LXCat_BSR)
+
+        self.CollTransition_ij_LXCat_BSR = np.zeros([2*self.NCollTrans_LXCat_BSR],dtype=np.int32)
+        for iter in range(self.NCollTrans_LXCat_BSR):
+            iCollTrans = self.CollTransitions_LXCat_BSR[iter]
+            i = self.CollTransition_ij[iCollTrans,0] # Lower lever
+            j = self.CollTransition_ij[iCollTrans,1] # Upper level    
+            self.CollTransition_ij_LXCat_BSR[iter] = i 
+            self.CollTransition_ij_LXCat_BSR[iter + self.NCollTrans_LXCat_BSR] = j 
+
+            
+        # exit(-1)
+
+
         sigma_ij = np.zeros([self.N_lvl,self.N_lvl])
 
         icount = 0
@@ -543,8 +558,8 @@ class modelParameters:
 
     def makeSets(self):      
         self.EmissionTransitions = set(self.EmissionTransitions)
-        self.CollTransitions_LXCat_BSR = set(self.CollTransitions_LXCat_BSR)
-        self.CollTransitions_Rest = set(self.CollTransitions_Rest)
+        # self.CollTransitions_LXCat_BSR = set(self.CollTransitions_LXCat_BSR)
+        # self.CollTransitions_Rest = set(self.CollTransitions_Rest)
 
 
     def EvaluateCrossSections(self, eRange):
@@ -558,6 +573,7 @@ class modelParameters:
 
             self.sigma_ij_Exc_BSR[iCollTrans] = np.interp(eRange,self.collDict_list[iCollTrans][:,0],self.collDict_list[iCollTrans][:,1])
             self.sigma_ij_Exc_BSR[iCollTrans][np.where(eRange < eij)] = 0
+
 
         # Excitation Rest
         self.sigma_ij_Exc = {}
@@ -762,3 +778,13 @@ class modelParameters:
         self.eRange_elastic_e1 = eRange_elastic_e1
         self.sigma_elastic_e1 = sigma_elastic_e1                       
 
+    def ConvertCrossSectionsToNumPy(self):
+
+        self.sigma_ij_Exc_BSR = np.array(list(self.sigma_ij_Exc_BSR.values()))        
+        self.sigma_ij_Ion = np.array(list(self.sigma_ij_Ion.values()))
+        
+        self.sigma_ia_ion = np.array(list(self.sigma_ia_ion.values()))
+        self.sigma_c_ion = np.array(list(self.sigma_c_ion.values()))
+
+    
+        
