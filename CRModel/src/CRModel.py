@@ -712,6 +712,7 @@ class CollisionalRadiativeModel:
             T_e :  electron temperature in [eV] 
         """  
 
+
         xp = self.xp_module
 
 
@@ -1069,7 +1070,8 @@ class CollisionalRadiativeModel:
         slice1[axis] = slice(1, None)
         slice2[axis] = slice(None, -1)
 
-        
+ 
+        #xp.linalg.multi_dot #NOTE(malamast): Check if it speeds up with multi_dot??        
         ret = xp.transpose(xp.dot(d.T, (y[tuple(slice1)] + y[tuple(slice2)])) )/ 2.0
         return ret.reshape(-1)
 
