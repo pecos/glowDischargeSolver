@@ -186,6 +186,15 @@ class CollisionalRadiativeModel:
         self.Z[1] =  1 # ions are always 1
         self.Z[2] =  0 # background specie should be 0
 
+        #----------------------------------------------------------------------------------
+
+        self.npop = np.zeros((150,self.Ns-2)) # ground state + excited levels
+        self.dydt = np.zeros((150,self.Ns+1)) # ground state + excited levels + electrons + ions + Ee #+ Eh
+     
+ 
+
+
+
     def charge(self,i):
         return self.Z[i]
 
@@ -747,6 +756,10 @@ class CollisionalRadiativeModel:
         # allocate arrays
         npop = xp.zeros((y.shape[0],self.Ns-2)) # ground state + excited levels
         dydt = xp.zeros((y.shape[0],self.Ns+1)) # ground state + excited levels + electrons + ions + Ee #+ Eh
+
+        # npop = self.npop
+        # dydt = self.dydt
+        # dydt[:] = 0.0
         
         # dEhdt = xp.zeros((y.shape[0]))
         
@@ -844,7 +857,7 @@ class CollisionalRadiativeModel:
             # j = self.p.CollTransition_ij[iCollTrans,1] # Upper level     
             
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
-            
+
             Cij = self.trapz(self.p.sigma_ij_Exc_BSR[iter]*eVelTimesEEDF,self.eRange, axis=0 )                        
             # Cij = self.trapz(self.p.sigma_ij_Exc_BSR[iCollTrans]*eVelTimesEEDF,self.eRange, axis=0 )                        
 
@@ -1052,7 +1065,6 @@ class CollisionalRadiativeModel:
 
 
 
-
         return dydt
 
     #----------------------------------------------------------------------------------
@@ -1062,7 +1074,7 @@ class CollisionalRadiativeModel:
 
         xp = self.xp_module
 
-        y = xp.asanyarray(y)        
+        # y = xp.asanyarray(y)        
         d = self.eRange_diff
         nd = y.ndim
         slice1 = [slice(None)]*nd

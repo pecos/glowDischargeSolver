@@ -13,7 +13,8 @@ NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 0 --gpu_device_id 0"
 # 6 species + 34 rxn - Nominal Rates case
 Np=150
 Nt=32000
-dt=0.015625
+
+dt=0.0078125
 
 
 Nt1=128

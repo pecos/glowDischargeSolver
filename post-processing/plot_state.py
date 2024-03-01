@@ -22,7 +22,8 @@ case1 = True; file1 = '../Results/local/CR/Nominal/restart_T600.npy'; clr1 = 'b-
 # case2 = False; file2 = '../restart_crashed.npy'; clr2 = 'r-'; label2 = "CR 2"
 # case2 = False; file2 = '../Results/6spec/restart.npy'; clr2 = 'r-'; label2 = "6spec"
 # case2 = True; file2 = '../Results/CR/restart_CR_Np150_T115.npy'; clr2 = 'r-'; label2 = "CR"
-case2 = False; file2 = '../Results/CR/restart_CR_Np150_T230.npy'; clr2 = 'r-'; label2 = "CR"
+# case2 = False; file2 = '../Results/CR/restart_CR_Np150_T230.npy'; clr2 = 'r-'; label2 = "CR"
+case2 = True; file2 = '../Results/CR2/Nominal/T150/restart.npy'; clr2 = 'r-'; label2 = "CR"
 
 
 # these values are required to "redimensionalize" the results
@@ -265,7 +266,8 @@ if (isPlot):
 
    # nb
    fig,ax = plt.subplots(dpi=160)
-   ax.semilogy(npop[75,:], clr1, lw=2, label=label1)
+   # ax.semilogy(npop[75,:], clr1, lw=2, label=label1)
+   ax.plot(xr, nb, clr1, lw=2, label=label1)
    if case2:
       ax.plot(xr, nb_2, clr2, lw=2, label=label2)
    ax.legend(fontsize=12)

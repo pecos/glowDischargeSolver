@@ -1823,6 +1823,9 @@ class timeDomainCollocationSolver:
 
         normr = normr0 = xp.linalg.norm(r)
 
+        # if xp == cp:
+        #   cp.cuda.runtime.deviceSynchronize()
+
         count = 0
         converged = ((normr/normr0 < rtol) or (normr < atol))
 
@@ -2337,8 +2340,8 @@ if __name__ == "__main__":
         gpu_device = cp.cuda.Device(args.gpu_device_id)
         gpu_device.use()
 
-    profile = cProfile.Profile()
-    profile.enable()
+    # profile = cProfile.Profile()
+    # profile.enable()
 
     # Run for desired number of time steps
     if (args.tscheme=="LCN"):
@@ -2352,8 +2355,8 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    profile.disable()
-    profile.print_stats(sort='tottime')
+    # profile.disable()
+    # profile.print_stats(sort='tottime')
     # profile.print_stats(sort='cumulative')
     # profile.print_stats(sort='line')
     # profile.print_stats(sort='nfl')
