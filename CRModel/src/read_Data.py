@@ -145,6 +145,7 @@ def read_ArI_transitions(fileDir,fileName, *levels):
         # dictionaries are multiply difined as we loop over all radiative transitions
 
 
+
     for itrans in range(len(Configuration_i)):
         # i = DictRacah_lvl[Racah_i[itrans]]
         # j = DictRacah_lvl[Racah_j[itrans]]   

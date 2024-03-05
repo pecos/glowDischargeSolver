@@ -161,6 +161,7 @@ class modelParameters:
         print("No. of excited levels of A I considered (including ground state) =",self.N_lvl)
 
 
+
         for i in range(self.N_lvl):    
             deltaIon = Eion - self.E_lvl[i]*cm_eV 
             if deltaIon < 0.0:
@@ -168,6 +169,10 @@ class modelParameters:
                       Fix electron-impact ionization process to proceed.")
                 raise SystemExit(0) 
 
+        self.deltaIon = np.zeros([self.N_lvl])
+        for i in range(self.N_lvl):    
+            deltaIon = Eion - self.E_lvl[i]*cm_eV
+            self.deltaIon[i] = deltaIon 
 
     
         #----------------------------------------------------------------------------------
@@ -206,6 +211,7 @@ class modelParameters:
         self.Configuration_j, self.Term_j, self.J_j, 
         self.Racah_i, DictRacah_i, self.Racah_j, DictRacah_j, self.Source_ji) = p
 
+
         # DictRacah_i, DictRacah_j give the wrong index because the keys in these 
         # dictionaries are multiply difined as we loop over all radiative transitions
 
@@ -225,11 +231,10 @@ class modelParameters:
 
         self.NRadTrans = len(self.EmissionTransitions)
 
-
         # Discard extra values from radiative transitions arrays
         EmissionTransitions_np = np.array(self.EmissionTransitions)
         
-        self.A_ji = self.A_ji[EmissionTransitions_np] 
+        self.A_ji = self.A_ji[EmissionTransitions_np]       
         self.f_ji = self.f_ji[EmissionTransitions_np] 
         
         self.E_i = self.E_i[EmissionTransitions_np] 
@@ -254,8 +259,11 @@ class modelParameters:
         self.EmissionTransitions = range(self.NRadTrans)
         
         # Find indices 
-        self.index_i_lvl = {} 
-        self.index_j_lvl = {}
+        # self.index_i_lvl = {} 
+        # self.index_j_lvl = {}
+        self.index_i_lvl = np.zeros(self.NRadTrans,dtype=np.int32)
+        self.index_j_lvl = np.zeros(self.NRadTrans,dtype=np.int32)        
+        
         for itrans in self.EmissionTransitions: 
             i_lvl = -1
             index_temp = np.where(self.Term_lvl == self.Term_i[itrans])
@@ -287,6 +295,7 @@ class modelParameters:
                 raise SystemExit(0)  
 
             self.index_j_lvl[itrans] = j_lvl  
+
 
     
         for itrans in self.EmissionTransitions:
@@ -475,6 +484,8 @@ class modelParameters:
         self.CollTransitions_LXCat_BSR = np.array(self.CollTransitions_LXCat_BSR)
         self.NCollTrans_LXCat_BSR = len(self.CollTransitions_LXCat_BSR)
 
+        self.eij_LXCat_BSR = np.zeros([self.NCollTrans_LXCat_BSR])
+
         self.CollTransition_ij_LXCat_BSR = np.zeros([2*self.NCollTrans_LXCat_BSR],dtype=np.int32)
         for iter in range(self.NCollTrans_LXCat_BSR):
             iCollTrans = self.CollTransitions_LXCat_BSR[iter]
@@ -482,6 +493,9 @@ class modelParameters:
             j = self.CollTransition_ij[iCollTrans,1] # Upper level    
             self.CollTransition_ij_LXCat_BSR[iter] = i 
             self.CollTransition_ij_LXCat_BSR[iter + self.NCollTrans_LXCat_BSR] = j 
+
+            eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV  
+            self.eij_LXCat_BSR[iter] = eij
 
             
         # exit(-1)
@@ -553,7 +567,7 @@ class modelParameters:
         self.CollTransition_Status,self.KimuraFactor_K = CharacteriseTransitions(*p)
         os.chdir(homeDir)
 
-        self.makeSets()
+        # self.makeSets()
 
 
     def makeSets(self):      
@@ -715,7 +729,12 @@ class modelParameters:
                 self.j_Atom_ExcFromGround[itrans] = j 
                 self.itrans_Atom_ExcFromGround.append(itrans)
 
-
+        # Make a test to see of itrans_Atom_ExcFromGround is ordered.
+        if not all(self.itrans_Atom_ExcFromGround[i] == i for i in range(len(self.itrans_Atom_ExcFromGround))):
+            print("self.itrans_Atom_ExcFromGround ins not ordered. Program will stop.")
+            exit(-1)
+                        
+        
         # Atom impact de/excitation rest
         self.sigma_ij_Atom_Exc = {}
         self.j_Atom_Exc= {}
@@ -740,6 +759,11 @@ class modelParameters:
                 self.j_Atom_Exc[itrans] = j 
                 self.itrans_Atom_Exc.append(itrans)
                 
+
+        # Make a test to see of itrans_Atom_ExcFromGround is ordered.
+        if not all(self.itrans_Atom_Exc[i] == i for i in range(len(self.itrans_Atom_Exc))):
+            print("self.itrans_Atom_Exc ins not ordered. Program will stop.")
+            exit(-1)
 
 
         # Photorecombination/photoionization 
@@ -785,6 +809,15 @@ class modelParameters:
         
         self.sigma_ia_ion = np.array(list(self.sigma_ia_ion.values()))
         self.sigma_c_ion = np.array(list(self.sigma_c_ion.values()))
+        
+        self.sigma_ij_Atom_ExcFromGround = np.array(list(self.sigma_ij_Atom_ExcFromGround.values()))
+        self.j_Atom_ExcFromGround = np.array(list(self.j_Atom_ExcFromGround.values()))
+
+        self.sigma_ij_Atom_Exc = np.array(list(self.sigma_ij_Atom_Exc.values()))
+        self.j_Atom_Exc = np.array(list(self.j_Atom_Exc.values()))
+        self.i_Atom_Exc = np.array(list(self.i_Atom_Exc.values()))
+
+
 
     
         

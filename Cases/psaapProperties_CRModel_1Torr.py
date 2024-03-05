@@ -205,6 +205,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
         * np.sqrt(16.0 * (me + mAr) * e0 * c**2
                   / (3.0 * np.pi * me * mAr)) * se * nAr * tau
     # params.EC = 2.0 * me / mAr * 3.8e9 * tau
+    
 
     params.verticalShift = verticalShift / V0
     

@@ -11,7 +11,9 @@ isPlotLines = False
 isPlotMeans = True
 
 # case1 = True; file1 = '../fullsoln.npy'; clr1 = 'b-'; label1 = "CR"
-case1 = True; file1 = '../Results/CR/CR_Np150_fullsoln.npy'; clr1 = 'b-'; label1 = "CR"
+# case1 = True; file1 = '../Results/CR/CR_Np150_fullsoln.npy'; clr1 = 'b-'; label1 = "CR"
+# case1 = True; file1 = '../Results/test/1/fullsoln.npy'; clr1 = 'b-'; label1 = "CR"
+case1 = True; file1 = '../fullsoln.npy'; clr1 = 'b-'; label1 = "CR"
 
 
 # case1 = True; file1 = '../Results/CR/fullsoln.npy'; clr1 = 'b-'; label1 = "CR"
@@ -20,9 +22,10 @@ case1 = True; file1 = '../Results/CR/CR_Np150_fullsoln.npy'; clr1 = 'b-'; label1
 
 # case2 = True; file2 = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150_fullsoln.npy'; clr2 = 'b-'; label2 = "6spec"
 # case2 = True; file2 = '../Results/6spec/nominalCase_V100_P1torr_Np150_TimeMarching/newton_6spec_CN_Np150_fullsoln.npy'; clr2 = 'r-'; label2 = "6spec"
-case2 = True; file2 = '../Results/6spec/nominalCase_V100_P1torr_Np150_constDiff/newton_6spec_CN_Np150_fullsoln.npy'; clr2 = 'r-'; label2 = "6spec"
+# case2 = True; file2 = '../Results/6spec/nominalCase_V100_P1torr_Np150_constDiff/newton_6spec_CN_Np150_fullsoln.npy'; clr2 = 'r-'; label2 = "6spec"
 # case2 = True; file2 = '../Results/6spec/nominalCase_V100_P1torr_Np150_dEps/newton_6spec_CN_Np150_fullsoln.npy'; clr2 = 'r-'; label2 = "6spec"
-
+# case2 = True; file2 = '../fullsoln.npy'; clr2 = 'r-'; label2 = "CR2"
+case2 = False; file2 = '../Results/test/2/fullsoln.npy'; clr2 = 'r-'; label2 = "CR2"
 
 # these values are required to "redimensionalize" the results
 # they must be consistent with the scenario input file
@@ -121,7 +124,7 @@ if case2:
    D2 = np.transpose(D2)
 
    # Ns is the number of scpecies
-   Ns = 6 #  electrons + ions + nm + nr + n4p + nb 
+   Ns = 17 #  electrons + ions + nm + nr + n4p + nb 
 
    # pull solution out of D
    D_reshaped = np.reshape(D2,(Np, Ns+1, np.shape(D2)[1]),'F')
@@ -135,16 +138,16 @@ if case2:
    npop_2[:,0,:] = nb_2
    npop_2[:,1:,:] = D_reshaped[:,2:Ns-1,:]
 
-   nm_2 = D_reshaped[:,2,:]
-   nr_2 = D_reshaped[:,3,:] 
-   n4p_2 = D_reshaped[:,4,:] 
+   # nm_2 = D_reshaped[:,2,:]
+   # nr_2 = D_reshaped[:,3,:] 
+   # n4p_2 = D_reshaped[:,4,:] 
 
-   # nm_2 = D_reshaped[:,2,:] + D_reshaped[:,4,:] 
-   # nr_2 = D_reshaped[:,3,:] + D_reshaped[:,5,:] 
-   # n4p_2 = np.zeros_like(nr_2)
-   # for i in range(6,15+1):
-   #    print(i)
-   #    n4p_2 += D_reshaped[:,i,:] 
+   nm_2 = D_reshaped[:,2,:] + D_reshaped[:,4,:] 
+   nr_2 = D_reshaped[:,3,:] + D_reshaped[:,5,:] 
+   n4p_2 = np.zeros_like(nr_2)
+   for i in range(6,15+1):
+      print(i)
+      n4p_2 += D_reshaped[:,i,:] 
    
    # electron temp
    Te_2 = (2./3.) * nee_2 / ne_2  

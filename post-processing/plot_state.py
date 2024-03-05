@@ -16,14 +16,18 @@ isPlot = True
 # case1 = True; file1 = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; clr1 = 'b-'; label1 = "6spec"
 # case1 = True; file1 = '../restart.npy'; clr1 = 'b-'; label1 = "CR"
 # case1 = True; file1 = '../Results/CR/restart_CR_Np150_T345.npy'; clr1 = 'b-'; label1 = "CR"
-case1 = True; file1 = '../Results/local/CR/Nominal/restart_T600.npy'; clr1 = 'b-'; label1 = "CR"
+# case1 = True; file1 = '../Results/local/CR/Nominal/restart_T600.npy'; clr1 = 'b-'; label1 = "CR"
+# case1 = True; file1 = '../Results/test/1/discard.npy'; clr1 = 'b-'; label1 = "CR"
+case1 = True; file1 = '../discard_1.npy'; clr1 = 'b-'; label1 = "CR"
 
 
 # case2 = False; file2 = '../restart_crashed.npy'; clr2 = 'r-'; label2 = "CR 2"
 # case2 = False; file2 = '../Results/6spec/restart.npy'; clr2 = 'r-'; label2 = "6spec"
 # case2 = True; file2 = '../Results/CR/restart_CR_Np150_T115.npy'; clr2 = 'r-'; label2 = "CR"
 # case2 = False; file2 = '../Results/CR/restart_CR_Np150_T230.npy'; clr2 = 'r-'; label2 = "CR"
-case2 = True; file2 = '../Results/CR2/Nominal/T150/restart.npy'; clr2 = 'r-'; label2 = "CR"
+# case2 = True; file2 = '../Results/CR2/Nominal/T150/restart.npy'; clr2 = 'r-'; label2 = "CR"
+# case2 = True; file2 = '../Results/test/3/discard.npy'; clr2 = 'r-'; label2 = "CR"
+case2 = True; file2 = '../discard_2.npy'; clr2 = 'r-'; label2 = "CR"
 
 
 # these values are required to "redimensionalize" the results
@@ -264,19 +268,19 @@ if (isPlot):
    plt.savefig('./png/Te_mean.png')
 
 
-   # nb
-   fig,ax = plt.subplots(dpi=160)
-   # ax.semilogy(npop[75,:], clr1, lw=2, label=label1)
-   ax.plot(xr, nb, clr1, lw=2, label=label1)
-   if case2:
-      ax.plot(xr, nb_2, clr2, lw=2, label=label2)
-   ax.legend(fontsize=12)
-   # ax.set_xlim((xr[0], xr[-1]))
-   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$n_{AR}$ [m$^{-3}$]", fontsize=18)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/nb_mean.png')
+   # # distribution
+   # fig,ax = plt.subplots(dpi=160)
+   # # ax.semilogy(npop[75,:], clr1, lw=2, label=label1)
+   # ax.plot(xr, nb, clr1, lw=2, label=label1)
+   # if case2:
+   #    ax.plot(xr, nb_2, clr2, lw=2, label=label2)
+   # ax.legend(fontsize=12)
+   # # ax.set_xlim((xr[0], xr[-1]))
+   # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$n_{AR}$ [m$^{-3}$]", fontsize=18)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/nb_mean.png')
 
 
 

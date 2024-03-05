@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import chebSolver as cs
+import time as cpu_time
 
 class timePeriodicSolver:
 
@@ -288,9 +289,13 @@ if __name__ == "__main__":
     resPrint="Newton step {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}"
     print(resPrint.format(0,rnorm,rnorm/rnorm0))
 
+    tic_0 = cpu_time.time()
+
     # Newton iterations
     niter = 0
     while ( (rnorm/rnorm0 > args.rtol) and (rnorm > args.atol) and (niter<args.Nn) ):
+        tic = cpu_time.time()
+        
         tps.solveNewtonStep(Uic, args.Nt)
 
         if (args.plot):
@@ -303,6 +308,9 @@ if __name__ == "__main__":
         print("Done...")
         niter += 1
         print(resPrint.format(niter,rnorm,rnorm/rnorm0))
+        print(f"CPU Time per Newton iter is {cpu_time.time() - tic} seconds.")
+
+        
 
     if (args.plot):
         tps.tds.U2 = np.copy(Uic)
@@ -311,4 +319,9 @@ if __name__ == "__main__":
 
     # save final state
     np.save(args.outfile, Uic)
+
+    toc = cpu_time.time()
+    print(f"Total CPU Time = {toc -tic_0} seconds.")
+
+    print("Periodic solver finished successfully.")    
 

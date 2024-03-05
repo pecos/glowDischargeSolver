@@ -187,6 +187,7 @@ class modelClosures:
 
         # coefficient for the elastic collision term
         self.EC = 2.0 * 0.511e6 / 37.2158e9 * 3.8e9 * (1./13.6e6)
+        
 
         # DC voltage (vertical shift in the driving voltage)
         self.verticalShift = 0.0
@@ -504,6 +505,7 @@ class timeDomainCollocationSolver:
         # i = 2:Ns-2  -> excited levels
         # i = Ns - 1  -> ground state
         # i = Ns      -> electron energy
+
         
         self.Ns = Ns    # Number of species
         self.NT = NT    # Number of temperatures
@@ -608,7 +610,7 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==15):
             setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
-            self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.params.Pressure, self.params.GasTemperature,\
+            self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, self.params.Pressure, self.params.GasTemperature,\
                 backgroundSpecieActivationFactor)
             # self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119
             # self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]; self.params.dEps[self.Ns-1] = 0.0
@@ -670,10 +672,22 @@ class timeDomainCollocationSolver:
         self.I_Np =  np.identity(self.Np)
         self.I_Ndof = np.identity(self.Ndof)
 
+        self.ones_Np =  np.ones(self.Np)
 
         self.totalCurrent    = np.zeros((2,1),dtype=np.float64)
         self.electronCurrent = np.zeros((2,1),dtype=np.float64)
         self.ionCurrent      = np.zeros((2,1),dtype=np.float64)
+        
+        self.ntot_U = np.zeros((self.Np, self.Nv)) 
+        # all but background
+        for i in range(1, self.Ns-1):
+            self.ntot_U[:,i] += self.ones_Np
+        # background contribution
+        self.ntot_U[:,self.Ns-1] += self.params.nAronp0*self.ones_Np
+
+
+        
+        
 
 
     def copy_operators_H2D(self, dev_id):
@@ -701,6 +715,8 @@ class timeDomainCollocationSolver:
 
         self.I_Np               = cp.asarray(self.I_Np)
         self.I_Ndof             = cp.asarray(self.I_Ndof)
+        
+        self.ntot_U             = cp.asarray(self.ntot_U)
 
 
 
@@ -789,9 +805,8 @@ class timeDomainCollocationSolver:
         nT = xp.zeros((self.Np, 1),dtype=xp.float64)
         nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
         Te = nT/dens[:,iele]
-
+        
         ntot = xp.zeros((self.Np, 1),dtype=xp.float64)
-
         # add all heavies but background
         for i in range(1, self.Ns-1):
             ntot[:,0] += dens[:,i]
@@ -802,7 +817,10 @@ class timeDomainCollocationSolver:
         # Temperature (from ideal gas law)
         Tg = xp.zeros((self.Np, 1),dtype=xp.float64)
         Tg = (self.params.p0 - nT)/ntot
-        
+
+        # NOTE(malamast): I clip the electron temperature when a low value occurs. 
+        Te = np.where(Te < Tg,Tg, Te) 
+          
         # solve poisson equation for phi
         # now have self.phi
         self.solve_poisson(dens[:,iele],dens[:,iion],time)
@@ -861,19 +879,22 @@ class timeDomainCollocationSolver:
         # form source terms at collocation points
         if (self.solveCRModel):
              
-            vars_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)                
+            vars_CR = xp.empty((self.Np, self.Ns+1),dtype=xp.float64)                
             # ground state. background species is first in the CR model arrangement            
             vars_CR[:,0:self.Ns] = dens[:, self.cr.FromGlowDischargeToCRIndexing[0:-1]]*self.params.np0
             vars_CR[:,0] *= self.params.nAronp0
-            vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree              # electron temperature [eV]
+            vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree  # electron temperature [eV]
 
             # omega_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)                          
             # for ip in range(0,self.Np): # NOTE(Mal): I need to vectorize this to imporve performance!
             #     omega_CR[ip,:] = self.cr.rxnSourceTerm(vars_CR[ip,:])
 
-            omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)
-            
-                
+            self.cr.rxnSourceTerm_UpdateTemperatureDependentPart_vec(vars_CR)
+            # omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)
+            self.cr.rxnSourceTerm_Update_vec(vars_CR)
+            omega_CR = self.cr.dydt_saved
+
+            omega = xp.empty_like(omega_CR)
             omega = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
             omega [:,self.Ns-1] /=  self.params.nAronp0                           
         else:
@@ -882,9 +903,9 @@ class timeDomainCollocationSolver:
 
         # elastic collision term at collocation points
         SEC  = -self.params.EC * (nT - xp.multiply(dens[:, iele], Tg)) #NOTE(malamast): Why is this dens[0, iele] and not dens[:, iele]? I need to check this with Todd
+        # SEC[SEC > 0.0] = 0.0
         SEC *= self.elasticCollisionActivationFactor
         
-
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
         fa = xp.copy(fT)
@@ -1187,7 +1208,7 @@ class timeDomainCollocationSolver:
         iion = [1]
         
         Imat    = self.I_Np 
-
+        ntot_U = self.ntot_U
 
         # pull off state for convenience
         dens = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
@@ -1197,20 +1218,20 @@ class timeDomainCollocationSolver:
         nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
         Te = nT/dens[:,iele]
 
-        Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
-        Te_nT = xp.multiply(Imat,1./dens[:,iele])
+        # Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
+        # Te_nT = xp.multiply(Imat,1./dens[:,iele])
 
         ntot = xp.zeros((self.Np,1),dtype=xp.float64)
-        ntot_U = xp.zeros((self.Np, self.Nv))
-
+        # ntot_U = xp.zeros((self.Np, self.Nv))
+        
         # all but background
         for i in range(1, self.Ns-1):
             ntot[:,0] += dens[:,i]
-            ntot_U[:,i] += xp.ones(self.Np)
+            # ntot_U[:,i] += xp.ones(self.Np)
 
         # background contribution
         ntot[:,0] += self.params.nAronp0 * dens[:,self.Ns-1]
-        ntot_U[:,self.Ns-1] += self.params.nAronp0*xp.ones(self.Np)
+        # ntot_U[:,self.Ns-1] += self.params.nAronp0*xp.ones(self.Np)
 
         # Temperature (from ideal gas law)
         Tg = xp.zeros((self.Np, 1),dtype=xp.float64)
@@ -1220,7 +1241,15 @@ class timeDomainCollocationSolver:
         for i in range(0, self.Nv):
             Tg_U[:,i] = -(Tg[:,0]/ntot[:,0])*ntot_U[:,i]
 
-        Tg_U[:,-1] += -xp.ones(self.Np)/ntot[:,0]
+        # Tg_U[:,-1] += -xp.ones(self.Np)/ntot[:,0]
+        Tg_U[:,-1] += -self.ones_Np/ntot[:,0]
+
+
+        # NOTE(malamast): I clip the electron temperature when a low value occurs. 
+        Te = np.where(Te < Tg,Tg, Te) 
+
+        Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
+        Te_nT = xp.multiply(Imat,1./dens[:,iele])          
 
         #print("Mean gas temperature = {0:.6e}".format((2./3)*xp.mean(Tg)*11604.))
 
@@ -1393,11 +1422,11 @@ class timeDomainCollocationSolver:
         # omega_V returns derivatives of chemical src terms wrt ne, ni, ..., Te
         if (self.solveCRModel):
  
-            vars_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)                            
+            vars_CR = xp.empty((self.Np, self.Ns+1),dtype=xp.float64)                                        
             vars_CR[:,0:self.Ns] = dens[:, self.cr.FromGlowDischargeToCRIndexing[0:-1]]*self.params.np0
             vars_CR[:,0] *= self.params.nAronp0
             vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree   
-            
+                        
 
             # omega_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)              
             # omega_V_CR = xp.zeros((self.Ns+1,self.Ns+1,self.Np),dtype=xp.float64)
@@ -1409,16 +1438,11 @@ class timeDomainCollocationSolver:
             # omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)            
             omega_CR, omega_V_CR = self.cr.rxnSourceTermJac_2_vec(vars_CR)
 
-
-            # omega = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64) 
             omega = xp.empty_like(omega_CR)
+            omega[:,:] = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
+            omega[:,self.Ns-1] /=  self.params.nAronp0   
 
-            omega = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
-            omega [:,self.Ns-1] /=  self.params.nAronp0   
-
-            # omega_V = xp.zeros((self.Ns+1,self.Ns+1,energy.shape[0]),dtype=xp.float64)
             omega_V = xp.empty_like(omega_V_CR)
-
             omega_V[:,:,:] = omega_V_CR[self.cr.FromCRToGlowDischargeIndexing,:,:][:,self.cr.FromCRToGlowDischargeIndexing,:]  
             omega_V[:,0:self.Ns - 1,:] *= self.params.np0 # derivatives wrt ni
             omega_V[:,self.Ns - 1,:] *= self.params.nAr # derivatives wrt ground state
@@ -1426,14 +1450,15 @@ class timeDomainCollocationSolver:
 
             omega_V *= self.params.tauOvernp0 # nondimensionalize rates for ni
             omega_V[self.Ns - 1,:,:] /=  self.params.nAronp0  # correction for ground state
-            
+                                     
 
         else:
             omega = self.params.rxnSourceTerm(Te, dens)
             omega_V = self.params.rxnSourceTermJac(Te, dens)
 
         # chain rule to get derivatives wrt ne, ni, ..., nT 
-        omega_U = xp.ndarray(xp.shape(omega_V))
+        omega_U = xp.empty_like(omega_V)
+        # omega_U = xp.ndarray(xp.shape(omega_V))
         for i in range(0,self.Ns+1):
             omega_U[i,0,:] = omega_V[i,0,:] + omega_V[i,self.Ns,:]*xp.diag(Te_ne)
             omega_U[i,self.Ns,:] = omega_V[i,self.Ns,:]*xp.diag(Te_nT)
@@ -2340,8 +2365,9 @@ if __name__ == "__main__":
         gpu_device = cp.cuda.Device(args.gpu_device_id)
         gpu_device.use()
 
-    # profile = cProfile.Profile()
-    # profile.enable()
+    profile = cProfile.Profile()
+    profile.enable()
+    tic = cpu_time.time()
 
     # Run for desired number of time steps
     if (args.tscheme=="LCN"):
@@ -2355,11 +2381,16 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    # profile.disable()
-    # profile.print_stats(sort='tottime')
+    profile.disable()
+    profile.print_stats(sort='tottime')
     # profile.print_stats(sort='cumulative')
     # profile.print_stats(sort='line')
     # profile.print_stats(sort='nfl')
+
+    toc = cpu_time.time()
+    print(f"Total CPU Time = {toc -tic} seconds.")
+    print(f"CPU Time / timestep is {(toc -tic)/args.Nt} seconds.")
+
 
     # Save the result    
     np.save(args.outfile, tds.U2)
@@ -2368,3 +2399,5 @@ if __name__ == "__main__":
     if(args.plot):
         tds.plot('b-')
         plt.show()
+        
+    print("Finished successfully.")    
