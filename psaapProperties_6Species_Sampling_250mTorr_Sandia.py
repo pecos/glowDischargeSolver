@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
-from scipy.interpolate import UnivariateSpline
 import csv
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -32,7 +31,7 @@ class Mobility(object):
             setattr(self, key, kwargs[key])
 
 
-def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapProperties_6Species_Sampling_250mTorr_Sandia(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -48,7 +47,7 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
     ###################################################################
 
     # densities
-    nAr = 3.22e22     # background number density of Ar [1/m^3] (corresponds to p = 1 Torr)
+    nAr = 8.05e21     # background number density of Ar [1/m^3] (corresponds to p=100 mTorr)
     np0 = 8e16        # "nominal" electron density [1/m^3]
 
     # masses
@@ -66,7 +65,7 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
     e0 = 1.0  # [eV]
 
     # pressure
-    p  = 133.3*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
+    p  = 33.3*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
 
     # gas energy at the wall
     Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
@@ -75,8 +74,8 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
     V0  = inputV0                 # amplitude of driving voltage [V]
     verticalShift = inputVDC      # DC voltage (vertical shift in driving voltage)
     tau = (1./13.56e6)             # period of driving voltage [s]
-    L   = 2.00*0.005              # half-gap-width [m] (gap width is 2 cm)
-    electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
+    L   = 4.0*0.005              # half-gap-width [m] (gap width is 2 cm)
+    electrodeArea = np.pi*0.07**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
     # Add voltage uncertainty
     V0 += h5.File('../../../BOLSIGChemistry_Voltage/Voltage.%08d.h5' % (iSample), 'r')["V_Err"][0]
@@ -93,11 +92,11 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
     #                          Ee = 3/2*Te (Te in eV)
     #                          -> k_i = [Ck*(2/3)^B] * Ee^B * exp[-(3/2)*A/Ee]
     # nominal
-    Ck = np.array([2.0e-13,2.1e-15,5.0e-16,6.4e-16,2.1e-21,1.32e8,1.72e7,1.50e7,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0e-18,4.0e-19,0.0,0.0,0.0,0.0,2.5e-17,2.5e-17,1.0e-15,1.0e-15,0.0,0.0]) # pre-exponential factors [m^3/s]
+    Ck = np.array([2.0e-13,2.1e-15,5.0e-16,6.4e-16,2.1e-21,1.32e8,1.44e7,1.61e7,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0e-18,4.0e-19,0.0,0.0,0.0,0.0,2.5e-17,2.5e-17,1.0e-15,1.0e-15,0.0,0.0]) # pre-exponential factors [m^3/s]
     B  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-0.5,0,0,0,0,0,0,0,0,0,0])
     A  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) # activation temperature [eV]
-    dH = np.array([0.0,-7.541,-10.577,-7.393,0.0,0.0,0.0,0.0,11.577,11.725,13.168,15.76,-11.577,4.183,0.148,1.592,2.592,-1.444,-1.592,-11.725,-0.148,1.444,0.0,0.0,-4.183,-4.035,-2.592,-15.76,0.0,0.0,-8.985,-9.133,4.035,-13.168]) # energy lost per electron due to ionization rxn [eV]
-    dEps = np.array([0.0,15.76,11.577,11.725,13.168,0.0])
+    dH = np.array([0.0,-7.412,-10.054,-7.336,0.0,0.0,0.0,0.0,11.548,11.624,12.907,15.76,-11.548,4.212,0.076,1.359,2.853,-1.283,-1.359,-11.624,-0.076,1.283,0.0,0.0,-4.212,-4.136,-2.853,-15.76,-1.359,-1.283,-8.695,-8.771,4.136,-12.907]) # energy lost per electron due to ionization rxn [eV]
+    dEps = np.array([0.0,15.76,11.548,11.624,12.907,0.0])
 
     # BC parameters
     # ks = 1.19e7  # electron recombination rate [cm/s]
@@ -175,15 +174,14 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
                             [0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0],                     # AR(r)
                             [0,0,2,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],                     # AR(4p)
                             [0,0,0,0,1,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0]], dtype=np.int64)    # AR
-    
     # Rxn1:  2AR(m)         ->   2AR
-    # Rxn2:  AR(m) + AR(r)  ->   E + AR+ + AR
-    # Rxn3:  2AR(4p)        ->   E + AR+ + AR
-    # Rxn4:  2AR(m)         ->   E + AR+ + AR
-    # Rxn5:  AR(m) + AR     ->   2AR
-    # Rxn6:  AR(r)          ->   AR + hv
-    # Rxn7:  AR(4p)         ->   AR(m) + hv
-    # Rxn8:  AR(4p)         ->   AR(r) + hv
+	# Rxn2:  AR(m) + AR(r)  ->   E + AR+ + AR
+	# Rxn3:  2AR(4p)        ->   E + AR+ + AR
+	# Rxn4:  2AR(m)         ->   E + AR+ + AR
+	# Rxn5:  AR(m) + AR     ->   2AR
+	# Rxn6:  AR(r)          ->   AR + hv
+	# Rxn7:  AR(4p)         ->   AR(m) + hv
+	# Rxn8:  AR(4p)         ->   AR(r) + hv
     # Rxn9:  E + AR         ->   E + AR(m)
     # Rxn10: E + AR         ->   E + AR(r)
     # Rxn11: E + AR         ->   E + AR(4p)
@@ -219,32 +217,36 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
                    5: "Ar(r) => Ar",
                    6: "Ar(4p) => Ar(m)",
                    7: "Ar(4p) => Ar(r)",
-                   8: "Excitation_Metastable",
-                   9: "Excitation_Resonant",
-                   10: "Excitation_4p",
+                   8: "1s-metastable",
+                   9: "1s-resonance",
+                   10: "2p-lumped",
                    11: "Ionization",
-                   12: "DeExcitation_Metastable",
-                   13: "StepIonization_Metastable",
+                   12: "deexci-metastable",
+                   13: "StepIonization",
                    14: "E + Ar(m) => E + Ar(r)",
                    15: "E + Ar(m) => E + Ar(4p)",
-                   16: "StepIonization_4p",
+                   #16: "E + Ar(4p) => E + E + Ar+",
+                   16: "StepIonization",
                    17: "E + Ar(4p) => E + Ar(r)",
                    18: "E + Ar(4p) => E + Ar(m)",
-                   19: "DeExcitation_Resonant",
+                   19: "deexci-resonance",
                    20: "E + Ar(r) => E + Ar(m)",
                    21: "E + Ar(r) => E + Ar(4p)",
                    22: "E + Ar+ => Ar(m)",
                    23: "E + Ar+ => Ar(4p)",
-                   24: "3BdyRecomb_Metastable",
-                   25: "3BdyRecomb_Resonant",
-                   26: "3BdyRecomb_4p",
-                   27: "3BdyRecomb_Ground",
+                   24: "3BdyRecomb-metastable",
+                   #25: "E + E + Ar+ => E + Ar(r)",
+                   25: "3BdyRecomb-metastable",
+                   #26: "E + E + Ar+ => E + Ar(4p)",
+                   26: "3BdyRecomb-metastable",
+                   27: "3BdyRecomb-ground",
                    28: "Ar + Ar(4p) => Ar + Ar(m)",
                    29: "Ar + Ar(4p) => Ar + Ar(r)",
                    30: "Ar(m) + Ar(4p) => E + Ar+ + Ar",
                    31: "Ar(r) + Ar(4p) => E + Ar+ + Ar",
-                   32: "StepIonization_Resonant",
-                   33: "DeExcitation_4p"}
+                   #32: "E + Ar(r) => E + E + Ar+",
+                   32: "StepIonization",
+                   33: "deexci-2p"}
 
     # 4) Set values in params class
     params.D[0]    = De
@@ -295,17 +297,12 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
                                            True,True,True,True,True,True,True,True,True,True,True,True,True,True,
                                            False,False,True,True,True,True,False,False,False,False,True,True])
 
-    thresholded_rxn = np.array([False, False, False, False, False, False, False, False,
-                                True, True, True, True, False, True, True, True, True, False, False, False, False,
-                                True, False, False, False, False, False, False, False, False, False, False, True,
-                                False])
-
     reactionsList = []
     LOGFilename = 'interpolationSample%s.log'%str(iSample)
     f = open(LOGFilename, 'w')
 
     for i in range(Nr):
-        sample_root_dir = "../../../BOLSIGChemistry_6SpeciesRates"
+        sample_root_dir = "../../../BOLSIGChemistry_6SpeciesRates_Celik"
         if reactionExpressionTypelist[i]:
             if i < 14 or i == 16 or i == 19 or i > 23:
                 fileString = sample_root_dir + "/" + rxnNameDict[i]
@@ -313,7 +310,7 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
                 f = h5.File(fileName, 'r')
                 dataset = f["table"]
             else:
-                fileString = sample_root_dir + "/" + "StepExcitation"
+                fileString = sample_root_dir + "/" + "StepwiseExcitations"
                 fileName = "%s.%08d.h5" % (fileString, iSample)
                 f = h5.File(fileName, 'r')
                 dataset = f[rxnNameDict[i]]
@@ -325,17 +322,6 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
                 rateCoeff /= 6.022e23
             Te = dataset[:,0]
             Te /= 11604.
-
-            ## Removing BOLSIG failures
-            fail_inds = []
-            for j in range(len(rateCoeff)):
-                if rateCoeff[j] == 0.0 and j > np.nonzero(rateCoeff)[0][0]:
-                    fail_inds.append(j)
-            if len(fail_inds) != 0:
-                rateCoeff[0:fail_inds[-1]] = 0.0
-
-            #Te = np.delete(Te, fail_inds)
-            #rateCoeff = np.delete(rateCoeff, fail_inds)
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
@@ -352,72 +338,47 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
             # Nondimensionalization of mean energy.
             Te *= 1.5
 
-            if thresholded_rxn[i] == True:
-                # Find first non-zero value of the coefficient rate.
-                I = np.nonzero(rateCoeff)
-    
-                diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
-                diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
-    
-                Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
-                Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
-    
-                Nan = np.isnan(Monotonicity)
-                Inf = np.isinf(Monotonicity)
-                indexPositive = np.where(Monotonicity>0.0)
-                #if thresholded_rxn[i] == True:
-                #    indexPositive = np.where(Monotonicity>0.0)
-                #else:
-                #    indexPositive = np.where(Monotonicity<0.0)
-                Positive = np.full(Monotonicity.shape, False, dtype=bool)
-                Positive[indexPositive] = True
-    
-                indices = Nan + Inf + Positive
-                
-                lastFalse = np.nonzero(rateCoeff)[0][0]
-                #lastFalse = np.where(indices==False)[-1][-1] + 2
-                #for k in range(len(Te)):
-                #    if (Te[k] < 6.0 and indices[k] == False):
-                #        lastFalse = k+2
-    
-                # Transformation to log scale.
-                TeLog = np.log(Te)
-    
-                # Compute the slope of the rate coefficient between its first two non-zero values.
-                # Finite differences are used.
-                dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) \
-                     / (Te[lastFalse + 1] - Te[lastFalse])
-    
-                # Arrhenius form: kf = A * exp(-C / Te)
-                #if i == 11:
-                C = Te[lastFalse+1]*Te[lastFalse]*np.log(rateCoeff[lastFalse+1]/rateCoeff[lastFalse])**1.5/(Te[lastFalse+1]-Te[lastFalse])
-                #else:
-                #    C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+            # Find first non-zero value of the coefficient rate.
+            I = np.nonzero(rateCoeff)
 
-                # Compute pre-exponential coefficient, A, in log scale.
-                ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
-    
-                # Transform rate coefficient in log scale.
-                rateCoeffLog = np.zeros(rateCoeff.shape)
-                rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
-                # For the troublesome values, we use the Arrhenius form.
-                rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
-                
-                Te_add = np.linspace(1e-4, Te[0]*0.99, 100)
-                TeLog = np.concatenate((np.log(Te_add), TeLog))
-                rateCoeffLog_add = np.zeros(100)
-                for m in range(len(rateCoeffLog_add)):
-                        fac = 0.999**(100-m)
-                        rateCoeffLog_add[m] = rateCoeffLog[0]/fac
-                rateCoeffLog = np.concatenate((rateCoeffLog_add, rateCoeffLog))
+            diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
+            diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
 
+            Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
+            Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
 
-            else:
-                TeLog = np.log(Te)
-                rateCoeffLog = np.log(rateCoeff)
-                
-            #print("RXN {}:".format(i+1))
-            #print(rateCoeffLog)
+            Nan = np.isnan(Monotonicity)
+            Inf = np.isinf(Monotonicity)
+            indexPositive = np.where(Monotonicity>0.0)
+            Positive = np.full(Monotonicity.shape, False, dtype=bool)
+            Positive[indexPositive] = True
+
+            indices = Nan + Inf + Positive
+
+            #lastFalse = np.where(indices==False)[-1][-1] + 2
+            for k in range(len(Te)):
+                if (Te[k] < 4.5 and indices[k] == False):
+                    lastFalse = k + 2
+
+            # Transformation to log scale.
+            TeLog = np.log(Te)
+
+            # Compute the slope of the rate coefficient between its first two non-zero values.
+            # Finite differences are used.
+            dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) \
+                 / (Te[lastFalse + 1] - Te[lastFalse])
+
+            # Arrhenius form: kf = A * exp(-C / Te)
+            C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+
+            # Compute pre-exponential coefficient, A, in log scale.
+            ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
+
+            # Transform rate coefficient in log scale.
+            rateCoeffLog = np.zeros(rateCoeff.shape)
+            rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
+            # For the troublesome values, we use the Arrhenius form.
+            rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
             # Nondimensionalization in log scale.
             if i < 12:
                 rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
@@ -484,9 +445,12 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
     # Te in [eV]
     # De * N in [1/(m*s)]
     transport = h5.File("../../../BOLSIGChemistry_6SpeciesRates/Transport.%08d.h5" % (iSample), 'r')
+    #Te = NDe_v_Te[:,0]
     NDe_v_Te = transport["diffusivity"]
     Te_trans = NDe_v_Te[:,0]
     Te_trans /= 11604
+    print("Te_min = {0:.6e}".format(NDe_v_Te[0,0]))
+    print("Te_max = {0:.6e}".format(NDe_v_Te[-1,0]))
     De_interp = (NDe_v_Te[:,1]/nAr)*tau/(L*L)
     De_spline = CubicSpline(Te_trans, De_interp)
     De_Te_spline = CubicSpline.derivative(De_spline)

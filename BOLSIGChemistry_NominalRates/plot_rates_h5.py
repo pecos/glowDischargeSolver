@@ -19,32 +19,32 @@ rxnNameDict = { 0: "2Ar(m) => 2Ar",
                 5: "Ar(r) => Ar",
                 6: "Ar(4p) => Ar(m)",
                 7: "Ar(4p) => Ar(r)",
-                8: "1s-metastable",
-                9: "1s-resonance",
-               10: "2p-lumped",
+                8: "Excitation_Metastable",
+                9: "Excitation_Resonant",
+               10: "Excitation_4p",
                11: "Ionization",
-               12: "Deexci-metastable",
-               13: "StepIonization",
+               12: "DeExcitation_Metastable",
+               13: "StepIonization_Metastable",
                14: "E + Ar(m) => E + Ar(r)",
                15: "E + Ar(m) => E + Ar(4p)",
-               16: "StepIonization",
+               16: "StepIonization_4p",
                17: "E + Ar(4p) => E + Ar(r)",
                18: "E + Ar(4p) => E + Ar(m)",
-               19: "Deexci-resonance",
+               19: "DeExcitation_Resonant",
                20: "E + Ar(r) => E + Ar(m)",
                21: "E + Ar(r) => E + Ar(4p)",
                22: "E + Ar+ => Ar(m)",
                23: "E + Ar+ => Ar(4p)",
-               24: "3BdyRecomb-metastable",
-               25: "3BdyRecomb-metastable",
-               26: "3BdyRecomb-metastable",
-               27: "3BdyRecomb-ground",
+               24: "3BdyRecomb_Metastable",
+               25: "3BdyRecomb_Resonant",
+               26: "3BdyRecomb_4p",
+               27: "3BdyRecomb_Ground",
                28: "Ar + Ar(4p) => Ar + Ar(m)",
                29: "Ar + Ar(4p) => Ar + Ar(r)",
                30: "Ar(m) + Ar(4p) => E + Ar+ + Ar",
                31: "Ar(r) + Ar(4p) => E + Ar+ + Ar",
-               32: "StepIonization",
-               33: "Deexci-2p"}
+               32: "StepIonization_Resonant",
+               33: "DeExcitation_4p"}
 
 for i in range(Nr):
         if reactionExpressionTypelist[i]:
@@ -52,7 +52,7 @@ for i in range(Nr):
                 f = h5.File("{0:s}.h5".format(rxnNameDict[i]), 'r')
                 data = f["table"]
             else:
-                f = h5.File("StepwiseExcitations.nominal.h5", 'r')
+                f = h5.File("StepExcitation.h5", 'r')
                 data = f[rxnNameDict[i]]
 
             Te = data[:,0]
@@ -86,7 +86,7 @@ for i in range(Nr):
 row_temp = []
 data = []
 
-h = h5.File('../BOLSIGChemistry_Transport/nominal_transport.h5', 'r')
+h = h5.File('nominal_transport.h5', 'r')
 Nmu = h["mobility"]
 Te_trans = Nmu[:,0]
 Te_trans /= 11604

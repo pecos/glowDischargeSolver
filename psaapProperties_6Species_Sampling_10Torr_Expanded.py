@@ -311,7 +311,7 @@ def setPsaapProperties_6Species_Sampling_10Torr_Expanded(gam, inputV0, inputVDC,
                 f = h5.File(fileName, 'r')
                 dataset = f["table"]
             else:
-                fileString = sample_root_dir + "/" + "StepwiseExcitations"
+                fileString = sample_root_dir + "/" + "StepExcitation"
                 fileName = "%s.%08d.h5" % (fileString, iSample)
                 f = h5.File(fileName, 'r')
                 dataset = f[rxnNameDict[i]]
@@ -370,7 +370,7 @@ def setPsaapProperties_6Species_Sampling_10Torr_Expanded(gam, inputV0, inputVDC,
 
             #lastFalse = np.where(indices==False)[-1][-1] + 2
             for k in range(len(Te)):
-                if (Te[k] < 4.5 and indices[k] == False):
+                if (Te[k] < 6.0 and indices[k] == False):
                     lastFalse = k + 2
 
             # Transformation to log scale.
