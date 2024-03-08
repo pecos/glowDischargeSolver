@@ -370,7 +370,7 @@ def setPsaapProperties_6Species_Sampling_100mTorr_Expanded(gam, inputV0, inputVD
 
             #lastFalse = np.where(indices==False)[-1][-1] + 2
             for k in range(len(Te)):
-                if (Te[k] < 4.5 and indices[k] == False):
+                if (Te[k] < 6.0 and indices[k] == False):
                     lastFalse = k + 2
 
             # Transformation to log scale.

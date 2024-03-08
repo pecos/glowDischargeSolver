@@ -83,7 +83,8 @@ def setPsaapProperties_6Species_5Torr_Expanded(gam, inputV0, inputVDC, params, N
     nmum = 0.0
     nmur = 0.0
     nmu4p = 0.0
-    nmui = 8.0e19
+    #nmui = 8.0e19
+    nmui = 4.65e19
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times AR(m) diffusivity [1/(cm*s)]
@@ -94,7 +95,7 @@ def setPsaapProperties_6Species_5Torr_Expanded(gam, inputV0, inputVDC, params, N
     #                          Ee = 3/2*Te (Te in eV)
     #                          -> k_i = [Ck*(2/3)^B] * Ee^B * exp[-(3/2)*A/Ee]
     # nominal
-    Ck = np.array([2.0e-13,2.1e-15,5.0e-16,6.4e-16,2.1e-21,1.32e8,1.72e7,1.50e7,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0e-18,4.0e-19,0.0,0.0,0.0,0.0,2.5e-17,2.5e-17,1.0e-15,1.0e-15,0.0,0.0]) # pre-exponential factors [m^3/s]
+    Ck = np.array([2.0e-13,2.1e-15,5.0e-16,6.4e-16,2.1e-21,3.43e2,1.45e7,4.02e6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0e-18,4.0e-19,0.0,0.0,0.0,0.0,2.5e-17,2.5e-17,1.0e-15,1.0e-15,0.0,0.0]) # pre-exponential factors [m^3/s]
     B  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-0.5,0,0,0,0,0,0,0,0,0,0]) # Temperature Power
     A  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) # activation temperature [eV]
     dH = np.array([0.0,-7.541,-10.577,-7.393,0.0,0.0,0.0,0.0,11.577,11.725,13.168,15.76,-11.577,4.183,0.148,1.592,2.592,-1.444,-1.592,-11.725,-0.148,1.444,0.0,0.0,-4.183,-4.035,-2.592,-15.76,0.0,0.0,-8.985,-9.133,4.035,-13.168]) # energy lost per electron due to ionization rxn [eV]
@@ -400,7 +401,7 @@ def setPsaapProperties_6Species_5Torr_Expanded(gam, inputV0, inputVDC, params, N
                 dataset = f[rxnNameDict[i]]
 
             Te = dataset[:,0]
-            Te /= 11604
+            Te /= 11604.
             rateCoeff = dataset[:,1]
             if i > 23 and i < 28:
                 rateCoeff /= 6.022e23**2
@@ -413,8 +414,8 @@ def setPsaapProperties_6Species_5Torr_Expanded(gam, inputV0, inputVDC, params, N
                 if rateCoeff[j] == 0.0 and j > np.nonzero(rateCoeff)[0][0]:
                     fail_inds.append(j)
 
-            Te = np.delete(Te, fail_inds)
-            rateCoeff = np.delete(rateCoeff, fail_inds)
+            if len(fail_inds) != 0:
+                rateCoeff[0:fail_inds[-1]] = 0.0
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
@@ -430,52 +431,63 @@ def setPsaapProperties_6Species_5Torr_Expanded(gam, inputV0, inputVDC, params, N
 
             # Nondimensionalization of mean energy.
             Te *= 1.5
-
-            # Find first non-zero value of the coefficient rate.
-            I = np.nonzero(rateCoeff)
-
-            diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
-            diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
-
-            Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
-            Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
-
-            Nan = np.isnan(Monotonicity)
-            Inf = np.isinf(Monotonicity)
-            if thresholded_rxn[i] == True:
-                indexPositive = np.where(Monotonicity>0.0)
-            else:
-                indexPositive = np.where(Monotonicity<0.0)
-            Positive = np.full(Monotonicity.shape, False, dtype=bool)
-            Positive[indexPositive] = True
             
-            indices = Nan + Inf + Positive
+            if thresholded_rxn[i] == True:
+                # Find first non-zero value of the coefficient rate.
+                I = np.nonzero(rateCoeff)
 
+                diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
+                diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
 
-            #lastFalse = np.where(indices==False)[-1][-1] + 2
-            for k in range(len(Te)):
-               if Te[k] < 4.5 and indices[k] == False:
-                  lastFalse = k + 2
+                Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
+                Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
 
-            # Transformation to log scale.
-            TeLog = np.log(Te)
+                Nan = np.isnan(Monotonicity)
+                Inf = np.isinf(Monotonicity)
+                indexPositive = np.where(Monotonicity>0.0)
+                Positive = np.full(Monotonicity.shape, False, dtype=bool)
+                Positive[indexPositive] = True
+            
+                indices = Nan + Inf + Positive
 
-            # Compute the slope of the rate coefficient between its first two non-zero values.
-            # Finite differences are used.
-            dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) \
-                 / (Te[lastFalse + 1] - Te[lastFalse])
+                lastFalse = np.nonzero(rateCoeff)[0][0]
+                #lastFalse = np.where(indices==False)[-1][-1] + 2
+                #for k in range(len(Te)):
+                #if Te[k] < 4.5 and indices[k] == False:
+                #      lastFalse = k + 2
 
-            # Arrhenius form: kf = A * exp(-C / Te)
-            C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+                # Transformation to log scale.
+                TeLog = np.log(Te)
 
-            # Compute pre-exponential coefficient, A, in log scale.
-            ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
+                # Compute the slope of the rate coefficient between its first two non-zero values.
+                # Finite differences are used.
+                dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) / (Te[lastFalse + 1] - Te[lastFalse])
 
-            # Transform rate coefficient in log scale.
-            rateCoeffLog = np.zeros(rateCoeff.shape)
-            rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
-            # For the troublesome values, we use the Arrhenius form.
-            rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
+                # Arrhenius form: kf = A * exp(-C / Te)
+                #C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+                C = Te[lastFalse+1]*Te[lastFalse]*np.log(rateCoeff[lastFalse+1]/rateCoeff[lastFalse])**1.5/(Te[lastFalse+1]-Te[lastFalse])
+
+                # Compute pre-exponential coefficient, A, in log scale.
+                ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
+
+                # Transform rate coefficient in log scale.
+                rateCoeffLog = np.zeros(rateCoeff.shape)
+                rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
+                # For the troublesome values, we use the Arrhenius form.
+                rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
+
+                TeLog_add = np.linspace(1e-4, Te[0]*0.99, 100)
+                TeLog = np.concatenate((np.log(TeLog_add), TeLog))
+                rateCoeffLog_add = np.zeros(100)
+                for m in range(len(rateCoeffLog_add)):
+                    fac = 0.999**(100-m)
+                    rateCoeffLog_add[m] = rateCoeffLog[0]/fac
+                rateCoeffLog = np.concatenate((rateCoeffLog_add, rateCoeffLog))
+
+            else:
+                TeLog = np.log(Te)
+                rateCoeffLog = np.log(rateCoeff)
+
             # Nondimensionalization in log scale.
             if (i < 12):
                 rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)

@@ -593,8 +593,8 @@ class timeDomainCollocationSolver:
         elif(scenario==6):
             setPsaapProperties_6Species_Sampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==7):
-            # setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
-            setPsaapProperties_6Species_1Torr_Simplified(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
+            # setPsaapProperties_6Species_1Torr_Simplified(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==8):
             setPsaapProperties_6Species_Sampling_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==9):

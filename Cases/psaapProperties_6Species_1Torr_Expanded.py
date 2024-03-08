@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 import csv
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #import matplotlib.colors as mcolors
 import h5py as h5
 
@@ -83,7 +83,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     nmum = 0.0
     nmur = 0.0
     nmu4p = 0.0
-    # nmui = 8.0e19
+    #nmui = 8.0e19
     nmui = 4.65e19   # Transport coefficients from Lymberopoulos & Economou, 1993
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
@@ -95,7 +95,6 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     #                          Ee = 3/2*Te (Te in eV)
     #                          -> k_i = [Ck*(2/3)^B] * Ee^B * exp[-(3/2)*A/Ee]
     # nominal
-    # Ck = np.array([2.0e-13,2.1e-15,5.0e-16,6.4e-16,2.1e-21,1.32e8,1.72e7,1.50e7,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0e-18,4.0e-19,0.0,0.0,0.0,0.0,2.5e-17,2.5e-17,1.0e-15,1.0e-15,0.0,0.0]) # pre-exponential factors [m^3/s]
     Ck = np.array([2.0e-13,2.1e-15,5.0e-16,6.4e-16,2.1e-21,1.85e3,1.46e7,6.80e6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5.0e-18,4.0e-19,0.0,0.0,0.0,0.0,2.5e-17,2.5e-17,1.0e-15,1.0e-15,0.0,0.0]) # pre-exponential factors [m^3/s]
     B  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-0.5,0,0,0,0,0,0,0,0,0,0]) # Temperature Power
     A  = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) # activation temperature [eV]
@@ -351,8 +350,8 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
                                 f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
                                 f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
                                 f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-				                f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
-		                        f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
+				f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
+		                f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
                                 f"{params.A[9]} * (energy**({params.B[9]}-1)) * np.exp(-{params.C[9]}/energy) * ({params.B[9]} + {params.C[9]}/energy)",
                                 f"{params.A[10]} * (energy**({params.B[10]}-1)) * np.exp(-{params.C[10]}/energy) * ({params.B[10]} + {params.C[10]}/energy)",
                                 f"{params.A[11]} * (energy**({params.B[11]}-1)) * np.exp(-{params.C[11]}/energy) * ({params.B[11]} + {params.C[11]}/energy)",
@@ -391,7 +390,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     reactionsList = []
     LOGFilename = 'interpolationSample.log'
     f = open(LOGFilename, 'w')
-        
+
     for i in range(Nr):
         if reactionExpressionTypelist[i]:
             if i < 14 or i == 16 or i == 19 or i > 23:
@@ -415,15 +414,16 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
                 if rateCoeff[j] == 0.0 and j > np.nonzero(rateCoeff)[0][0]:
                     fail_inds.append(j)
 
-            Te = np.delete(Te, fail_inds)
-            rateCoeff = np.delete(rateCoeff, fail_inds)
+            #Te = np.delete(Te, fail_inds)
+            #rateCoeff = np.delete(rateCoeff, fail_inds)
+            if len(fail_inds) != 0:
+                rateCoeff[0:fail_inds[-1]] = 0.0
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
             Teinds = Te.argsort()
             rateCoeff = rateCoeff[Teinds]
             Te = Te[Teinds]
-
 
             # Find duplicates
             TeDuplicateinds = np.where(np.abs(np.diff(Te, axis=0)) > 0.0)
@@ -434,55 +434,65 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
             # Nondimensionalization of mean energy.
             Te *= 1.5
 
-            # Find first non-zero value of the coefficient rate.
-            I = np.nonzero(rateCoeff)
-
-            diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
-            diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
-
-            Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
-            Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
-            print("RXN {}:".format(i+1))
-            print(Monotonicity)
-            print("")
-
-            Nan = np.isnan(Monotonicity)
-            Inf = np.isinf(Monotonicity)
             if thresholded_rxn[i] == True:
+                # Find first non-zero value of the coefficient rate.
+                I = np.nonzero(rateCoeff)
+
+                diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
+                diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
+
+                Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
+                Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
+
+                Nan = np.isnan(Monotonicity)
+                Inf = np.isinf(Monotonicity)
                 indexPositive = np.where(Monotonicity>0.0)
-            else:
-                indexPositive = np.where(Monotonicity<0.0)
-            Positive = np.full(Monotonicity.shape, False, dtype=bool)
-            Positive[indexPositive] = True
+                #if thresholded_rxn[i] == True:
+                #    indexPositive = np.where(Monotonicity>0.0)
+                #else:
+                #    indexPositive = np.where(Monotonicity<0.0)
+                Positive = np.full(Monotonicity.shape, False, dtype=bool)
+                Positive[indexPositive] = True
             
-            indices = Nan + Inf + Positive
+                indices = Nan + Inf + Positive
+                
+                #lastFalse = np.nonzero(rateCoeff)[0][0]
+                #for k in range(len(Te)):
+                #   if Te[k] < 6.0 and indices[k] == False:
+                #      lastFalse = k + 2
+                lastFalse = np.nonzero(rateCoeff)[0][0]
+                # Transformation to log scale.
+                TeLog = np.log(Te)
 
-
-            #lastFalse = np.where(indices==False)[-1][-1] + 2
-            for k in range(len(Te)):
-               if Te[k] < 4.5 and indices[k] == False:
-                  lastFalse = k + 2
-            #lastFalse = np.nonzero(rateCoeff)[0][0]
-            # Transformation to log scale.
-            TeLog = np.log(Te)
-
-            # Compute the slope of the rate coefficient between its first two non-zero values.
-            # Finite differences are used.
-            dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) \
+                # Compute the slope of the rate coefficient between its first two non-zero values.
+                # Finite differences are used.
+                dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) \
                  / (Te[lastFalse + 1] - Te[lastFalse])
 
-            # Arrhenius form: kf = A * exp(-C / Te)
-            C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+                # Arrhenius form: kf = A * exp(-C / Te)
+                #C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+                C = Te[lastFalse+1]*Te[lastFalse]*np.log(rateCoeff[lastFalse+1]/rateCoeff[lastFalse])**1.5/(Te[lastFalse+1]-Te[lastFalse])
+
+                # Compute pre-exponential coefficient, A, in log scale.
+                ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
+
+                # Transform rate coefficient in log scale.
+                rateCoeffLog = np.zeros(rateCoeff.shape)
+                rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
+                # For the troublesome values, we use the Arrhenius form.
+                rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
             
+                Te_add = np.linspace(1e-4, Te[0]*0.99, 100)
+                TeLog = np.concatenate((np.log(Te_add), TeLog))
+                rateCoeffLog_add = np.zeros(100)
+                for m in range(len(rateCoeffLog_add)):
+                    fac = 0.999**(100-m)
+                    rateCoeffLog_add[m] = rateCoeffLog[0]/fac
+                rateCoeffLog = np.concatenate((rateCoeffLog_add, rateCoeffLog))
+            else:
+                TeLog = np.log(Te)
+                rateCoeffLog = np.log(rateCoeff)
 
-            # Compute pre-exponential coefficient, A, in log scale.
-            ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
-
-            # Transform rate coefficient in log scale.
-            rateCoeffLog = np.zeros(rateCoeff.shape)
-            rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
-            # For the troublesome values, we use the Arrhenius form.
-            rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
             # Nondimensionalization in log scale.
             if (i < 12):
                 rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
@@ -493,6 +503,14 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
 
             # Interpolation in log scale.
             reactionExpressionsLog = CubicSpline(TeLog, rateCoeffLog)
+
+            #fig,ax = plt.subplots()
+            #ax.plot(np.exp(TeLog), np.exp(rateCoeffLog), marker = 'o', markerfacecolor = 'None', label = 'Rate Coefficient - Corrected')
+            #ax.plot(Te, rateCoeff, label = 'Rate Coefficient - Original')
+            #ax.plot(TeLog, rateCoeffLog)
+            #ax.legend()
+            #plt.show()
+
             # Gradient in log scale
             reactionTExpressionsLog = CubicSpline.derivative(reactionExpressionsLog)
 
@@ -529,7 +547,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     De_interp = (NDe_v_Te[:,1]/nAr)*tau/(L*L)
     De_spline = CubicSpline(Te_trans, De_interp)
     De_Te_spline = CubicSpline.derivative(De_spline)
-    diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
+    diffusivity = Diffusivity(interpolate = False, D_expression = De_spline, D_T_expression = De_Te_spline)
     diffList.append(diffusivity)
 
     Ns = 6
@@ -546,7 +564,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
     muList.append(mobility)
 
-    Ns = 6
+    #Ns = 6
     for i in range(1, Ns):
         muList.append(Mobility(interpolate = False))
 

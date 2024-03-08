@@ -32,7 +32,7 @@ class Mobility(object):
             setattr(self, key, kwargs[key])
 
 
-def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, params, Nr, iSample):
+def setPsaapProperties_6Species_Sampling_1Torr_Sandia(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -75,8 +75,8 @@ def setPsaapProperties_6Species_Sampling_1Torr_Expanded(gam, inputV0, inputVDC, 
     V0  = inputV0                 # amplitude of driving voltage [V]
     verticalShift = inputVDC      # DC voltage (vertical shift in driving voltage)
     tau = (1./13.56e6)             # period of driving voltage [s]
-    L   = 2.00*0.005              # half-gap-width [m] (gap width is 2 cm)
-    electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
+    L   = 4.00*0.005              # half-gap-width [m] (gap width is 2 cm)
+    electrodeArea = np.pi*0.07**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
     # Add voltage uncertainty
     V0 += h5.File('../../../BOLSIGChemistry_Voltage/Voltage.%08d.h5' % (iSample), 'r')["V_Err"][0]

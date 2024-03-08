@@ -311,7 +311,7 @@ def setPsaapProperties_6Species_Sampling_5Torr_Expanded(gam, inputV0, inputVDC, 
                 f = h5.File(fileName, 'r')
                 dataset = f["table"]
             else:
-                fileString = sample_root_dir + "/" + "StepwiseExcitations"
+                fileString = sample_root_dir + "/" + "StepExcitation"
                 fileName = "%s.%08d.h5" % (fileString, iSample)
                 f = h5.File(fileName, 'r')
                 dataset = f[rxnNameDict[i]]
@@ -330,8 +330,8 @@ def setPsaapProperties_6Species_Sampling_5Torr_Expanded(gam, inputV0, inputVDC, 
                 if rateCoeff[j] == 0.0 and j > np.nonzero(rateCoeff)[0][0]:
                     fail_inds.append(j)
 
-            Te = np.delete(Te, fail_inds)
-            rateCoeff = np.delete(rateCoeff, fail_inds)
+            if len(fail_inds) != 0:
+                rateCoeff[0:fail_inds[-1]] = 0.0
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
@@ -347,51 +347,63 @@ def setPsaapProperties_6Species_Sampling_5Torr_Expanded(gam, inputV0, inputVDC, 
 
             # Nondimensionalization of mean energy.
             Te *= 1.5
-
-            # Find first non-zero value of the coefficient rate.
-            I = np.nonzero(rateCoeff)
-
-            diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
-            diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
-
-            Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
-            Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
-
-            Nan = np.isnan(Monotonicity)
-            Inf = np.isinf(Monotonicity)
+            
             if thresholded_rxn[i] == True:
+                # Find first non-zero value of the coefficient rate.
+                I = np.nonzero(rateCoeff)
+
+                diffRateCoeff = [j-i for i, j in zip(rateCoeff[:-1], rateCoeff[1:])]
+                diffTe = [j-i for i, j in zip(Te[:-1], Te[1:])]
+
+                Monotonicity = np.asarray([j/i for i, j in zip(diffTe, diffRateCoeff)])
+                Monotonicity = np.insert(Monotonicity, 0, 0.0, axis=0)
+
+                Nan = np.isnan(Monotonicity)
+                Inf = np.isinf(Monotonicity)
                 indexPositive = np.where(Monotonicity>0.0)
+                Positive = np.full(Monotonicity.shape, False, dtype=bool)
+                Positive[indexPositive] = True
+
+                indices = Nan + Inf + Positive
+                
+                lastFalse = np.nonzero(rateCoeff)[0][0]
+                #lastFalse = np.where(indices==False)[-1][-1] + 2
+                #for k in range(len(Te)):
+                    #if (Te[k] < 6.0 and indices[k] == False):
+                    #    lastFalse = k + 2
+
+                # Transformation to log scale.
+                TeLog = np.log(Te)
+
+                # Compute the slope of the rate coefficient between its first two non-zero values.
+                # Finite differences are used.
+                dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) / (Te[lastFalse + 1] - Te[lastFalse])
+
+                # Arrhenius form: kf = A * exp(-C / Te)
+                #C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+                C = Te[lastFalse+1]*Te[lastFalse]*np.log(rateCoeff[lastFalse+1]/rateCoeff[lastFalse])**1.5/(Te[lastFalse+1]-Te[lastFalse])
+
+                # Compute pre-exponential coefficient, A, in log scale.
+                ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
+
+                # Transform rate coefficient in log scale.
+                rateCoeffLog = np.zeros(rateCoeff.shape)
+                rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
+                # For the troublesome values, we use the Arrhenius form.
+                rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
+
+                TeLog_add = np.linspace(1e-4, Te[0]*0.99, 100)
+                TeLog = np.concatenate((np.log(TeLog_add), TeLog))
+                rateCoeffLog_add = np.zeros(100)
+                for m in range(len(rateCoeffLog_add)):
+                    fac = 0.999**(100-m)
+                    rateCoeffLog_add[m] = rateCoeffLog[0]/fac
+                rateCoeffLog = np.concatenate((rateCoeffLog_add, rateCoeffLog))
+
             else:
-                indexPositive = np.where(Monotonicity<0.0)
-            Positive = np.full(Monotonicity.shape, False, dtype=bool)
-            Positive[indexPositive] = True
+                TeLog = np.log(Te)
+                rateCoeffLog = np.log(rateCoeff)
 
-            indices = Nan + Inf + Positive
-
-            #lastFalse = np.where(indices==False)[-1][-1] + 2
-            for k in range(len(Te)):
-                if (Te[k] < 4.5 and indices[k] == False):
-                    lastFalse = k + 2
-
-            # Transformation to log scale.
-            TeLog = np.log(Te)
-
-            # Compute the slope of the rate coefficient between its first two non-zero values.
-            # Finite differences are used.
-            dydx = (rateCoeff[lastFalse + 1] - rateCoeff[lastFalse]) \
-                 / (Te[lastFalse + 1] - Te[lastFalse])
-
-            # Arrhenius form: kf = A * exp(-C / Te)
-            C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
-
-            # Compute pre-exponential coefficient, A, in log scale.
-            ALog = np.log(rateCoeff[lastFalse]) + C / Te[lastFalse]
-
-            # Transform rate coefficient in log scale.
-            rateCoeffLog = np.zeros(rateCoeff.shape)
-            rateCoeffLog[lastFalse:] = np.log(rateCoeff[lastFalse:])
-            # For the troublesome values, we use the Arrhenius form.
-            rateCoeffLog[0:lastFalse] = ALog - C / Te[0:lastFalse]
             # Nondimensionalization in log scale.
             if i < 12:
                 rateCoeffLog += - np.log(1.0/tau) + np.log(nAr)
@@ -419,7 +431,7 @@ def setPsaapProperties_6Species_Sampling_5Torr_Expanded(gam, inputV0, inputVDC, 
                           TeDuplicateindsForLog[0])
 
         else:
-            fileName = "%s/Arrhenius.%08d.h5" % (sample_root_dir, iSample)
+            fileName = "../../../BOLSIGChemistry_6SpeciesRates_5Torr/Arrhenius.%08d.h5" % (iSample)
             f = h5.File(fileName, 'r')
             arrh_Coeffs = f[rxnNameDict[i]][...]
             A, B, C = arrh_Coeffs
