@@ -71,6 +71,9 @@ from psaapProperties_6Species_1Torr_Simplified import setPsaapProperties_6Specie
 from psaapProperties_CRModel_1Torr import setPsaapProperties_CRModel_1Torr
 from CRModel import CollisionalRadiativeModel
 
+import Constants as CRconst
+
+
 class modelClosures:
     """Class providing model parameters."""
 
@@ -612,8 +615,8 @@ class timeDomainCollocationSolver:
             setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
             self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, self.params.Pressure, self.params.GasTemperature,\
                 backgroundSpecieActivationFactor)
-            # self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119
-            # self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]; self.params.dEps[self.Ns-1] = 0.0
+            self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119
+            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]*CRconst.cm_eV; self.params.dEps[self.Ns-1] = 0.0
 
 
         # Points used to define state and collocation
@@ -1449,8 +1452,7 @@ class timeDomainCollocationSolver:
             omega_V[:,self.Ns,:] *=  self.params.TwoOverThree  # derivatives wrt temperature
 
             omega_V *= self.params.tauOvernp0 # nondimensionalize rates for ni
-            omega_V[self.Ns - 1,:,:] /=  self.params.nAronp0  # correction for ground state
-                                     
+            omega_V[self.Ns - 1,:,:] /=  self.params.nAronp0  # correction for ground state                                     
 
         else:
             omega = self.params.rxnSourceTerm(Te, dens)
@@ -2015,7 +2017,7 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
-            start_time = cpu_time.time()
+            # start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
@@ -2043,7 +2045,7 @@ class timeDomainCollocationSolver:
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
-            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
         #NOTE(malamast): Do I need to transfer them back to the host?    
         if(savedata!=None):
@@ -2365,8 +2367,8 @@ if __name__ == "__main__":
         gpu_device = cp.cuda.Device(args.gpu_device_id)
         gpu_device.use()
 
-    profile = cProfile.Profile()
-    profile.enable()
+    # profile = cProfile.Profile()
+    # profile.enable()
     tic = cpu_time.time()
 
     # Run for desired number of time steps
@@ -2381,8 +2383,8 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    profile.disable()
-    profile.print_stats(sort='tottime')
+    # profile.disable()
+    # profile.print_stats(sort='tottime')
     # profile.print_stats(sort='cumulative')
     # profile.print_stats(sort='line')
     # profile.print_stats(sort='nfl')

@@ -8,26 +8,25 @@ import scipy.constants as spc
 # Constants
 K_eV = spc.k/spc.e             # Convert energy units: from K to eV
 
-dEps_6spec = np.array([0.0,15.76,11.577,11.725,13.168,0.0]) # E, AR+, AR(m), AR(r), AR(4p), AR
 
 
 # Flags
 isPlot = True
-# case1 = True; file1 = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; clr1 = 'b-'; label1 = "6spec"
-# case1 = True; file1 = '../restart.npy'; clr1 = 'b-'; label1 = "CR"
-# case1 = True; file1 = '../Results/CR/restart_CR_Np150_T345.npy'; clr1 = 'b-'; label1 = "CR"
-# case1 = True; file1 = '../Results/local/CR/Nominal/restart_T600.npy'; clr1 = 'b-'; label1 = "CR"
-# case1 = True; file1 = '../Results/test/1/discard.npy'; clr1 = 'b-'; label1 = "CR"
-case1 = True; file1 = '../discard_1.npy'; clr1 = 'b-'; label1 = "CR"
+
+# Cases
+case = {}; file = {}; clr = {}; label = {}; model = {}
+
+ic = 3; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; cl = 'g'; lb = "6spec"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 1; c = True; f = '../restart.npy'; cl = 'b-'; lb = "CR"; m = "CR"
+# ic = 1; c = True; f = '../discard.npy'; cl = 'b-'; lb = "CR"; m = "CR"; m = "CR"
+ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T1750.npy'; cl = 'b-'; lb = "CR"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-# case2 = False; file2 = '../restart_crashed.npy'; clr2 = 'r-'; label2 = "CR 2"
-# case2 = False; file2 = '../Results/6spec/restart.npy'; clr2 = 'r-'; label2 = "6spec"
-# case2 = True; file2 = '../Results/CR/restart_CR_Np150_T115.npy'; clr2 = 'r-'; label2 = "CR"
-# case2 = False; file2 = '../Results/CR/restart_CR_Np150_T230.npy'; clr2 = 'r-'; label2 = "CR"
-# case2 = True; file2 = '../Results/CR2/Nominal/T150/restart.npy'; clr2 = 'r-'; label2 = "CR"
-# case2 = True; file2 = '../Results/test/3/discard.npy'; clr2 = 'r-'; label2 = "CR"
-case2 = True; file2 = '../discard_2.npy'; clr2 = 'r-'; label2 = "CR"
+# ic = 2; c = False; f = '../Results/6spec/restart.npy'; cl = 'r-'; lb = "6spec"; m = "6sp"
+ic = 2; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T2000.npy'; cl = 'r-'; lb = "CR"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # these values are required to "redimensionalize" the results
@@ -50,103 +49,108 @@ Np=150
 xp = -np.cos(np.pi*np.linspace(0,Np-1,Np)/(Np-1))
 xr = (xp+1)*L*100 # [cm]
 
+abs_diff = np.abs(xr - 1.0) # Calculate absolute differences between each value and the midpoint
+i_mid = np.argmin(abs_diff) # Find the index of the minimum absolute difference
+
+
+# Species energies and degeneracies
+## E, AR+, AR(m), AR(r), AR(4p), AR
+dEps_6sp = np.array([0.0,15.76,11.577,11.725,13.168,0.0]) 
+g_6sp = np.array([1, 4, 6, 6, 36, 1])
+
+## E, AR+, 4 4s levels, 10 4p levels + AR
+dEps_CR = np.array([ 0.0,         15.7596119,  11.54835442, 11.62359272, 11.72316039, 11.82807116,
+                     12.9070153,  13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,
+                     13.28263902, 13.30222747, 13.32785705, 13.47988682,  0.0]) 
+g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
+
+
+
+
+
+ne = {}; ni = {}; nb = {}; nee = {}; npop = {}; Tg = {}
+nm = {}; nr = {}; n4p = {}; Te = {}; dEps = {}; g = {}
+FromGlowDischargeToCRIndexing = {}
+FromCRToGlowDischargeIndexing = {}
+
 # if case1:
-# load solution file
-D = np.load(file1.format(Np))
-D = np.transpose(D)
+for ic in case: 
+   if case[ic]: 
+      print("Loading case ",ic, " from file :", file[ic])
+
+      # load solution file
+      D = np.load(file[ic].format(Np))
+      D = np.transpose(D)
+
+      # Ns is the number of scpecies
+      if model[ic] == "CR":
+         Ns = 17 # electrons + ions + 4 4s levels + 10 4p levels + background state
+      elif model[ic] == "6sp":
+         Ns = 6 #  electrons + ions + nm + nr + n4p + nb 
+         
+      # pull solution out of D
+      '''
+         ### Indexing
+         # GlowDischarge Indexing 
+         # i = 0       -> electrons 
+         # i = 1       -> ions        
+         # i = 2:Ns-1  -> excited levels
+         # i = Ns - 1  -> ground state
+         # i = Ns      -> electron energy
+
+         # CR Indexing 
+         # i = 0       -> ground state
+         # i = 1:Ns-2  -> excited levels
+         # i = Ns - 2  -> electrons
+         # i = Ns - 1  -> ions
+         # i = Ns      -> electron energy
+
+      '''
+
+      FromCRToGlowDischargeIndexing[ic]  = [Ns-2, Ns-1] + list(range(1,Ns-2)) + [0] # We have excluded electron energy
+      FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(2,Ns-1)) + [0, 1] # We have excluded electron energy
+
+      
+
+      D_reshaped = np.reshape(D,(Np, Ns+1),'F')
+
+      ne[ic]  = ne0 * D_reshaped[:,0]              # electron density
+      ni[ic]  = ne0 * D_reshaped[:,1]              # ion density
+      nb[ic]  = nAr * D_reshaped[:,Ns - 1]         # "background" (argon neutral) density
+      nee[ic] = (2./3.) * ne0 * D_reshaped[:,Ns]   # electron energy (ne * ee)
+
+      npop[ic] = np.ndarray((Np, Ns-2),dtype=np.float64)
+      npop[ic][:,0] = nb[ic]
+      npop[ic][:,1:] = ne0 * D_reshaped[:,2:Ns-1]
+
+      if model[ic] == "CR":
+         nm[ic] = ne0 * (D_reshaped[:,2] + D_reshaped[:,4]) 
+         nr[ic] = ne0 * (D_reshaped[:,3] + D_reshaped[:,5]) 
+         n4p[ic] = np.zeros_like(nr[ic])
+         for i in range(6,15+1):
+            n4p[ic] += ne0 * D_reshaped[:,i] 
+
+      elif model[ic] == "6sp":
+         nm[ic]  = ne0 * D_reshaped[:,2]
+         nr[ic]  = ne0 * D_reshaped[:,3] 
+         n4p[ic] = ne0 * D_reshaped[:,4] 
 
 
-# Ns is the number of scpecies
-Ns = 17 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+      # electron temp
+      Te[ic] = nee[ic] / ne[ic]  
 
-# pull solution out of D
-'''
-   ### Indexing
-   # GlowDischarge Indexing 
-   # i = 0       -> electrons 
-   # i = 1       -> ions        
-   # i = 2:Ns-1  -> excited levels
-   # i = Ns - 1  -> ground state
-   # i = Ns      -> electron energy
-'''
-D_reshaped = np.reshape(D,(Np, Ns+1),'F')
+      Tg[ic] = (p_0/spc.k - ne[ic] * Te[ic]/K_eV) / (np.sum(npop[ic], axis=1) + ni[ic])   # [K]
 
-ne  = ne0 * D_reshaped[:,0]          # electron density
-ni  = ne0 * D_reshaped[:,1]       # ion density
-nb  = nAr * D_reshaped[:,Ns - 1] # "background" (argon neutral) density
-nee = (2./3.) * ne0 * D_reshaped[:,Ns]          # electron energy (ne * ee)
+      if model[ic] == "CR":
+         dEps[ic] = dEps_CR[FromGlowDischargeToCRIndexing[ic]]
+         g[ic] = g_CR[FromGlowDischargeToCRIndexing[ic]]
+         
+      elif model[ic] == "6sp":
+         dEps[ic] = dEps_6sp[FromGlowDischargeToCRIndexing[ic]]
+         g[ic] = g_6sp[FromGlowDischargeToCRIndexing[ic]]
 
-npop = np.ndarray((Np, Ns-2),dtype=np.float64)
-npop[:,0] = nb
-npop[:,1:] = ne0 * D_reshaped[:,2:Ns-1]
+      del D, D_reshaped 
 
-nm = ne0 * (D_reshaped[:,2] + D_reshaped[:,4]) 
-nr = ne0 * (D_reshaped[:,3] + D_reshaped[:,5]) 
-n4p = np.zeros_like(nr)
-for i in range(6,15+1):
-   print(i)
-   n4p += ne0 * D_reshaped[:,i] 
-
-# nm  = ne0 * D_reshaped[:,2]
-# nr  = ne0 * D_reshaped[:,3] 
-# n4p = ne0 * D_reshaped[:,4] 
-
-
-# electron temp
-Te = nee / ne  
-
-Tg = (p_0/spc.k - ne * Te/K_eV) / (np.sum(npop, axis=1) + ni)   # [K]
-
-
-del D, D_reshaped 
-
-
-
-
-
-
-
-
-if case2:
-   # load solution file
-   D = np.load(file2.format(Np))
-   D = np.transpose(D)
-
-   # Ns is the number of scpecies
-   Ns = 17
-   # Ns = 6 #  electrons + ions + nm + nr + n4p + nb 
-
-   # pull solution out of D
-   D_reshaped = np.reshape(D,(Np, Ns+1),'F')
-
-   ne_2  = ne0 * D_reshaped[:,0]          # electron density
-   ni_2  = ne0 * D_reshaped[:,1]       # ion density
-   nb_2  = nAr * D_reshaped[:,Ns - 1] # "background" (argon neutral) density
-   nee_2 = (2./3.) * ne0 * D_reshaped[:,Ns]          # electron energy (ne * ee)
-
-   npop_2 = np.ndarray((Np, Ns-2),dtype=np.float64)
-   npop_2[:,0] = nb_2
-   npop_2[:,1:] = ne0 * D_reshaped[:,2:Ns-1]
-
-   nm_2 = ne0 * (D_reshaped[:,2] + D_reshaped[:,4]) 
-   nr_2 = ne0 * (D_reshaped[:,3] + D_reshaped[:,5]) 
-   n4p_2 = np.zeros_like(nr)
-   for i in range(6,15+1):
-      print(i)
-      n4p_2 += ne0 * D_reshaped[:,i] 
-
-   # nm_2  = ne0 * D_reshaped[:,2]
-   # nr_2  = ne0 * D_reshaped[:,3] 
-   # n4p_2 = ne0 * D_reshaped[:,4] 
-
-
-   # electron temp
-   Te_2 = nee_2 / ne_2  
-
-   Tg_2 = (p_0/spc.k - ne_2 * Te_2/K_eV) / (np.sum(npop_2, axis=1) + ni_2)   # [K]
-
-
-   del D, D_reshaped 
 
 
 
@@ -160,11 +164,10 @@ if (isPlot):
    
    # ne
    fig,ax = plt.subplots(dpi=160)
-   ax.semilogy(xr, ne, clr1, lw=2, label=label1)
-   ax.semilogy(xr, ni, clr1+'-', lw=2)
-   if case2:
-      ax.semilogy(xr, ne_2, clr2, lw=2, label=label2)
-      ax.semilogy(xr, ni_2, clr2+'-', lw=2)
+   for ic in case: 
+      if case[ic]: 
+         ax.semilogy(xr, ne[ic], clr[ic], lw=2, label=label[ic])
+         ax.semilogy(xr, ni[ic], clr[ic]+'-', lw=2)
    ax.legend(fontsize=12)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -175,9 +178,9 @@ if (isPlot):
 
    # nm
    fig,ax = plt.subplots(dpi=160)
-   ax.plot(xr, nm, clr1, lw=2, label=label1)
-   if case2:
-      ax.plot(xr, nm_2, clr2, lw=2, label=label2)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, nm[ic], clr[ic], lw=2, label=label[ic])
    ax.legend(fontsize=12)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -188,9 +191,9 @@ if (isPlot):
 
    # nr
    fig,ax = plt.subplots(dpi=160)
-   ax.plot(xr, nr, clr1, lw=2, label=label1)
-   if case2:
-      ax.plot(xr, nr_2, clr2, lw=2, label=label2)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, nr[ic], clr[ic], lw=2, label=label[ic])
    ax.legend(fontsize=12)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -201,9 +204,9 @@ if (isPlot):
 
    # n4p
    fig,ax = plt.subplots(dpi=160)
-   ax.plot(xr, n4p, clr1, lw=2, label=label1)
-   if case2:
-      ax.plot(xr, n4p_2, clr2, lw=2, label=label2)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, n4p[ic], clr[ic], lw=2, label=label[ic])
    ax.legend(fontsize=12)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -214,9 +217,9 @@ if (isPlot):
 
    # nb
    fig,ax = plt.subplots(dpi=160)
-   ax.plot(xr, nb, clr1, lw=2, label=label1)
-   if case2:
-      ax.plot(xr, nb_2, clr2, lw=2, label=label2)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, nb[ic], clr[ic], lw=2, label=label[ic])
    ax.legend(fontsize=12)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -228,9 +231,9 @@ if (isPlot):
 
    # Te/phi
    fig,ax = plt.subplots(dpi=160)
-   ax.plot(xr, Te, clr1, lw=2, label=label1)
-   if case2:
-      ax.plot(xr, Te_2, clr2, lw=2, label=label2)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, Te[ic], clr[ic], lw=2, label=label[ic])
    ax.legend(fontsize=12,loc=2)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -249,10 +252,10 @@ if (isPlot):
 
    # Tg
    fig,ax = plt.subplots(dpi=160)
-   ax.plot(xr, Tg, clr1, lw=2, label=label1)
-   if case2:
-      ax.plot(xr, Tg_2, clr2, lw=2, label=label2)
-   # ax.plot(xr, Te/K_eV, clr1+"-", lw=2, label=r"T_e")
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, Tg[ic], clr[ic], lw=2, label=label[ic])
+   # ax.plot(xr, Te/K_eV, clr[ic]+"-", lw=2, label=r"T_e")
    ax.legend(fontsize=12,loc=2)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -270,10 +273,8 @@ if (isPlot):
 
    # # distribution
    # fig,ax = plt.subplots(dpi=160)
-   # # ax.semilogy(npop[75,:], clr1, lw=2, label=label1)
-   # ax.plot(xr, nb, clr1, lw=2, label=label1)
-   # if case2:
-   #    ax.plot(xr, nb_2, clr2, lw=2, label=label2)
+   # # ax.semilogy(npop[ic][75,:], clr1, lw=2, label=label[ic])
+   # ax.plot(xr, nb, clr1, lw=2, label=label[ic])
    # ax.legend(fontsize=12)
    # # ax.set_xlim((xr[0], xr[-1]))
    # ax.set_xlabel(r"$x$ [cm]", fontsize=18)

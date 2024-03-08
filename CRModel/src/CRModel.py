@@ -823,8 +823,8 @@ class CollisionalRadiativeModel:
         """
         EEDF= self.MaxwellianDistribution_vec(self.eRange,T_e)
         AEDF= self.MaxwellianDistribution_vec(self.eRange,T_g*K_eV)
-        EEDFnorm = self.trapz(EEDF,self.eRange, axis=0 )
-        AEDFnorm = self.trapz(AEDF,self.eRange, axis=0 )
+        EEDFnorm = self.trapz(EEDF, axis=0 )
+        AEDFnorm = self.trapz(AEDF, axis=0 )
         # EEDF /= EEDFnorm
         # AEDF /= AEDFnorm        
 
@@ -840,7 +840,7 @@ class CollisionalRadiativeModel:
         # deltaIon = Eion - self.p.E_lvl[i]*cm_eV 
         deltaIon = self.p.deltaIon[i]
                      
-        Si = self.trapz(self.p.sigma_ionBSR*eVelTimesEEDF,self.eRange, axis=0 )        
+        Si = self.trapz(self.p.sigma_ionBSR*eVelTimesEEDF, axis=0 )        
         Qi = self.p.g_lvl[i]*Qi_factor*xp.exp(deltaIon/T_e)*Si # I need to check again this one.
         
         self.ElecrtonImpactIonizationRate[i,:,0] = Si
@@ -851,7 +851,7 @@ class CollisionalRadiativeModel:
             # deltaIon = Eion - self.p.E_lvl[i]*cm_eV # Which Eion should I use? There are two!                    
             deltaIon = self.p.deltaIon[i]
             
-            Si = self.trapz(self.p.sigma_ij_Ion[i-1]*eVelTimesEEDF,self.eRange, axis=0 )                                                       
+            Si = self.trapz(self.p.sigma_ij_Ion[i-1]*eVelTimesEEDF, axis=0 )                                                       
             Qi = self.p.g_lvl[i]*Qi_factor*xp.exp(deltaIon/T_e)*Si # I need to check again this one.
 
             self.ElecrtonImpactIonizationRate[i,:,0] = Si
@@ -871,7 +871,7 @@ class CollisionalRadiativeModel:
             # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             eij = self.p.eij_LXCat_BSR[iter]
 
-            Cij = self.trapz(self.p.sigma_ij_Exc_BSR[iter]*eVelTimesEEDF,self.eRange, axis=0 )                        
+            Cij = self.trapz(self.p.sigma_ij_Exc_BSR[iter]*eVelTimesEEDF, axis=0 )                        
             # Cij = self.trapz(self.p.sigma_ij_Exc_BSR[iCollTrans]*eVelTimesEEDF,self.eRange, axis=0 )                        
 
             Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
@@ -885,7 +885,7 @@ class CollisionalRadiativeModel:
             j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                            
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                           
-            Cij = self.trapz(self.p.sigma_ij_Exc[iCollTrans]*eVelTimesEEDF,self.eRange, axis=0 )
+            Cij = self.trapz(self.p.sigma_ij_Exc[iCollTrans]*eVelTimesEEDF, axis=0 )
             Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
 
  
@@ -918,7 +918,7 @@ class CollisionalRadiativeModel:
         # deltaIon = Eion - self.p.E_lvl[0]*cm_eV
         deltaIon = self.p.deltaIon[0]
         
-        Vm = self.trapz(self.p.sigma_1a_ion*aVelTimesAEDF,self.eRange, axis=0 )        
+        Vm = self.trapz(self.p.sigma_1a_ion*aVelTimesAEDF, axis=0 )        
         Wm = self.p.g_lvl[0]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
 
         self.AtomImpactIonizationRate[0,:,0] = Vm
@@ -931,7 +931,7 @@ class CollisionalRadiativeModel:
             # deltaIon = Eion - self.p.E_lvl[i]*cm_eV
             deltaIon = self.p.deltaIon[i]
                                  
-            Vm = self.trapz(self.p.sigma_ia_ion[i-1]*aVelTimesAEDF,self.eRange, axis=0 )                                      
+            Vm = self.trapz(self.p.sigma_ia_ion[i-1]*aVelTimesAEDF, axis=0 )                                      
             Wm = self.p.g_lvl[i]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
 
             self.AtomImpactIonizationRate[i,:,0] = Vm
@@ -947,7 +947,7 @@ class CollisionalRadiativeModel:
 
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
 
-            Kij = self.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans]*aVelTimesAEDF,self.eRange, axis=0 )            
+            Kij = self.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans]*aVelTimesAEDF, axis=0 )            
             Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
 
             self.AtomImpactExcitationGrRate[itrans,:,0] = Kij
@@ -960,7 +960,7 @@ class CollisionalRadiativeModel:
             
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             
-            Kij = self.trapz(self.p.sigma_ij_Atom_Exc[itrans]*aVelTimesAEDF,self.eRange, axis=0 )             
+            Kij = self.trapz(self.p.sigma_ij_Atom_Exc[itrans]*aVelTimesAEDF, axis=0 )             
             Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
 
             self.AtomImpactExcitationRate[itrans,:,0] = Kij
@@ -973,8 +973,8 @@ class CollisionalRadiativeModel:
         nTrans = 5
         for i in range(0,nTrans): # We include also the photoionization from ground state which has a different cross section
 
-            Ri = self.trapz(self.p.sigma_c_ion[i]*eVelTimesEEDF,self.eRange, axis=0 )
-            Ri_prime = self.trapz(self.p.sigma_c_ion[i]*self.eRange*eVelTimesEEDF,self.eRange, axis=0 )
+            Ri = self.trapz(self.p.sigma_c_ion[i]*eVelTimesEEDF, axis=0 )
+            Ri_prime = self.trapz(self.p.sigma_c_ion[i]*self.eRange*eVelTimesEEDF, axis=0 )
 
             self.PhotorecombinationRate[i,:,0] = Ri
             self.PhotorecombinationRate[i,:,1] = Ri_prime
@@ -1368,7 +1368,7 @@ class CollisionalRadiativeModel:
     #----------------------------------------------------------------------------------
 
 
-    def trapz(self, y, x=None, dx=1.0, axis=-1):
+    def trapz(self, y, x=None, axis=-1):
 
         xp = self.xp_module
 
