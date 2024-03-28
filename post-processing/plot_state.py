@@ -16,17 +16,35 @@ isPlot = True
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
-ic = 3; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; cl = 'g'; lb = "6spec"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 3; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; cl = 'g'; lb = "6spec"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 1; c = True; f = '../restart.npy'; cl = 'b-'; lb = "CR"; m = "CR"
 # ic = 1; c = True; f = '../discard.npy'; cl = 'b-'; lb = "CR"; m = "CR"; m = "CR"
-ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T1750.npy'; cl = 'b-'; lb = "CR"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T1750.npy'; cl = 'b-'; lb = "CR"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # ic = 2; c = False; f = '../Results/6spec/restart.npy'; cl = 'r-'; lb = "6spec"; m = "6sp"
-ic = 2; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T2000.npy'; cl = 'r-'; lb = "CR"; m = "CR"
+# ic = 2; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T2000.npy'; cl = 'r-'; lb = "CR"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/restart_6spec_CN_Np150_T2400.npy'; cl = 'r-'; lb = "6sp"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 3; c = True; f = '../restart_6spec_CN_Np150_T400.npy'; cl = 'g-'; lb = "400"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 4; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T4000.npy'; cl = 'b-'; lb = "4000"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 5; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T3200.npy'; cl = 'r-'; lb = "3600"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
 
 
 # these values are required to "redimensionalize" the results

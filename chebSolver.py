@@ -17,7 +17,7 @@ sys.path.append(crmodel_dir)
 
 
 from os import environ
-N_THREADS = '8'
+N_THREADS = '1'
 environ['OMP_NUM_THREADS'] = N_THREADS
 environ['OPENBLAS_NUM_THREADS'] = N_THREADS
 environ['MKL_NUM_THREADS'] = N_THREADS
@@ -2017,7 +2017,7 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
-            # start_time = cpu_time.time()
+            start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
@@ -2045,7 +2045,7 @@ class timeDomainCollocationSolver:
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
-            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
         #NOTE(malamast): Do I need to transfer them back to the host?    
         if(savedata!=None):
@@ -2367,8 +2367,8 @@ if __name__ == "__main__":
         gpu_device = cp.cuda.Device(args.gpu_device_id)
         gpu_device.use()
 
-    # profile = cProfile.Profile()
-    # profile.enable()
+    profile = cProfile.Profile()
+    profile.enable()
     tic = cpu_time.time()
 
     # Run for desired number of time steps
@@ -2383,8 +2383,8 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    # profile.disable()
-    # profile.print_stats(sort='tottime')
+    profile.disable()
+    profile.print_stats(sort='tottime')
     # profile.print_stats(sort='cumulative')
     # profile.print_stats(sort='line')
     # profile.print_stats(sort='nfl')

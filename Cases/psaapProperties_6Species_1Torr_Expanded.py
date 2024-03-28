@@ -306,78 +306,10 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
 
+    reactionExpressionslist = [f"{params.A[i]} * energy**{params.B[i]} * np.exp(-{params.C[i]} / energy)" for i in range(Nr) ]
 
-    reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
-                               f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
-                               f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",
-                               f"{params.A[3]} * energy**{params.B[3]} * np.exp(-{params.C[3]} / energy)",
-                               f"{params.A[4]} * energy**{params.B[4]} * np.exp(-{params.C[4]} / energy)",
-                               f"{params.A[5]} * energy**{params.B[5]} * np.exp(-{params.C[5]} / energy)",
-                               f"{params.A[6]} * energy**{params.B[6]} * np.exp(-{params.C[6]} / energy)",
-                               f"{params.A[7]} * energy**{params.B[7]} * np.exp(-{params.C[7]} / energy)",
-                               f"{params.A[8]} * energy**{params.B[8]} * np.exp(-{params.C[8]} / energy)",
-                               f"{params.A[9]} * energy**{params.B[9]} * np.exp(-{params.C[9]} / energy)",
-                               f"{params.A[10]} * energy**{params.B[10]} * np.exp(-{params.C[10]} / energy)",
-                               f"{params.A[11]} * energy**{params.B[11]} * np.exp(-{params.C[11]} / energy)",
-                               f"{params.A[12]} * energy**{params.B[12]} * np.exp(-{params.C[12]} / energy)",
-                               f"{params.A[13]} * energy**{params.B[13]} * np.exp(-{params.C[13]} / energy)",
-                               f"{params.A[14]} * energy**{params.B[14]} * np.exp(-{params.C[14]} / energy)",
-                               f"{params.A[15]} * energy**{params.B[15]} * np.exp(-{params.C[15]} / energy)",
-                               f"{params.A[16]} * energy**{params.B[16]} * np.exp(-{params.C[16]} / energy)",
-                               f"{params.A[17]} * energy**{params.B[17]} * np.exp(-{params.C[17]} / energy)",
-                               f"{params.A[18]} * energy**{params.B[18]} * np.exp(-{params.C[18]} / energy)",
-                               f"{params.A[19]} * energy**{params.B[19]} * np.exp(-{params.C[19]} / energy)",
-                               f"{params.A[20]} * energy**{params.B[20]} * np.exp(-{params.C[20]} / energy)",
-                               f"{params.A[21]} * energy**{params.B[21]} * np.exp(-{params.C[21]} / energy)",
-                               f"{params.A[22]} * energy**{params.B[22]} * np.exp(-{params.C[22]} / energy)",
-                               f"{params.A[23]} * energy**{params.B[23]} * np.exp(-{params.C[23]} / energy)",
-                               f"{params.A[24]} * energy**{params.B[24]} * np.exp(-{params.C[24]} / energy)",
-                               f"{params.A[25]} * energy**{params.B[25]} * np.exp(-{params.C[25]} / energy)",
-                               f"{params.A[26]} * energy**{params.B[26]} * np.exp(-{params.C[26]} / energy)",
-                               f"{params.A[27]} * energy**{params.B[27]} * np.exp(-{params.C[27]} / energy)",
-                               f"{params.A[28]} * energy**{params.B[28]} * np.exp(-{params.C[28]} / energy)",
-                               f"{params.A[29]} * energy**{params.B[29]} * np.exp(-{params.C[29]} / energy)",
-                               f"{params.A[30]} * energy**{params.B[30]} * np.exp(-{params.C[30]} / energy)",
-                               f"{params.A[31]} * energy**{params.B[31]} * np.exp(-{params.C[31]} / energy)",
-                               f"{params.A[32]} * energy**{params.B[32]} * np.exp(-{params.C[32]} / energy)",
-                               f"{params.A[33]} * energy**{params.B[33]} * np.exp(-{params.C[33]} / energy)"]
+    reactionTExpressionslist = [f"{params.A[i]} * (energy**({params.B[i]}-1)) * np.exp(-{params.C[i]}/energy) * ({params.B[i]} + {params.C[i]}/energy)" for i in range(Nr) ]
 
-
-    reactionTExpressionslist = [f"{params.A[0]} * (energy**({params.B[0]}-1)) * np.exp(-{params.C[0]}/energy) * ({params.B[0]} + {params.C[0]}/energy)",
-                                f"{params.A[1]} * (energy**({params.B[1]}-1)) * np.exp(-{params.C[1]}/energy) * ({params.B[1]} + {params.C[1]}/energy)",
-                                f"{params.A[2]} * (energy**({params.B[2]}-1)) * np.exp(-{params.C[2]}/energy) * ({params.B[2]} + {params.C[2]}/energy)",
-                                f"{params.A[3]} * (energy**({params.B[3]}-1)) * np.exp(-{params.C[3]}/energy) * ({params.B[3]} + {params.C[3]}/energy)",
-                                f"{params.A[4]} * (energy**({params.B[4]}-1)) * np.exp(-{params.C[4]}/energy) * ({params.B[4]} + {params.C[4]}/energy)",
-                                f"{params.A[5]} * (energy**({params.B[5]}-1)) * np.exp(-{params.C[5]}/energy) * ({params.B[5]} + {params.C[5]}/energy)",
-                                f"{params.A[6]} * (energy**({params.B[6]}-1)) * np.exp(-{params.C[6]}/energy) * ({params.B[6]} + {params.C[6]}/energy)",
-				f"{params.A[7]} * (energy**({params.B[7]}-1)) * np.exp(-{params.C[7]}/energy) * ({params.B[7]} + {params.C[7]}/energy)",
-		                f"{params.A[8]} * (energy**({params.B[8]}-1)) * np.exp(-{params.C[8]}/energy) * ({params.B[8]} + {params.C[8]}/energy)",
-                                f"{params.A[9]} * (energy**({params.B[9]}-1)) * np.exp(-{params.C[9]}/energy) * ({params.B[9]} + {params.C[9]}/energy)",
-                                f"{params.A[10]} * (energy**({params.B[10]}-1)) * np.exp(-{params.C[10]}/energy) * ({params.B[10]} + {params.C[10]}/energy)",
-                                f"{params.A[11]} * (energy**({params.B[11]}-1)) * np.exp(-{params.C[11]}/energy) * ({params.B[11]} + {params.C[11]}/energy)",
-                                f"{params.A[12]} * (energy**({params.B[12]}-1)) * np.exp(-{params.C[12]}/energy) * ({params.B[12]} + {params.C[12]}/energy)",
-                                f"{params.A[13]} * (energy**({params.B[13]}-1)) * np.exp(-{params.C[13]}/energy) * ({params.B[13]} + {params.C[13]}/energy)",
-                                f"{params.A[14]} * (energy**({params.B[14]}-1)) * np.exp(-{params.C[14]}/energy) * ({params.B[14]} + {params.C[14]}/energy)",
-                                f"{params.A[15]} * (energy**({params.B[15]}-1)) * np.exp(-{params.C[15]}/energy) * ({params.B[15]} + {params.C[15]}/energy)",
-                                f"{params.A[16]} * (energy**({params.B[16]}-1)) * np.exp(-{params.C[16]}/energy) * ({params.B[16]} + {params.C[16]}/energy)",
-                                f"{params.A[17]} * (energy**({params.B[17]}-1)) * np.exp(-{params.C[17]}/energy) * ({params.B[17]} + {params.C[17]}/energy)",
-                                f"{params.A[18]} * (energy**({params.B[18]}-1)) * np.exp(-{params.C[18]}/energy) * ({params.B[18]} + {params.C[18]}/energy)",
-                                f"{params.A[19]} * (energy**({params.B[19]}-1)) * np.exp(-{params.C[19]}/energy) * ({params.B[19]} + {params.C[19]}/energy)",
-                                f"{params.A[20]} * (energy**({params.B[20]}-1)) * np.exp(-{params.C[20]}/energy) * ({params.B[20]} + {params.C[20]}/energy)",
-                                f"{params.A[21]} * (energy**({params.B[21]}-1)) * np.exp(-{params.C[21]}/energy) * ({params.B[21]} + {params.C[21]}/energy)",
-                                f"{params.A[22]} * (energy**({params.B[22]}-1)) * np.exp(-{params.C[22]}/energy) * ({params.B[22]} + {params.C[22]}/energy)",
-                                f"{params.A[23]} * (energy**({params.B[23]}-1)) * np.exp(-{params.C[23]}/energy) * ({params.B[23]} + {params.C[23]}/energy)",
-                                f"{params.A[24]} * (energy**({params.B[24]}-1)) * np.exp(-{params.C[24]}/energy) * ({params.B[24]} + {params.C[24]}/energy)",
-                                f"{params.A[25]} * (energy**({params.B[25]}-1)) * np.exp(-{params.C[25]}/energy) * ({params.B[25]} + {params.C[25]}/energy)",
-                                f"{params.A[26]} * (energy**({params.B[26]}-1)) * np.exp(-{params.C[26]}/energy) * ({params.B[26]} + {params.C[26]}/energy)",
-                                f"{params.A[27]} * (energy**({params.B[27]}-1)) * np.exp(-{params.C[27]}/energy) * ({params.B[27]} + {params.C[27]}/energy)",
-                                f"{params.A[28]} * (energy**({params.B[28]}-1)) * np.exp(-{params.C[28]}/energy) * ({params.B[28]} + {params.C[28]}/energy)",
-                                f"{params.A[29]} * (energy**({params.B[29]}-1)) * np.exp(-{params.C[29]}/energy) * ({params.B[29]} + {params.C[29]}/energy)",
-                                f"{params.A[30]} * (energy**({params.B[30]}-1)) * np.exp(-{params.C[30]}/energy) * ({params.B[30]} + {params.C[30]}/energy)",
-                                f"{params.A[31]} * (energy**({params.B[31]}-1)) * np.exp(-{params.C[31]}/energy) * ({params.B[31]} + {params.C[31]}/energy)",
-                                f"{params.A[32]} * (energy**({params.B[32]}-1)) * np.exp(-{params.C[32]}/energy) * ({params.B[32]} + {params.C[32]}/energy)",
-                                f"{params.A[33]} * (energy**({params.B[33]}-1)) * np.exp(-{params.C[33]}/energy) * ({params.B[33]} + {params.C[33]}/energy)"]
-           
 
     reactionExpressionTypelist =  np.array([False,False,False,False,False,False,False,False, # Rxns 1-8
                                            True,True,True,True,True,True,True,True,True,True,True,True,True,True, # Rxns 9-22
@@ -390,6 +322,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
     reactionsList = []
     LOGFilename = 'interpolationSample.log'
     f = open(LOGFilename, 'w')
+    
 
     for i in range(Nr):
         if reactionExpressionTypelist[i]:
@@ -414,22 +347,27 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
                 if rateCoeff[j] == 0.0 and j > np.nonzero(rateCoeff)[0][0]:
                     fail_inds.append(j)
 
+
+ 
             #Te = np.delete(Te, fail_inds)
             #rateCoeff = np.delete(rateCoeff, fail_inds)
             if len(fail_inds) != 0:
                 rateCoeff[0:fail_inds[-1]] = 0.0
+
 
             # Sorting mean energy array and rate coefficient array based on
             # the mean energy array.
             Teinds = Te.argsort()
             rateCoeff = rateCoeff[Teinds]
             Te = Te[Teinds]
+            
 
             # Find duplicates
             TeDuplicateinds = np.where(np.abs(np.diff(Te, axis=0)) > 0.0)
             TeDuplicateindsForLog = np.where(np.abs(np.diff(Te, axis=0)) == 0.0)
             rateCoeff = rateCoeff[TeDuplicateinds]
             Te = Te[TeDuplicateinds]
+
 
             # Nondimensionalization of mean energy.
             Te *= 1.5
@@ -456,8 +394,8 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
             
                 indices = Nan + Inf + Positive
                 
-                #lastFalse = np.nonzero(rateCoeff)[0][0]
-                #for k in range(len(Te)):
+                # lastFalse = np.nonzero(rateCoeff)[0][0]
+                # for k in range(len(Te)):
                 #   if Te[k] < 6.0 and indices[k] == False:
                 #      lastFalse = k + 2
                 lastFalse = np.nonzero(rateCoeff)[0][0]
@@ -470,7 +408,7 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
                  / (Te[lastFalse + 1] - Te[lastFalse])
 
                 # Arrhenius form: kf = A * exp(-C / Te)
-                #C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
+                # C = Te[lastFalse]**2.0*dydx / rateCoeff[lastFalse]
                 C = Te[lastFalse+1]*Te[lastFalse]*np.log(rateCoeff[lastFalse+1]/rateCoeff[lastFalse])**1.5/(Te[lastFalse+1]-Te[lastFalse])
 
                 # Compute pre-exponential coefficient, A, in log scale.
@@ -538,17 +476,44 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
 
     params.reactionsList = reactionsList
 
-    ## Electron Transport Data
+
+    ## Electron Transport Data 
+
+    #  Electron Diffusion Coef.  
     diffList = []
     transport = h5.File("./BOLSIGChemistry_NominalRates/nominal_transport.h5", 'r')
-    NDe_v_Te = transport["diffusivity"]
-    Te_trans = NDe_v_Te[:,0]
+    diffusivityData = transport["diffusivity"] 
+    NDe_v_Te = diffusivityData[:,1]
+    Te_trans = diffusivityData[:,0]
     Te_trans /= 11604
-    De_interp = (NDe_v_Te[:,1]/nAr)*tau/(L*L)
+    threshold_Te0 = 2.0    
+    indices_Te0 = np.where(Te_trans < threshold_Te0)[0]
+    NDe_v_Te[indices_Te0] = NDe_v_Te[indices_Te0[-1]+1]
+    De_interp = (NDe_v_Te[:]/nAr)*tau/(L*L)
     De_spline = CubicSpline(Te_trans, De_interp)
     De_Te_spline = CubicSpline.derivative(De_spline)
     diffusivity = Diffusivity(interpolate = False, D_expression = De_spline, D_T_expression = De_Te_spline)
     diffList.append(diffusivity)
+
+    # diffList = []
+    # Te_trans = np.linspace(0, 1000, 10)
+    # De_interp = params.D[0]*np.ones(10)  
+    # De_spline = CubicSpline(Te_trans, De_interp)
+    # De_Te_spline = CubicSpline.derivative(De_spline)
+    # diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
+    # diffList.append(diffusivity)
+
+
+    # fig,ax = plt.subplots()
+    # ax.set_title('Diffusion Coef.')
+    # ax.set_xlabel('Te [eV]')
+    # # ax.set_ylabel('D [m2/s]')
+    # ax.set_ylabel(r"$D_e \, $ [$ \, m^{2}/s$]")
+    # ax.loglog(Te_trans, NDe_v_Te[:]/nAr, marker = 'o', label = 'Nominal')
+    # # ax.loglog(Te_trans, De_interp, marker = 'o', label = 'Nominal')
+    # # plt.axhline(y=params.D[0], color='k', linestyle='--')
+    # ax.legend()
+    # # plt.savefig('EinsteinRelation.png')
 
     Ns = 6
     for i in range(1, Ns):
@@ -556,19 +521,44 @@ def setPsaapProperties_6Species_1Torr_Expanded(gam, inputV0, inputVDC, params, N
 
     params.diffusivityList = diffList
 
+
+    #  Electron Mobility 
     muList = []
-    Nmue_v_Te = transport["mobility"]
-    mue_interp = (Nmue_v_Te[:,1]/nAr)*V0*tau/(L*L)
+    mobilityData = transport["mobility"] 
+    Nmue_v_Te = mobilityData[:,1]
+    Nmue_v_Te[indices_Te0] = Nmue_v_Te[indices_Te0[-1]+1]
+    mue_interp = (Nmue_v_Te[:]/nAr)*V0*tau/(L*L)
     mue_spline = CubicSpline(Te_trans, mue_interp)
     mue_Te_spline = CubicSpline.derivative(mue_spline)
     mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
     muList.append(mobility)
+
+    # muList = []
+    # Te_trans = np.linspace(0, 1000, 10)
+    # mue_interp = params.mu[0]*np.ones(10) 
+    # mue_spline = CubicSpline(Te_trans, mue_interp)
+    # mue_Te_spline = CubicSpline.derivative(mue_spline)
+    # mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    # muList.append(mobility)
+
+    # fig, ax = plt.subplots()
+    # ax.set_title('Mobility Coef.')
+    # ax.set_xlabel('Te [eV]')
+    # ax.set_ylabel(r"$\mu_e \, $ [$ \, m^{2}/V/s$]")
+    # ax.loglog(Te_trans, Nmue_v_Te[:]/nAr, marker = 'o', label = 'Nominal')
+    # # ax.loglog(Te_trans, mue_interp, marker = 'o', label = 'Nominal')
+    # # plt.axhline(y=params.mu[0], color='k', linestyle='--')
+    # ax.legend()
 
     #Ns = 6
     for i in range(1, Ns):
         muList.append(Mobility(interpolate = False))
 
     params.mobilityList = muList
+
+
     
     # 5) Dump to screen
     params.print()
+
+

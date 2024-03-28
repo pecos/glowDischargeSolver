@@ -15,6 +15,8 @@ NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 0 --gpu_device_id 0"
 # 6 species + 34 rxn - Nominal Rates case
 Np=150
 Nt=51200
+# Nt=128
+
 Nt1=128
 dt=0.0078125
 scenario=7
@@ -22,48 +24,65 @@ baseFile="restart_6spec_CN_Np${Np}_"
 newtFile="newton_6spec_CN_Np${Np}.npy"
 saveFile="newton_6spec_CN_Np${Np}_fullsoln.npy"
 
-baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --elasticCollisionActivation --backgroundSpecieActivation"
-newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --alpha0 0.1 --increaseFac 1.5 --elasticCollisionActivation --backgroundSpecieActivation"
-saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt --scenario $scenario --tscheme CN --elasticCollisionActivation --backgroundSpecieActivation"
-screenOut="runCN.out"
+# --EinsteinForm
+
+baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
+newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --alpha0 0.1 --increaseFac 1.5 --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
+saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt --scenario $scenario --tscheme CN --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
+screenOut="run_6sp.out"
 rm -f $screenOut
 
 # Run an example case of the Chebyshev time domain solver
+# echo "Run 1200 to 1600...${baseFile}T1600.npy"
+# $baseCmd --V0 75 --VDC 0.0 --t0 1200.0 --restart "${baseFile}T1200.npy" --outfile "discard.npy" >> $screenOut || error_exit "4th run failed"
+
+
 echo "Run 0 to 400...${baseFile}T400.npy"
-$baseCmd --V0 100 --VDC 0.0 --t0   0.0 --outfile "${baseFile}T400.npy"  > $screenOut || error_exit "1st run failed"
+$baseCmd --V0 75 --VDC 0.0 --t0   0.0 --outfile "${baseFile}T400.npy"  > $screenOut || error_exit "1st run failed"
+# $baseCmd --V0 75 --VDC 0.0 --t0   0.0 --restart "${baseFile}T2000.npy" --outfile "${baseFile}T400.npy"  > $screenOut || error_exit "1st run failed"
 
 echo "Run 400 to 800...${baseFile}T800.npy"
-$baseCmd --V0 100 --VDC 0.0 --t0 400.0 --restart "${baseFile}T400.npy" --outfile "${baseFile}T800.npy" >> $screenOut || error_exit "2nd run failed"
+$baseCmd --V0 75 --VDC 0.0 --t0 400.0 --restart "${baseFile}T400.npy" --outfile "${baseFile}T800.npy" >> $screenOut || error_exit "2nd run failed"
 echo "Run 800 to 1200...${baseFile}T1200.npy"
-$baseCmd --V0 100 --VDC 0.0 --t0 800.0 --restart "${baseFile}T800.npy" --outfile "${baseFile}T1200.npy" >> $screenOut || error_exit "3rd run failed"
+$baseCmd --V0 75 --VDC 0.0 --t0 800.0 --restart "${baseFile}T800.npy" --outfile "${baseFile}T1200.npy" >> $screenOut || error_exit "3rd run failed"
 echo "Run 1200 to 1600...${baseFile}T1600.npy"
-$baseCmd --V0 100 --VDC 0.0 --t0 1200.0 --restart "${baseFile}T1200.npy" --outfile "${baseFile}T1600.npy" >> $screenOut || error_exit "4th run failed"
+$baseCmd --V0 75 --VDC 0.0 --t0 1200.0 --restart "${baseFile}T1200.npy" --outfile "${baseFile}T1600.npy" >> $screenOut || error_exit "4th run failed"
 echo "Run 1600 to 2000...${baseFile}T2000.npy"
-$baseCmd --V0 100 --VDC 0.0 --t0 1600.0 --restart "${baseFile}T1600.npy" --outfile "${baseFile}T2000.npy" >> $screenOut || error_exit "6th run failed"
+$baseCmd --V0 75 --VDC 0.0 --t0 1600.0 --restart "${baseFile}T1600.npy" --outfile "${baseFile}T2000.npy" >> $screenOut || error_exit "5th run failed"
 echo "Run 2000 to 2400...${baseFile}T2400.npy"
-$baseCmd --V0 100 --VDC 0.0 --t0 2000.0 --restart "${baseFile}T2000.npy" --outfile "${baseFile}T2400.npy" >> $screenOut || error_exit "7th run failed"
+$baseCmd --V0 75 --VDC 0.0 --t0 2000.0 --restart "${baseFile}T2000.npy" --outfile "${baseFile}T2400.npy" >> $screenOut || error_exit "6th run failed"
+echo "Run 2400 to 2800...${baseFile}T2800.npy"
+$baseCmd --V0 75 --VDC 0.0 --t0 2400.0 --restart "${baseFile}T2400.npy" --outfile "${baseFile}T2800.npy" >> $screenOut || error_exit "7th run failed"
+echo "Run 2800 to 3200...${baseFile}T3200.npy"
+$baseCmd --V0 75 --VDC 0.0 --t0 2800.0 --restart "${baseFile}T2800.npy" --outfile "${baseFile}T3200.npy" >> $screenOut || error_exit "8th run failed"
+echo "Run 3200 to 3600...${baseFile}T3600.npy"
+$baseCmd --V0 75 --VDC 0.0 --t0 3200.0 --restart "${baseFile}T3200.npy" --outfile "${baseFile}T3600.npy" >> $screenOut || error_exit "9th run failed"
+echo "Run 3600 to 4000...${baseFile}T4000.npy"
+$baseCmd --V0 75 --VDC 0.0 --t0 3600.0 --restart "${baseFile}T3600.npy" --outfile "${baseFile}T4000.npy" >> $screenOut || error_exit "10th run failed"
 
 
 
 
 echo "Saving one period...fullsoln_T400"
-$saveCmd --V0 100 --VDC 0.0 --t0 400.0 --rtol 1e-8 --restart "${baseFile}T400.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T400.npy" --outfile discard.npy >> $screenOut
-
+$saveCmd --V0 75 --VDC 0.0 --t0 400.0 --rtol 1e-8 --restart "${baseFile}T400.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T400.npy" --outfile discard.npy >> $screenOut
 echo "Saving one period...fullsoln_T800.npy"
-$saveCmd --V0 100 --VDC 0.0 --t0 800.0 --rtol 1e-8 --restart "${baseFile}T800.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T800.npy" --outfile discard.npy >> $screenOut
-
+$saveCmd --V0 75 --VDC 0.0 --t0 800.0 --rtol 1e-8 --restart "${baseFile}T800.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T800.npy" --outfile discard.npy >> $screenOut
 echo "Saving one period...fullsoln_T1200.npy"
-$saveCmd --V0 100 --VDC 0.0 --t0 1200.0 --rtol 1e-8 --restart "${baseFile}T1200.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T1200.npy" --outfile discard.npy >> $screenOut
-
+$saveCmd --V0 75 --VDC 0.0 --t0 1200.0 --rtol 1e-8 --restart "${baseFile}T1200.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T1200.npy" --outfile discard.npy >> $screenOut
 echo "Saving one period...fullsoln_T1600.npy"
-$saveCmd --V0 100 --VDC 0.0 --t0 1600.0 --rtol 1e-8 --restart "${baseFile}T1600.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T1600.npy" --outfile discard.npy >> $screenOut
-
+$saveCmd --V0 75 --VDC 0.0 --t0 1600.0 --rtol 1e-8 --restart "${baseFile}T1600.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T1600.npy" --outfile discard.npy >> $screenOut
 echo "Saving one period...fullsoln_T2000.npy"
-$saveCmd --V0 100 --VDC 0.0 --t0 2000.0 --rtol 1e-8 --restart "${baseFile}T2000.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T2000.npy" --outfile discard.npy >> $screenOut
-
+$saveCmd --V0 75 --VDC 0.0 --t0 2000.0 --rtol 1e-8 --restart "${baseFile}T2000.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T2000.npy" --outfile discard.npy >> $screenOut
 echo "Saving one period...fullsoln_T2400.npy"
-$saveCmd --V0 100 --VDC 0.0 --t0 2400.0 --rtol 1e-8 --restart "${baseFile}T2400.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T2400.npy" --outfile discard.npy >> $screenOut
-
+$saveCmd --V0 75 --VDC 0.0 --t0 2400.0 --rtol 1e-8 --restart "${baseFile}T2400.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T2400.npy" --outfile discard.npy >> $screenOut
+echo "Saving one period...fullsoln_T2800.npy"
+$saveCmd --V0 75 --VDC 0.0 --t0 2800.0 --rtol 1e-8 --restart "${baseFile}T2800.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T2800.npy" --outfile discard.npy >> $screenOut
+echo "Saving one period...fullsoln_T3200.npy"
+$saveCmd --V0 75 --VDC 0.0 --t0 3200.0 --rtol 1e-8 --restart "${baseFile}T3200.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T3200.npy" --outfile discard.npy >> $screenOut
+echo "Saving one period...fullsoln_T3600.npy"
+$saveCmd --V0 75 --VDC 0.0 --t0 3600.0 --rtol 1e-8 --restart "${baseFile}T3600.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T3600.npy" --outfile discard.npy >> $screenOut
+echo "Saving one period...fullsoln_T4000.npy"
+$saveCmd --V0 75 --VDC 0.0 --t0 4000.0 --rtol 1e-8 --restart "${baseFile}T4000.npy" --savedata "newton_6spec_CN_Np${Np}_fullsoln_T4000.npy" --outfile discard.npy >> $screenOut
 
 
 
@@ -77,4 +96,4 @@ $saveCmd --V0 100 --VDC 0.0 --t0 2400.0 --rtol 1e-8 --restart "${baseFile}T2400.
 
 
 
-
+echo "Bash script has finished!"

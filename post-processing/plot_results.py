@@ -4,6 +4,37 @@ import sys
 import scipy.constants as spc
 
 
+
+
+#----------------------------------------------------------------------------------
+
+def PartitionFunctionsAnalytical(T_e):
+    
+    # Calculate partition functions from analytical expressions
+    Q_n = (1+12*np.exp(-11.6/T_e))                                  # Electronic partition function of neutral Argon
+    Q_i = (4+2*np.exp(-0.178/T_e)+2*np.exp(-13.5/T_e))             # Electronic partition function of ion Argon
+
+    
+    return Q_n,Q_i
+
+
+def BoltzmannDistribution(n_tot,T_e,Qtot,E_lvl,g_lvl):
+
+    q = len(E_lvl)
+    # Excited level populations
+    npop_LTE = np.zeros(q)
+    for i in range(q):
+        if i == 0:
+            npop_LTE[i] = g_lvl[i]/Qtot*n_tot
+            continue    
+        npop_LTE[i] = g_lvl[i]*np.exp(-E_lvl[i]/T_e)/Qtot*n_tot    
+       
+    return npop_LTE
+              
+
+#----------------------------------------------------------------------------------
+
+
 # sys.path.insert(0, '../')
 # Constants
 K_eV = spc.k/spc.e             # Convert energy units: from K to eV
@@ -12,9 +43,28 @@ K_eV = spc.k/spc.e             # Convert energy units: from K to eV
 isPlotLines = False
 isPlotMeans = True
 
+
+Te_exp = {}; ne_exp = {}; ni_exp = {}; gi_exp = {}; Ei_exp = {}
+ExpCase = '1Torr-150V' # 150V is the tip-to-tip Voltage. In our case V0 would be Vmax = 75 V.
+Te_exp[ExpCase] = 7.01 # [eV]
+ne_exp[ExpCase] = 2.2e15 # [#/m^3]
+# ni_exp[ExpCase] = np.array([9.58E+14, 3.16E+14, 3.27E+15, 9.59E+15, 6.43E+11, 4.64E+11, 4.43E+11, 
+#                   3.43E+11, 3.47E+11, 8.53E+11, 5.25E+11, 7.72E+11, 1.40E+11, 2.63E+12])
+# gi_exp[ExpCase] = np.array([3, 1, 3, 5, 1, 3, 5, 3, 1, 5, 3, 5, 7, 3])
+# Ei_exp[ExpCase] = np.array([11.8281, 11.7232, 11.6236, 11.5484, 13.4799, 13.3279, 13.3022,
+#                    13.2826, 13.273, 13.1718, 13.1531, 13.0949, 13.0757, 12.907])
+
+
+ni_exp[ExpCase] = np.array([0.0, 9.59E+15, 3.27E+15, 3.16E+14, 9.58E+14, 2.63E+12, 1.40E+11,  7.72E+11, 
+                            5.25E+11, 8.53E+11, 3.47E+11, 3.43E+11, 4.43E+11, 4.64E+11, 6.43E+11])
+gi_exp[ExpCase] = np.array([1, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1])   
+Ei_exp[ExpCase] =  np.array([ 0.0, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153, 13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902, 13.30222747, 13.32785705, 13.47988682])
+
+
+
+
+# Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
-
-
 
 # ic = 1; c = True; f = '../fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
 # ic = 1; c = True; f = '../Results/CR/CR_Np150_fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
@@ -26,33 +76,79 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 3; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150_TimeMarching/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'm'; lb = "6sp - Time Marching"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 2; c = False; f = '../Results/6spec/nominalCase_V100_P1torr_Np150_constDiff/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "6sp - constDiff"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = False; f = '../Results/6spec/nominalCase_V100_P1torr_Np150_constDiff/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "6sp - constDiff"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 5; c = False; f = '../Results/6spec/nominalCase_V100_P1torr_Np150_dEps/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'k'; lb = "6sp - dEps"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-
-ic = 3; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "T2000"; m = "CR"
+ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'm-'; lb = "CR"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2400.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 4; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1750.npy'; cl = 'r-'; lb = "T1750"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 5; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1500.npy'; cl = 'g-'; lb = "T1500"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1250.npy'; cl = 'm-'; lb = "T1250"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1500.npy'; cl = 'g-'; lb = "T1500"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 3; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1750.npy'; cl = 'r-'; lb = "T1750"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 4; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "T2000"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 5; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2250.npy'; cl = 'm-'; lb = "T2250"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 6; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2500.npy'; cl = 'm-'; lb = "T2500"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 7; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'm-'; lb = "T2750"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 6; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1250.npy'; cl = 'm-'; lb = "T1250"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 1; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T400.npy'; cl = 'b-'; lb = "T400"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T800.npy'; cl = 'b-'; lb = "T800"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 3; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T1200.npy'; cl = 'b-'; lb = "T1200"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 4; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T1600.npy'; cl = 'b-'; lb = "T1600"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 5; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "T2000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 6; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2400.npy'; cl = 'b-'; lb = "T2400"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 7; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2250.npy'; cl = 'm-'; lb = "T2250"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 8; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2500.npy'; cl = 'm-'; lb = "T2500"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 9; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'm-'; lb = "T2750"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T400.npy'; cl = 'b-'; lb = "T400"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 3; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T800.npy'; cl = 'b-'; lb = "T800"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 4; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T1200.npy'; cl = 'b-'; lb = "T1200"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 5; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T1600.npy'; cl = 'b-'; lb = "T1600"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 6; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "T2000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 7; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T2400.npy'; cl = 'b-'; lb = "T2400"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T2800.npy'; cl = 'b-'; lb = "T2800"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 9; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T3200.npy'; cl = 'b-'; lb = "T3200"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 10; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T3600.npy'; cl = 'b-'; lb = "T3600"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 11; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "T4000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+
+# ic = 1; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff_oldRates/fullsoln/newton_6spec_CN_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 
@@ -355,9 +451,9 @@ if (isPlotMeans):
          # ax.semilogy(xr, np.mean(ni[ic],axis=1), clr[ic]+'-', lw=2)
    ax.legend(fontsize=12)
    ax.set_xlim((xr[0], xr[-1]))
-   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   ax.set_xlabel(r"$x$ [cm]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$n_{e,i}$ [m$^{-3}$]", fontsize=18)
+   ax.set_ylabel(r"$n_{e}$ [m$^{-3}$]", fontsize=16)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/ne_mean.png')
 
@@ -415,6 +511,20 @@ if (isPlotMeans):
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/nb_mean.png')
 
+   # Ionization Degree
+   fig,ax = plt.subplots(dpi=160)
+   for ic in case: 
+      if case[ic]: 
+         ax.semilogy(xr, np.mean(ne[ic],axis=1)/np.mean(nb[ic],axis=1)*100, lw=2, label=label[ic])   
+   ax.legend(fontsize=12)
+   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r" Ion. Degree [$\%$]", fontsize=18)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/nb_mean.png')
+
+
 
    # Te/phi
    fig,ax = plt.subplots(dpi=160)
@@ -423,10 +533,10 @@ if (isPlotMeans):
          ax.plot(xr, np.mean(Te[ic],axis=1), lw=2, label=label[ic])
    ax.legend(fontsize=12,loc=2)
    ax.set_xlim((xr[0], xr[-1]))
-   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   ax.set_xlabel(r"$x$ [cm]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylim((0,5.5))
-   ax.set_ylabel(r"$T_e$ [eV]", fontsize=18)
+   ax.set_ylabel(r"$T_e$ [eV]", fontsize=16)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    #
    #ax2 = ax.twinx()
@@ -451,30 +561,57 @@ if (isPlotMeans):
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/Tg_mean.png')
 
+
+
+
+   # X_sp_i = np.array([9.99998E-01, 1.24270E-06, 6.21350E-10, 9.32026E-07, 3.10675E-10,
+   #           6.21350E-11, 6.21350E-11, 6.21350E-11, 4.66013E-11, 4.66013E-11,
+   #           3.10675E-11, 3.10675E-11, 3.10675E-11, 3.10675E-11, 3.10675E-11])
+
+   # # Calculate Boltzmann Distribution
+   # ic0 = 1; Ntot = 0
+   # for isp in range(17-2):
+   #    print(np.mean(npop[ic0][i_mid,isp,:],axis=0))
+   #    Ntot = Ntot + np.mean(npop[ic0][i_mid,isp,:],axis=0)
+      
+   # Te0 = np.mean(Te[ic0],axis=1)[i_mid]
+   # # print("Te0 = ",Te0)
+   # Q_n,Q_i = PartitionFunctionsAnalytical(Te0)
+   # npop_LTE = BoltzmannDistribution(Ntot,Te0,Q_n,dEps[ic0][0:-2],g[ic0][0:-2])
+
+   # # Just a estimation of the distribution
+   # X_sp_i = np.array([9.99998E-01, 1.24270E-06, 6.21350E-10, 9.32026E-07, 3.10675E-10,
+   #           6.21350E-11, 6.21350E-11, 6.21350E-11, 4.66013E-11, 4.66013E-11,
+   #           3.10675E-11, 3.10675E-11, 3.10675E-11, 3.10675E-11, 3.10675E-11])
+
+   # N_sp_i = X_sp_i *  Ntot 
+
+
+
+
    # npop
+   ExpCase = '1Torr-150V'
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid,:,:],axis=1)/g[ic][0:-2], lw=2, label=label[ic])
-         ax.plot(dEps[ic][-1], np.mean(ne[ic][i_mid,:],axis=0),'*', lw=2)
-         print("Ionization degree = ", round(np.mean(ne[ic][i_mid,:],axis=0)/np.mean(npop[ic][i_mid,0,:],axis=0)*100,7), " %")      
+         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid,:,:],axis=1)/g[ic][0:-2], marker='.', lw=1.5, label=label[ic])
+         ax.loglog(dEps[ic][-1], np.mean(ne[ic][i_mid,:],axis=0),'*', lw=1.5)
+         # print("Ionization degree = ", round(np.mean(ne[ic][i_mid,:],axis=0)/np.mean(npop[ic][i_mid,0,:],axis=0)*100,7), " %")      
+         # if ic ==1:
+            # ax.scatter(dEps[ic][0:-2], N_sp_i/g[ic][0:-2], lw=2, c='k', label="Bolsig's input")
+   label_tmp = "Exp - " + ExpCase
+   ax.scatter(Ei_exp[ExpCase], ni_exp[ExpCase]/gi_exp[ExpCase], c='k', marker='x', lw=1.5, label=label_tmp)        
+   ax.loglog(dEps[ic][-1], ne_exp[ExpCase],'k*', lw=1)
+   # ax.scatter(dEps[ic0][0:-2], npop_LTE/g[ic0][0:-2], c='r', label="Boltzmann")        
    ax.legend(fontsize=12,loc=2)
-   ax.semilogy()
+   ax.loglog()
    # ax.set_xlim((xr[0], xr[-1]))
-   ax.set_xlabel(r"$E$ [eV]", fontsize=18)
+   ax.set_xlabel(r"$E$ [eV]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    # ax.set_ylim((0,5.5))
-   ax.set_ylabel(r"$n / g$ [m$^{-3}$]", fontsize=18)
+   ax.set_ylabel(r"$n_i / g_i$ [m$^{-3}$]", fontsize=16)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/Distribution_mean.png')
-
-
-# ax.scatter(E_lvl*cm_eV,npop_LTE/g_lvl,c='b',label='LTE Boltzmann Ar(I)')
-# ax.plot(Eion,n_e_LTE,'r*',label='Ne')
-
-# plt.xlabel('E [ev]')
-# plt.ylabel('n [m$^{-3}]$')
-
 
 
 plt.show()
