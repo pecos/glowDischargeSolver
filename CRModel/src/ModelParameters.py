@@ -331,16 +331,13 @@ class modelParameters:
                     raise SystemExit(0)
             
                    
-        self.AEinstein_ij = np.zeros([NRadTrans_tot,NRadTrans_tot])
 
-        imax = 0
-        jmax = 0
+        imax = 0; jmax = 0
         self.TransitionsToGroundState = []
         for itrans in self.EmissionTransitions:
             i = self.index_i_lvl[itrans]
             j = self.index_j_lvl[itrans]
 
-            self.AEinstein_ij[i,j] = self.A_ji[itrans]
             imax = max(i,imax)
             jmax = max(j,jmax)
             if (i > j): # Transition from a 
@@ -351,23 +348,7 @@ class modelParameters:
             if i ==0: 
                 self.TransitionsToGroundState.append(itrans)    
 
-    
-        # # print('max i = ',imax, 'max j = ',jmax)    
-        # self.AEinstein_ij[np.where(self.AEinstein_ij == 0.0)] = 'nan'
-        # # creating a plot
-        # pixel_plot = plt.figure(dpi=140)
-        # # plotting a plot
-        # # pixel_plot.add_axes()
-        # # customizing plot
-        # plt.title("Einstein A coef for all possible transitions")
-        # # pixel_plot = plt.imshow(sigma_ij, cmap='jet', interpolation='nearest', origin='lower')
-        # pixel_plot = plt.imshow(self.AEinstein_ij, cmap='jet',origin='lower')
-        # plt.xlabel('upper level index')
-        # plt.ylabel('lower level index')  
-        # plt.colorbar(pixel_plot)
-        # # ## save a plot
-        # # ## plt.savefig('pixel_plot.png')
-        
+
 
         #----------------------------------------------------------------------------------
 
@@ -379,6 +360,7 @@ class modelParameters:
                 NCollTrans = NCollTrans + 1
 
         print("Number of all possible collisional transitions =", NCollTrans)
+        self.NCollTrans = NCollTrans
 
         # Construct indices
         self.CollTransitionsList = range(NCollTrans)
@@ -413,20 +395,21 @@ class modelParameters:
 
                 iCollTrans = iCollTrans + 1
         
+
+        self.eij_CollTrans = np.zeros([self.NCollTrans])
+
+        for iCollTrans in range(self.NCollTrans):  
+            i = self.CollTransition_ij[iCollTrans,0] # Lower lever
+            j = self.CollTransition_ij[iCollTrans,1] # Upper level                                
+            eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV            
+            self.eij_CollTrans[iCollTrans] = eij
+    
     
 
         # iCollTrans = 300
         # i = self.CollTransition_ij[iCollTrans,0] # Lower lever
         # j = self.CollTransition_ij[iCollTrans,1] # Upper level
         # print(i,j,self.CollTransition_Dict[i,j])
-
-        # pixel_1 = plt.figure(dpi=140) 
-        # plt.title("Collisional Transitions")
-        # pixel_1 = plt.imshow(np.transpose(self.CollTransition), cmap='jet',origin='lower')
-        # plt.ylabel('upper level index j')
-        # plt.xlabel('lower level index i')      
-        # plt.colorbar(pixel_1)
-        # # plt.show()
 
 
         #----------------------------------------------------------------------------------
@@ -498,62 +481,6 @@ class modelParameters:
             self.eij_LXCat_BSR[iter] = eij
 
             
-        # exit(-1)
-
-
-        sigma_ij = np.zeros([self.N_lvl,self.N_lvl])
-
-        icount = 0
-        for key1 in self.collDict:
-            for key2 in self.collDict[key1]:
-                icount += 1
-                # print(icount,key1,key2,key2.split(" "))
-        
-                if (key2.split(" ")[2] != 'Ar(Rydberg)'):
-                    if (key2.split(" ")[0] in self.DictRacah_lvl.keys()) and  \
-                        (key2.split(" ")[2] in self.DictRacah_lvl.keys()):
-
-                        i = self.DictRacah_lvl[key2.split(" ")[0]]
-                        j = self.DictRacah_lvl[key2.split(" ")[2]]
-            
-                        # if (i > j):
-                        #     sigma_ij[i,j] = max(self.collDict[key1][key2][:,1])
-                        #     print(icount,key1,key2,key2.split(" "),i,j,self.E_lvl[i],self.E_lvl[j])
-                        #     print(i,key2.split(" ")[0],self.Racah_lvl[i],self.Configuration_lvl[i], self.Term_lvl[i], self.J_lvl[i],self.E_lvl[i]*cm_eV)
-                        #     print(j,key2.split(" ")[2],self.Racah_lvl[j],self.Configuration_lvl[j], self.Term_lvl[j], self.J_lvl[j],self.E_lvl[j]*cm_eV)
-                        #     raise SystemExit(0)
-                
-                        sigma_ij[i,j] = max(self.collDict[key1][key2][:,1])
-
-
-        sigma_ij[np.where(sigma_ij == 0.0)] = 'nan'
-
-        # creating a plot
-        pixel_plot = plt.figure(dpi=140)
-        # plotting a plot
-        # pixel_plot.add_axes()
-        # customizing plot
-        plt.title("Max $\sigma$ for all possible transitions")
-        # pixel_plot = plt.imshow(sigma_ij, cmap='jet', interpolation='nearest', origin='lower')
-        pixel_plot = plt.imshow(sigma_ij, cmap='jet',origin='lower')
-        plt.xlabel('upper level index')
-        plt.ylabel('lower level index')    
-        plt.colorbar(pixel_plot)
-        # ## save a plot
-        # ## plt.savefig('pixel_plot.png')
-
-
-        # fig,ax = plt.subplots(dpi=140)
-        # ax.plot(range(self.N_lvl),self.E_lvl*cm_eV,'.')
-        # # ax.plot(E_lvl*cm_eV,'.')
-        # # ax.semilogy()
-        # # plt.ylim([1e2,1e26])
-        # plt.ylabel('E [ev]')
-        # plt.xlabel('level index')
-        # plt.title('Energy levels')
-        # plt.grid(True)
-        # # plt.legend()
-
 
         #----------------------------------------------------------------------------------
 
@@ -590,7 +517,7 @@ class modelParameters:
 
 
         # Excitation Rest
-        self.sigma_ij_Exc = {}
+        self.sigma_ij_Exc_Rest = {}
         for iCollTrans in self.CollTransitions_Rest: 
             i = self.CollTransition_ij[iCollTrans,0] # Lower lever
             j = self.CollTransition_ij[iCollTrans,1] # Upper level
@@ -634,7 +561,7 @@ class modelParameters:
 
                 sigma_ij[np.where(eRange < eij)] = 0
                 
-                self.sigma_ij_Exc[iCollTrans] = sigma_ij
+                self.sigma_ij_Exc_Rest[iCollTrans] = sigma_ij
             else:
                 print("Some collisional transitions are reversed; deexcitation? Check if level energies are ordered.")
                 exit(-1)
@@ -801,6 +728,8 @@ class modelParameters:
         
         self.eRange_elastic_e1 = eRange_elastic_e1
         self.sigma_elastic_e1 = sigma_elastic_e1                       
+
+
 
     def ConvertCrossSectionsToNumPy(self):
 

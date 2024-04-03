@@ -44,21 +44,34 @@ isPlotLines = False
 isPlotMeans = True
 
 
+## Species energies and degeneracies
+# E, AR+, AR(m), AR(r), AR(4p), AR
+dEps_6sp = np.array([0.0,15.76,11.577,11.725,13.168,0.0]) 
+g_6sp = np.array([1, 4, 6, 6, 36, 1])
+
+# electrons + ions + 4 4s levels + 10 4p levels + background state
+dEps_CR = np.array([ 0.0,         15.7596119,  11.54835442, 11.62359272, 11.72316039, 11.82807116,
+                     12.9070153,  13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,
+                     13.28263902, 13.30222747, 13.32785705, 13.47988682,  0.0]) 
+g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
+
+
+
+
 Te_exp = {}; ne_exp = {}; ni_exp = {}; gi_exp = {}; Ei_exp = {}
 ExpCase = '1Torr-150V' # 150V is the tip-to-tip Voltage. In our case V0 would be Vmax = 75 V.
 Te_exp[ExpCase] = 7.01 # [eV]
 ne_exp[ExpCase] = 2.2e15 # [#/m^3]
-# ni_exp[ExpCase] = np.array([9.58E+14, 3.16E+14, 3.27E+15, 9.59E+15, 6.43E+11, 4.64E+11, 4.43E+11, 
-#                   3.43E+11, 3.47E+11, 8.53E+11, 5.25E+11, 7.72E+11, 1.40E+11, 2.63E+12])
-# gi_exp[ExpCase] = np.array([3, 1, 3, 5, 1, 3, 5, 3, 1, 5, 3, 5, 7, 3])
-# Ei_exp[ExpCase] = np.array([11.8281, 11.7232, 11.6236, 11.5484, 13.4799, 13.3279, 13.3022,
-#                    13.2826, 13.273, 13.1718, 13.1531, 13.0949, 13.0757, 12.907])
-
 
 ni_exp[ExpCase] = np.array([0.0, 9.59E+15, 3.27E+15, 3.16E+14, 9.58E+14, 2.63E+12, 1.40E+11,  7.72E+11, 
                             5.25E+11, 8.53E+11, 3.47E+11, 3.43E+11, 4.43E+11, 4.64E+11, 6.43E+11])
 gi_exp[ExpCase] = np.array([1, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1])   
 Ei_exp[ExpCase] =  np.array([ 0.0, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153, 13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902, 13.30222747, 13.32785705, 13.47988682])
+
+# AR(m), AR(r), AR(4p)
+ni_lumped_exp = {}; Eps_lumped_exp = np.array([11.577,11.725,13.168]); gi_lumped_exp = np.array([6, 6, 36])
+ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase][2]+ni_exp[ExpCase][4], np.sum(ni_exp[ExpCase][5:]) ]
+
 
 
 
@@ -82,12 +95,12 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'm-'; lb = "CR"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'm-'; lb = "CR"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2400.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1250.npy'; cl = 'm-'; lb = "T1250"; m = "CR"
@@ -138,9 +151,20 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 10; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T3600.npy'; cl = 'b-'; lb = "T3600"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 11; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "T4000"; m = "6sp"
+ic = 11; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "T4000"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 12; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T5000.npy'; cl = 'b-'; lb = "T5000"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
+ic = 13; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T6000.npy'; cl = 'b-'; lb = "T6000"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 14; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T7000.npy'; cl = 'b-'; lb = "T7000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 15; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T8000.npy'; cl = 'b-'; lb = "T8000"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 16; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T9000.npy'; cl = 'b-'; lb = "T9000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 17; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T10000.npy'; cl = 'b-'; lb = "T10000"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 
@@ -188,18 +212,6 @@ xr = (xp+1)*L*100 # [cm]
 
 abs_diff = np.abs(xr - 1.0) # Calculate absolute differences between each value and the midpoint
 i_mid = np.argmin(abs_diff) # Find the index of the minimum absolute difference
-
-
-## Species energies and degeneracies
-# E, AR+, AR(m), AR(r), AR(4p), AR
-dEps_6sp = np.array([0.0,15.76,11.577,11.725,13.168,0.0]) 
-g_6sp = np.array([1, 4, 6, 6, 36, 1])
-
-# electrons + ions + 4 4s levels + 10 4p levels + background state
-dEps_CR = np.array([ 0.0,         15.7596119,  11.54835442, 11.62359272, 11.72316039, 11.82807116,
-                     12.9070153,  13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,
-                     13.28263902, 13.30222747, 13.32785705, 13.47988682,  0.0]) 
-g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
 
 
 
@@ -587,8 +599,6 @@ if (isPlotMeans):
    # N_sp_i = X_sp_i *  Ntot 
 
 
-
-
    # npop
    ExpCase = '1Torr-150V'
    fig,ax = plt.subplots(dpi=160)
@@ -602,6 +612,10 @@ if (isPlotMeans):
    label_tmp = "Exp - " + ExpCase
    ax.scatter(Ei_exp[ExpCase], ni_exp[ExpCase]/gi_exp[ExpCase], c='k', marker='x', lw=1.5, label=label_tmp)        
    ax.loglog(dEps[ic][-1], ne_exp[ExpCase],'k*', lw=1)
+
+   label_tmp = "Exp (lumped) - " + ExpCase
+   ax.scatter(Eps_lumped_exp, ni_lumped_exp[ExpCase]/gi_lumped_exp, c='k', marker='.', lw=1.5, label=label_tmp)        
+
    # ax.scatter(dEps[ic0][0:-2], npop_LTE/g[ic0][0:-2], c='r', label="Boltzmann")        
    ax.legend(fontsize=12,loc=2)
    ax.loglog()

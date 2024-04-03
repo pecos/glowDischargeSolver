@@ -267,8 +267,8 @@ class CollisionalRadiativeModel:
             # self.p.sigma_ij_Exc_BSR[key] = cp.asarray(self.p.sigma_ij_Exc_BSR[key]) 
         self.p.sigma_ij_Exc_BSR = cp.asarray(self.p.sigma_ij_Exc_BSR) 
 
-        for key in self.p.sigma_ij_Exc: 
-            self.p.sigma_ij_Exc[key] = cp.asarray(self.p.sigma_ij_Exc[key])
+        for key in self.p.sigma_ij_Exc_Rest: 
+            self.p.sigma_ij_Exc_Rest[key] = cp.asarray(self.p.sigma_ij_Exc_Rest[key])
 
         self.p.sigma_ionBSR  = cp.asarray(self.p.sigma_ionBSR)
 
@@ -523,7 +523,7 @@ class CollisionalRadiativeModel:
         dydt[iEe] = dydt[iEe] + deltaIon * (Rqi - Rsi) # rate of change of eletron energy
 
     
-        for i in range(1,self.Nv-3):               
+        for i in range(1,self.N_lvl):               
                 
             # isPrimed_lvl    
             deltaIon = Eion - self.p.E_lvl[i]*cm_eV # Which Eion should I use? There are two!                    
@@ -570,9 +570,9 @@ class CollisionalRadiativeModel:
             j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                            
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                           
-            Cij = self.trapz(self.p.sigma_ij_Exc[iCollTrans]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
+            Cij = self.trapz(self.p.sigma_ij_Exc_Rest[iCollTrans]*self.eVel*EEDF,self.eRange,axis=0)/EEDFnorm
 
-            # sigma_ij = xp.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc[iCollTrans])
+            # sigma_ij = xp.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc_Rest[iCollTrans])
             # Cij_2 = xp.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
             # print("diff = " , abs(Cij - Cij_2)/Cij*100)
 
@@ -622,7 +622,7 @@ class CollisionalRadiativeModel:
         dydt[iNe] = dydt[iNe] + Rvm - Rwm # change number of ions 
         # dydt[iEh] = dydt[iEh] + deltaIon * (Rwm - Rvm) # rate of change of eletron energy
 
-        for i in range(1,self.Nv-3):
+        for i in range(1,self.N_lvl):
             
             # Ionization due to atom impact from any level
             deltaIon = Eion - self.p.E_lvl[i]*cm_eV
@@ -846,7 +846,7 @@ class CollisionalRadiativeModel:
         self.ElecrtonImpactIonizationRate[i,:,0] = Si
         self.ElecrtonImpactIonizationRate[i,:,1] = Qi
 
-        for i in range(1,self.Nv-3):                           
+        for i in range(1,self.N_lvl):                           
             # isPrimed_lvl    
             # deltaIon = Eion - self.p.E_lvl[i]*cm_eV # Which Eion should I use? There are two!                    
             deltaIon = self.p.deltaIon[i]
@@ -856,6 +856,8 @@ class CollisionalRadiativeModel:
 
             self.ElecrtonImpactIonizationRate[i,:,0] = Si
             self.ElecrtonImpactIonizationRate[i,:,1] = Qi
+            
+
        
 
         ################## Elecrton impact de/excitation ##################
@@ -885,7 +887,7 @@ class CollisionalRadiativeModel:
             j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                            
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                           
-            Cij = self.trapz(self.p.sigma_ij_Exc[iCollTrans]*eVelTimesEEDF, axis=0 )
+            Cij = self.trapz(self.p.sigma_ij_Exc_Rest[iCollTrans]*eVelTimesEEDF, axis=0 )
             Fji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/T_e)*Cij # superelastic collision by principle of detailed balance
 
  
@@ -925,7 +927,7 @@ class CollisionalRadiativeModel:
         self.AtomImpactIonizationRate[0,:,1] = Wm
 
 
-        for i in range(1,self.Nv-3):
+        for i in range(1,self.N_lvl):
             
             # Ionization due to atom impact from any level
             # deltaIon = Eion - self.p.E_lvl[i]*cm_eV
@@ -1105,7 +1107,7 @@ class CollisionalRadiativeModel:
         dydt[:,iEe] = dydt[:,iEe] + deltaIon * (Rqi - Rsi) # rate of change of eletron energy
 
         
-        for i in range(1,self.Nv-3):                           
+        for i in range(1,self.N_lvl):                           
             # isPrimed_lvl    
             # deltaIon = Eion - self.p.E_lvl[i]*cm_eV # Which Eion should I use? There are two!                    
             deltaIon = self.p.deltaIon[i]        
@@ -1132,12 +1134,11 @@ class CollisionalRadiativeModel:
         for iter in range(self.p.NCollTrans_LXCat_BSR):
             i = self.p.CollTransition_ij_LXCat_BSR[iter] # Lower lever 
             j = self.p.CollTransition_ij_LXCat_BSR[iter + self.p.NCollTrans_LXCat_BSR] # Upper level
+            eij = self.p.eij_LXCat_BSR[iter]
 
             # i = self.p.CollTransition_ij[iCollTrans,0] # Lower lever
-            # j = self.p.CollTransition_ij[iCollTrans,1] # Upper level     
-            
+            # j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                 
             # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
-            eij = self.p.eij_LXCat_BSR[iter]
             
             # Cij = self.trapz(self.p.sigma_ij_Exc_BSR[iter]*eVelTimesEEDF,self.eRange, axis=0 )                        
             # Cij = self.trapz(self.p.sigma_ij_Exc_BSR[iCollTrans]*eVelTimesEEDF,self.eRange, axis=0 )                        
@@ -1164,8 +1165,8 @@ class CollisionalRadiativeModel:
         #     j = self.p.CollTransition_ij[iCollTrans,1] # Upper level                            
         #     eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
                           
-        #     Cij = self.trapz(self.p.sigma_ij_Exc[iCollTrans]*eVelTimesEEDF,self.eRange, axis=0 )
-        #     # sigma_ij = xp.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc[iCollTrans])
+        #     Cij = self.trapz(self.p.sigma_ij_Exc_Rest[iCollTrans]*eVelTimesEEDF,self.eRange, axis=0 )
+        #     # sigma_ij = xp.interp(self.xi*T_e,self.eRange,self.p.sigma_ij_Exc_Rest[iCollTrans])
         #     # Cij_2 = xp.sum(self.wi * sigma_ij *self.electronImpactIonRateIntegrand(T_e) * T_e)            
         #     # print("diff = " , abs(Cij - Cij_2)/Cij*100)
             
@@ -1208,13 +1209,11 @@ class CollisionalRadiativeModel:
     
         ################## Atom impact Ionization ##################
         # Wm_factor = 1.0/2.0/g_ion*(parameters.lambda_factor/T_e)**(1.5)
-        
-        # deltaIon = Eion - self.p.E_lvl[0]*cm_eV
-        # deltaIon = self.p.deltaIon[0]
-        
+        # deltaIon = Eion - self.p.E_lvl[0]*cm_eV        
         # Vm = self.trapz(self.p.sigma_1a_ion*aVelTimesAEDF,self.eRange, axis=0 )        
         # Wm = self.p.g_lvl[0]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
 
+        # deltaIon = self.p.deltaIon[0]
         Vm = self.AtomImpactIonizationRate[0,:,0]
         Wm = self.AtomImpactIonizationRate[0,:,1]
     
@@ -1225,7 +1224,7 @@ class CollisionalRadiativeModel:
         # dydt[:,iEh] = dydt[:,iEh] + deltaIon * (Rwm - Rvm) # rate of change of eletron energy
         # dEhdt = dEhdt + deltaIon * (Rwm - Rvm)
 
-        for i in range(1,self.Nv-3):
+        for i in range(1,self.N_lvl):
             
             # Ionization due to atom impact from any level
             # deltaIon = Eion - self.p.E_lvl[i]*cm_eV
@@ -1251,8 +1250,6 @@ class CollisionalRadiativeModel:
 
             
         ################## Atom impact de/excitation ##################
-
-
         i = self.p.i_Atom_ExcFromGround 
         for itrans in self.p.itrans_Atom_ExcFromGround:
             

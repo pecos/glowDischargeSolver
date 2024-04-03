@@ -17,7 +17,7 @@ sys.path.append(crmodel_dir)
 
 
 from os import environ
-N_THREADS = '1'
+N_THREADS = '8'
 environ['OMP_NUM_THREADS'] = N_THREADS
 environ['OPENBLAS_NUM_THREADS'] = N_THREADS
 environ['MKL_NUM_THREADS'] = N_THREADS
@@ -2017,7 +2017,7 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
-            start_time = cpu_time.time()
+            # start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
@@ -2045,7 +2045,7 @@ class timeDomainCollocationSolver:
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
-            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
         #NOTE(malamast): Do I need to transfer them back to the host?    
         if(savedata!=None):

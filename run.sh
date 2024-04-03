@@ -37,7 +37,7 @@ rm -f $screenOut
 
 # Run an example case of the Chebyshev time domain solver
 # echo "Run time marching case..."
-# $baseCmd --V0 100 --VDC 0.0 --t0 0.0 --outfile  $baseFile # --verbose #|| error_exit "First run failed"
+$baseCmd --V0 100 --VDC 0.0 --t0 0.0 --outfile  $baseFile # --verbose #|| error_exit "First run failed"
 
 # echo "Run time domain shooting..."
 # $newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart $baseFile \
@@ -58,5 +58,5 @@ rm -f $screenOut
 # $saveCmd --V0 100 --VDC 0.0 --t0 500.0 --rtol 1e-8 --restart "restart_CR_Np150_T500.npy" --savedata $saveFile --outfile discard_1.npy
 
 # Run an example case of the Chebyshev time domain solver
-echo "Run time marching case..."
-$baseCmd --V0 100 --VDC 0.0 --t0 500.0 --restart "restart_CR_Np150_T500.npy" --outfile discard_1.npy # --verbose #|| error_exit "First run failed"
+# echo "Run time marching case..."
+# $baseCmd --V0 100 --VDC 0.0 --t0 500.0 --restart "restart_CR_Np150_T500.npy" --outfile discard_1.npy # --verbose #|| error_exit "First run failed"
