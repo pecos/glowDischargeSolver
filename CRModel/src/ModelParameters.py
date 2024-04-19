@@ -143,6 +143,7 @@ class modelParameters:
         """
         Read in NIST data for states of Ar I  
         """
+        
         p = NIST_read_ArI('./CRModel/Data','ArI-States.csv', Ns-2)
         os.chdir(homeDir)
 
@@ -169,7 +170,7 @@ class modelParameters:
                       Fix electron-impact ionization process to proceed.")
                 raise SystemExit(0) 
 
-        self.deltaIon = np.zeros([self.N_lvl])
+        self.deltaIon = np.zeros(self.N_lvl, dtype=np.float64)
         for i in range(self.N_lvl):    
             deltaIon = Eion - self.E_lvl[i]*cm_eV
             self.deltaIon[i] = deltaIon 
@@ -396,14 +397,13 @@ class modelParameters:
                 iCollTrans = iCollTrans + 1
         
 
-        self.eij_CollTrans = np.zeros([self.NCollTrans])
+        self.eij_CollTrans = np.zeros(self.NCollTrans, dtype=np.float64)
 
         for iCollTrans in range(self.NCollTrans):  
             i = self.CollTransition_ij[iCollTrans,0] # Lower lever
             j = self.CollTransition_ij[iCollTrans,1] # Upper level                                
             eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV            
             self.eij_CollTrans[iCollTrans] = eij
-    
     
 
         # iCollTrans = 300
@@ -416,7 +416,6 @@ class modelParameters:
         """
         Read in LXCat data for excitation collision cross-sections
         """
-        os.chdir(homeDir)
         self.collDict, self.Nlvl_InExcDat, self.NTrans_InExcDat = \
             LXCat_read('./CRModel/Data/LXCat-Data/Excitation/','Cross section.txt')
         os.chdir(homeDir)
@@ -504,6 +503,10 @@ class modelParameters:
 
 
     def EvaluateCrossSections(self, eRange):
+
+        # Excitation
+        # self.sigma_ij_Exc_2 = np.zeros([self.NCollTrans,len(eRange)])
+        
         
         # Excitation BSR
         self.sigma_ij_Exc_BSR = {}
@@ -514,6 +517,8 @@ class modelParameters:
 
             self.sigma_ij_Exc_BSR[iCollTrans] = np.interp(eRange,self.collDict_list[iCollTrans][:,0],self.collDict_list[iCollTrans][:,1])
             self.sigma_ij_Exc_BSR[iCollTrans][np.where(eRange < eij)] = 0
+
+            # self.sigma_ij_Exc_2[iCollTrans] = self.sigma_ij_Exc_BSR[iCollTrans]
 
 
         # Excitation Rest
@@ -562,13 +567,47 @@ class modelParameters:
                 sigma_ij[np.where(eRange < eij)] = 0
                 
                 self.sigma_ij_Exc_Rest[iCollTrans] = sigma_ij
+                # self.sigma_ij_Exc_2[iCollTrans] = self.sigma_ij_Exc_Rest[iCollTrans]
+
             else:
                 print("Some collisional transitions are reversed; deexcitation? Check if level energies are ordered.")
                 exit(-1)
 
 
-        # Electron Impact Ionization
+        # Electron Impact Excitation (Packed)
+        self.sigma_ij_Exc = []
 
+        for iCollTrans in range(self.NCollTrans):
+            if iCollTrans in self.CollTransitions_LXCat_BSR:
+                self.sigma_ij_Exc.append(self.sigma_ij_Exc_BSR[iCollTrans])
+            elif iCollTrans in self.CollTransitions_Rest:
+                self.sigma_ij_Exc.append(self.sigma_ij_Exc_Rest[iCollTrans])
+            else:
+                print("No excitation cross section was defined for collisional transition: ", iCollTrans)
+                exit(-1)
+                
+        if len(self.sigma_ij_Exc) != self.NCollTrans:
+            print(len(self.sigma_ij_Exc), " transitions were defined, while the number of collisional transition is: ", self.NCollTrans)
+            exit(-1)
+                
+
+
+
+        # De-excitation (reverse) procesess  # by principle of detailed balance
+        self.sigma_ij_deExc = []
+        for iCollTrans in range(self.NCollTrans): 
+
+            i = self.CollTransition_ij[iCollTrans,0] # Lower lever
+            j = self.CollTransition_ij[iCollTrans,1] # Upper level                               
+            eij = self.eij_CollTrans[iCollTrans]
+            
+
+            sigma_dexc = self.g_lvl[i]/self.g_lvl[j]*(eRange[:,0] + eij)/eRange[:,0]*\
+                np.interp(eRange[:,0],eRange[:,0]-eij,self.sigma_ij_Exc[iCollTrans][:,0] )  
+            self.sigma_ij_deExc.append(sigma_dexc[:, np.newaxis])
+
+   
+        # Electron Impact Ionization
         self.sigma_ionBSR = np.interp(eRange,IonizationBSR[:,0],IonizationBSR[:,1])  
         deltaIon = Eion - self.E_lvl[0]*cm_eV 
         self.sigma_ionBSR[np.where(eRange < deltaIon)] = 0
@@ -587,6 +626,7 @@ class modelParameters:
         # plt.show()
 
         self.sigma_ij_Ion = {}
+        self.sigma_ij_Ion[0] = self.sigma_ionBSR
         for i in range(1,self.N_lvl):              
             SubShell = str(self.SubShell_lvl[i])
             # print(SubShell)
@@ -621,6 +661,7 @@ class modelParameters:
 
         
         self.sigma_ia_ion = {}
+        self.sigma_ia_ion[0] = self.sigma_1a_ion
         for i in range(1,self.N_lvl):
             
             # Ionization due to atom impact from any level
@@ -724,7 +765,8 @@ class modelParameters:
 
         # Elastic Collisions
         self.sigma_el_e1 = np.interp(eRange,eRange_elastic_e1,sigma_elastic_e1)*1e-20
-        self.sigma_el_e1[np.where(self.sigma_el_e1 < 0)] = 0  
+        self.sigma_el_e1[np.where(self.sigma_el_e1 < 0)] = 0.0  
+
         
         self.eRange_elastic_e1 = eRange_elastic_e1
         self.sigma_elastic_e1 = sigma_elastic_e1                       
@@ -732,6 +774,10 @@ class modelParameters:
 
 
     def ConvertCrossSectionsToNumPy(self):
+
+        self.sigma_ij_Exc = np.array(self.sigma_ij_Exc)                
+        self.sigma_ij_deExc = np.array(self.sigma_ij_deExc)  
+        # self.sigma_ij_Exc_comb = np.stack((self.sigma_ij_Exc, self.sigma_ij_deExc), axis=2)
 
         self.sigma_ij_Exc_BSR = np.array(list(self.sigma_ij_Exc_BSR.values()))        
         self.sigma_ij_Ion = np.array(list(self.sigma_ij_Ion.values()))

@@ -24,6 +24,8 @@ environ['MKL_NUM_THREADS'] = N_THREADS
 environ['VECLIB_MAXIMUM_THREADS'] = N_THREADS
 environ['NUMEXPR_NUM_THREADS'] = N_THREADS
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
 # from scipy.sparse.linalg import cg
@@ -260,6 +262,8 @@ class modelClosures:
 
         return mu[:,0]
 
+
+
     def mobility_U(self, i, j, energy, energy_U, mu, nb):
         xp  = self.xp_module
 
@@ -278,8 +282,9 @@ class modelClosures:
             mu_U_tmp = mu_ee * xp.diag(energy_U[i,j,:,:])
             mu_U[:,:] = xp.diag(mu_U_tmp)
 
-        if (j == self.Ns - 1):
+        if (j == self.Ns - 1): 
             mu_U -= xp.diag(mu[:,i] / nb)
+
 
         return mu_U
 
@@ -495,13 +500,14 @@ class timeDomainCollocationSolver:
         self.xp_module = np
 
         # parameters of the time marching scheme
-        self.temporal_scheme = scheme
+        self.temporal_scheme = scheme  
+        
         if not (self.temporal_scheme in ["BE", "CN", "LCN"]):
             print("ERROR: Unrecognized temporal scheme.")
             print("Please use 'BE' (backward Euler), 'CN' (Crank-Nicolson), or 'LCN' (linearized Crank-Nicolson).")
             exit(-1)
         self.solveCRModel = False
-
+        
         # Indexing 
         # i = 0       -> electrons 
         # i = 1       -> ions        
@@ -521,9 +527,9 @@ class timeDomainCollocationSolver:
         self.Ndof = self.Nv*self.Np # total number of dofs
 
         # state (3 vectors for BDF2)
-        self.U2 = np.zeros((self.Ndof,1))
-        self.U1 = np.zeros((self.Ndof,1))
-        self.U0 = np.zeros((self.Ndof,1))
+        self.U2 = np.zeros((self.Ndof,1),dtype=np.float64)
+        self.U1 = np.zeros((self.Ndof,1),dtype=np.float64)
+        self.U0 = np.zeros((self.Ndof,1),dtype=np.float64)
 
         # electric potential (not part of state b/c we solve for it
         # given state)
@@ -565,9 +571,9 @@ class timeDomainCollocationSolver:
         elif(scenario==15):
             Nr = 0 # It is evaluated within the model based on the number of species you include.            
             self.solveCRModel = True
-            if self.temporal_scheme != "BE":
-                print("ERROR: Cuurently we suppport only the 'BE' (backward Euler) temporal scheme with the CR model.")
-                exit(-1)
+            # if self.temporal_scheme != "BE" or self.temporal_scheme != "CN":
+            #     print("ERROR: Curently we suppport only the 'BE' and 'CN' temporal schemes with the CR model.")
+            #     exit(-1)
         else:
             print("ERROR: scenario = {} not understood.".format(scenario))
             exit(-1)
@@ -613,10 +619,10 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==15):
             setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
-            self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, self.params.Pressure, self.params.GasTemperature,\
-                backgroundSpecieActivationFactor)
-            self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119
-            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]*CRconst.cm_eV; self.params.dEps[self.Ns-1] = 0.0
+            self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, \
+                self.params.Pressure, self.params.GasTemperature, backgroundSpecieActivationFactor)
+            self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119; self.params.dEps[self.Ns-1] = 0.0
+            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]*CRconst.cm_eV; 
 
 
         # Points used to define state and collocation
@@ -658,9 +664,9 @@ class timeDomainCollocationSolver:
 
         # LpD: values at xp to 2nd derivatives at xc, with identity
         # for top and bottom row (for Dirichlet BCs)
-        self.LpD = np.identity(self.Np)
-        self.LpD[1:-1,:] = self.Lp[1:-1,:]
-        self.LpD_inv     = np.linalg.solve(self.LpD, np.eye(self.Np)) 
+        self.LpD            = np.identity(self.Np)
+        self.LpD[1:-1,:]    = self.Lp[1:-1,:]
+        self.LpD_inv        = np.linalg.solve(self.LpD, np.eye(self.Np)) 
 
 
         # solve poisson equation for phi_ne
@@ -821,8 +827,8 @@ class timeDomainCollocationSolver:
         Tg = xp.zeros((self.Np, 1),dtype=xp.float64)
         Tg = (self.params.p0 - nT)/ntot
 
-        # NOTE(malamast): I clip the electron temperature when a low value occurs. 
-        Te = np.where(Te < Tg,Tg, Te) 
+        # NOTE(malamast): I clip the electron temperature when a low value occurs.
+        # Te = np.where(Te < Tg,Tg, Te) 
           
         # solve poisson equation for phi
         # now have self.phi
@@ -839,6 +845,7 @@ class timeDomainCollocationSolver:
         energy[:,0] = Te[:,0]
         for i in range(1,self.Ns):
             energy[:,i] = Tg[:,0]
+
 
         for i in range(0,self.Ns):
             mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
@@ -882,31 +889,29 @@ class timeDomainCollocationSolver:
         # form source terms at collocation points
         if (self.solveCRModel):
              
-            vars_CR = xp.empty((self.Np, self.Ns+1),dtype=xp.float64)                
+            vars_CR = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)                
             # ground state. background species is first in the CR model arrangement            
             vars_CR[:,0:self.Ns] = dens[:, self.cr.FromGlowDischargeToCRIndexing[0:-1]]*self.params.np0
             vars_CR[:,0] *= self.params.nAronp0
             vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree  # electron temperature [eV]
 
             # omega_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)                          
-            # for ip in range(0,self.Np): # NOTE(Mal): I need to vectorize this to imporve performance!
-            #     omega_CR[ip,:] = self.cr.rxnSourceTerm(vars_CR[ip,:])
-
             self.cr.rxnSourceTerm_UpdateTemperatureDependentPart_vec(vars_CR)
-            # omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)
-            self.cr.rxnSourceTerm_Update_vec(vars_CR)
-            omega_CR = self.cr.dydt_saved
+            omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)
+            # self.cr.rxnSourceTerm_Update_vec(vars_CR)
+            # omega_CR = self.cr.dydt_saved
 
-            omega = xp.empty_like(omega_CR)
+            omega = xp.zeros_like(omega_CR)
             omega = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
             omega [:,self.Ns-1] /=  self.params.nAronp0                           
         else:
             omega = self.params.rxnSourceTerm(Te, dens)
+        
+        # Joule Heating Term    
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
         # elastic collision term at collocation points
         SEC  = -self.params.EC * (nT - xp.multiply(dens[:, iele], Tg)) #NOTE(malamast): Why is this dens[0, iele] and not dens[:, iele]? I need to check this with Todd
-        # SEC[SEC > 0.0] = 0.0
         SEC *= self.elasticCollisionActivationFactor
         
         # evaluate S---the source term required in the background
@@ -924,13 +929,14 @@ class timeDomainCollocationSolver:
 
         sOmEp = xp.zeros((self.Np,1),dtype=xp.float64)
         for i in range(0, self.Ns-1):
-            sOmEp[:,0] += omega[:,i]*self.params.dEps[i] # NOTE(malamast): What is this? I need to check that with Todd?
+            sOmEp[:,0] += omega[:,i]*self.params.dEps[i] 
 
         joule = xp.zeros((self.Np,1),dtype=xp.float64)
         for i in range(0, self.Ns-1):
             joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
 
         S = xp.zeros((self.Np,1),dtype=xp.float64)
+        # NOTE(malamast): We forgot to add the species fluxes -fspec_x * dEps
         S[:,0] = (sOmEp[:,0] + fa_x[:,0] - joule[:,0])/Tg[:,0]/self.params.nAronp0
 
         # form full residual
@@ -1211,7 +1217,6 @@ class timeDomainCollocationSolver:
         iion = [1]
         
         Imat    = self.I_Np 
-        ntot_U = self.ntot_U
 
         # pull off state for convenience
         dens = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
@@ -1224,6 +1229,7 @@ class timeDomainCollocationSolver:
         # Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
         # Te_nT = xp.multiply(Imat,1./dens[:,iele])
 
+
         ntot = xp.zeros((self.Np,1),dtype=xp.float64)
         # ntot_U = xp.zeros((self.Np, self.Nv))
         
@@ -1235,12 +1241,13 @@ class timeDomainCollocationSolver:
         # background contribution
         ntot[:,0] += self.params.nAronp0 * dens[:,self.Ns-1]
         # ntot_U[:,self.Ns-1] += self.params.nAronp0*xp.ones(self.Np)
+        ntot_U = self.ntot_U
 
         # Temperature (from ideal gas law)
         Tg = xp.zeros((self.Np, 1),dtype=xp.float64)
         Tg = (self.params.p0 - nT)/ntot
 
-        Tg_U = xp.zeros((self.Np, self.Nv))
+        Tg_U = xp.zeros((self.Np, self.Nv),dtype=xp.float64)
         for i in range(0, self.Nv):
             Tg_U[:,i] = -(Tg[:,0]/ntot[:,0])*ntot_U[:,i]
 
@@ -1249,7 +1256,7 @@ class timeDomainCollocationSolver:
 
 
         # NOTE(malamast): I clip the electron temperature when a low value occurs. 
-        Te = np.where(Te < Tg,Tg, Te) 
+        # Te = np.where(Te < Tg,Tg, Te) 
 
         Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
         Te_nT = xp.multiply(Imat,1./dens[:,iele])          
@@ -1279,6 +1286,9 @@ class timeDomainCollocationSolver:
             for j in range(1,self.Nv):
                 energy_U[i,j,:,:] = xp.multiply(Imat,Tg_U[:,j])
 
+
+
+
         diffusivity_U = xp.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=xp.float64)
         mu_U = xp.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=xp.float64)
         for i in range(0,self.Ns):
@@ -1290,6 +1300,21 @@ class timeDomainCollocationSolver:
                 mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, mu, dens[:,self.Ns-1])
 
 
+        # for j in range(self.Ns+1):
+        #     i = self.Ns-1
+        #     my_matrix = diffusivity_U[i,j,:,:]
+        #     # print(my_matrix)
+
+        #     rows, cols = my_matrix.shape
+        #     diag_mask = ~np.eye(rows, dtype=bool)
+        #     non_diag_elements = my_matrix[diag_mask]
+
+        #     # Sum the non-diagonal elements
+        #     sum_non_diag_elements = np.sum(non_diag_elements)
+        #     print(i, j, np.sum(my_matrix), sum_non_diag_elements)
+
+        # exit(-1)
+
 
         # form flux Jacobians
         dens_x = self.Dp @ dens
@@ -1300,11 +1325,11 @@ class timeDomainCollocationSolver:
         phi_x_ni = self.phi_x_ni
 
 
-        # must have electron flux for use in Jacobian of Joule heating
-        fe = xp.zeros((self.Np, 1),dtype=xp.float64)
-        fe[:,0] = -xp.multiply(mu[:,0], dens[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], dens_x[:,0])
-        fe = fe.reshape((self.Np,1))
-
+        # # must have electron flux for use in Jacobian of Joule heating
+        # fe = xp.zeros((self.Np, 1),dtype=xp.float64)
+        # fe[:,0] = -xp.multiply(mu[:,0], dens[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], dens_x[:,0])  # NOTE(malamast): I calculate that below at fspec[:,0]
+        # fe = fe.reshape((self.Np,1)) # NOTE(malamast): Why do we do that? Seems unnecessary
+        
         # must have these for joule heating erms
         fspec = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
@@ -1313,6 +1338,10 @@ class timeDomainCollocationSolver:
 
         fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
         fT = fT.reshape((self.Np,1))
+
+        # must have electron flux for use in Jacobian of Joule heating
+        fe = xp.zeros((self.Np, 1),dtype=xp.float64) # NOTE(malamast): This was double calculated before. Now we just copy the flux
+        fe[:,0] = fspec[:,0]
 
         # overwrite endpoints in fi (weakly impose BC)
         fspec[ 0,1] = -self.params.ksion * dens[ 0,iion] \
@@ -1344,6 +1373,8 @@ class timeDomainCollocationSolver:
         fT_U[0,:,:] = (5./3.)*(-mu[:,iele]*xp.multiply(nT,-phi_x_ne))
         fT_U[1,:,:] = (5./3.)*(-mu[:,iele]*xp.multiply(nT,-phi_x_ni))
 
+        #NOTE(malamast): Do we need one more term for fT_U[0,:,:] for the product (ne*Te) when we take the derivative wrt ne?
+
         for j in range(0, self.Nv):
             fT_U[j,:,:] += (5./3.) * xp.multiply(-mu_U[0,j,:,:], xp.multiply(nT,-phi_x))
             fT_U[j,:,:] -= (5./3.) * xp.multiply(diffusivity_U[0, j, :, :], nT_x[:,0])
@@ -1359,6 +1390,7 @@ class timeDomainCollocationSolver:
 
         fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
         fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
+
 
         for i in range(0,self.Nv):
             fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])
@@ -1425,7 +1457,7 @@ class timeDomainCollocationSolver:
         # omega_V returns derivatives of chemical src terms wrt ne, ni, ..., Te
         if (self.solveCRModel):
  
-            vars_CR = xp.empty((self.Np, self.Ns+1),dtype=xp.float64)                                        
+            vars_CR = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)                                        
             vars_CR[:,0:self.Ns] = dens[:, self.cr.FromGlowDischargeToCRIndexing[0:-1]]*self.params.np0
             vars_CR[:,0] *= self.params.nAronp0
             vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree   
@@ -1433,19 +1465,14 @@ class timeDomainCollocationSolver:
 
             # omega_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)              
             # omega_V_CR = xp.zeros((self.Ns+1,self.Ns+1,self.Np),dtype=xp.float64)
-            # for ip in range(0,self.Np): # NOTE(Mal): I need to vectorize this to imporve performance!
-            #     omega_CR[ip,:] = self.cr.rxnSourceTerm(vars_CR[ip,:])
-            #     # omega_V_CR[:,:,ip] = self.cr.rxnSourceTermJac(vars_CR[ip,:])
-            #     omega_V_CR[:,:,ip] = self.cr.rxnSourceTermJac_2(vars_CR[ip,:])
 
-            # omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)            
-            omega_CR, omega_V_CR = self.cr.rxnSourceTermJac_2_vec(vars_CR)
+            omega_CR, omega_V_CR = self.cr.rxnSourceTermJac_vec(vars_CR)
 
-            omega = xp.empty_like(omega_CR)
+            omega = xp.zeros_like(omega_CR)
             omega[:,:] = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
             omega[:,self.Ns-1] /=  self.params.nAronp0   
 
-            omega_V = xp.empty_like(omega_V_CR)
+            omega_V = xp.zeros_like(omega_V_CR)
             omega_V[:,:,:] = omega_V_CR[self.cr.FromCRToGlowDischargeIndexing,:,:][:,self.cr.FromCRToGlowDischargeIndexing,:]  
             omega_V[:,0:self.Ns - 1,:] *= self.params.np0 # derivatives wrt ni
             omega_V[:,self.Ns - 1,:] *= self.params.nAr # derivatives wrt ground state
@@ -1459,11 +1486,11 @@ class timeDomainCollocationSolver:
             omega_V = self.params.rxnSourceTermJac(Te, dens)
 
         # chain rule to get derivatives wrt ne, ni, ..., nT 
-        omega_U = xp.empty_like(omega_V)
+        omega_U = xp.zeros_like(omega_V)
         # omega_U = xp.ndarray(xp.shape(omega_V))
         for i in range(0,self.Ns+1):
             omega_U[i,0,:] = omega_V[i,0,:] + omega_V[i,self.Ns,:]*xp.diag(Te_ne)
-            omega_U[i,self.Ns,:] = omega_V[i,self.Ns,:]*xp.diag(Te_nT)
+            omega_U[i,self.Ns,:] = omega_V[i,self.Ns,:]*xp.diag(Te_nT) #NOTE(malamast): is that correct?
 
         omega_U[:,1:self.Ns,:] = omega_V[:,1:self.Ns,:]
 
@@ -1472,6 +1499,7 @@ class timeDomainCollocationSolver:
         SJ_ni = -self.params.qStar*( xp.multiply(fspec_U[0,1,:,:],-phi_x) + xp.multiply(fe,-phi_x_ni))
         SJ_nb = -self.params.qStar * xp.multiply(fspec_U[0,self.Ns-1,:,:],-phi_x)
         SJ_nT = -self.params.qStar * xp.multiply(fspec_U[0,self.Ns,:,:],-phi_x)
+
 
         # elastic collisions
         SEC_U = xp.zeros((self.Ns + 1, self.Np, self.Np), dtype=xp.float64)
@@ -1519,7 +1547,7 @@ class timeDomainCollocationSolver:
             fa_x_U[j,:,:] = self.Dp @ fa_U[j,:,:]
 
         sOmEp = xp.zeros((self.Np,1),dtype=xp.float64)
-        sOmEp_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64) # NOTE(malamast): Why does it have these dimensions?
+        sOmEp_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64) 
         for i in range(0, self.Ns-1):
             sOmEp[:,0] += omega[:,i]*self.params.dEps[i]
             for j in range(0,self.Nv):
@@ -1568,12 +1596,17 @@ class timeDomainCollocationSolver:
                 jac_diag  = xp.einsum('ii->i', self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np])
                 jac_diag -= dt*omega_U[i,j,:]
 
+
+
         # Joule heating (electron energy eqn)
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*(SJ_ne + SEC_U[0, :, :])
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*(SJ_ni + SEC_U[1, :, :])
         self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
         self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*(SJ_nT + SEC_U[self.Ns, :, :])
 
+        # print(np.shape(self.jac[self.Ns*self.Np:,0:self.Np]), np.shape(self.jac[self.Ns*self.Np:,self.Np:2*self.Np]))
+        # exit(-1)
+        
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
             self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*(S_U[j,:,:])
@@ -1885,6 +1918,11 @@ class timeDomainCollocationSolver:
                 print("Solve failed!", flush=True)
                 exit(-1)
 
+
+            # self.U2[self.U2<0.0] = 0.0 # NOTE(malamast): This causes the periodic solver to fail. 
+            #                              # Some small negative values can occur close to the boundaries 
+            #                              # where the numver densities are zero.
+
             r = self.residual(self.U2, time, dt, weak_bc)
 
             normr = xp.linalg.norm(r)
@@ -1963,7 +2001,6 @@ class timeDomainCollocationSolver:
               rtol=1e-6, computeSensitivity=False, weak_bc=False):
 
 
-
         if self.args.use_gpu==1:
             self.copy_operators_H2D(self.args.gpu_device_id)
             self.xp_module = cp
@@ -1989,10 +2026,10 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[0,:] = self.electronCurrent[:,0]
 
         print("#")
-        print("# {0:10s} {1:12s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s}".format(
-            "Time", "min ne", "max ne", "min Te", "max Te", "min nb", "max nb"))
-        print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}".format(
-            time0, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+        print("# {0:8s} {1:10s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s} {7:12s}".format(
+            "Iter", "Time", "min ne", "max ne", "min Te", "max Te", "min nb", "max nb"))
+        print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
+            -1, time0, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
             self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max(),
             self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
             self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
@@ -2000,8 +2037,8 @@ class timeDomainCollocationSolver:
         # assume initial condition has been set in U1!
         time = time0+dt
         self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
-        print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}".format(
-            time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+        print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}  {7:.6e}".format(
+            0, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
             self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max(),
             self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
             self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
@@ -2030,8 +2067,8 @@ class timeDomainCollocationSolver:
             # advance
             self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
             #self.filter()
-            print("{0:.6e} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}".format(
-                time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+            print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
+                istep, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
                 self.U2[self.Ns*self.Np:].min(), self.U2[self.Ns*self.Np:].max(),
                 self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
                 self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()), flush=True)
@@ -2047,7 +2084,6 @@ class timeDomainCollocationSolver:
             
             # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
-        #NOTE(malamast): Do I need to transfer them back to the host?    
         if(savedata!=None):
             xp.save(savedata,Usave)
             xp.save("TotalCurrent_" + savedata, TotalCurrentSave)
@@ -2135,7 +2171,6 @@ class timeDomainCollocationSolver:
 
 
     def plot(self, col, create=True):
-        import matplotlib.pyplot as plt
         xplot, w = cheb.chebgauss(2*self.Np)
 
         fig = plt.figure(num=1,figsize=(16,27))
@@ -2301,7 +2336,8 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==15):
         print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
-        Ns = 17 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        # Ns = 1+30+1+1 # background state + excited states + electrons + ions 
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)
@@ -2352,6 +2388,8 @@ if __name__ == "__main__":
     tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
     tds.U1[tds.Ns*tds.Np:] = tds.params.EeBC*tds.U1[0:tds.Np] # electron energy
 
+
+
     # If restart file provided, read it.
     # NOTE: currently we do a lazy restart in that only the final
     # state is saved, so we have to restart with a backward Euler step.
@@ -2367,8 +2405,8 @@ if __name__ == "__main__":
         gpu_device = cp.cuda.Device(args.gpu_device_id)
         gpu_device.use()
 
-    profile = cProfile.Profile()
-    profile.enable()
+    # profile = cProfile.Profile()
+    # profile.enable()
     tic = cpu_time.time()
 
     # Run for desired number of time steps
@@ -2383,15 +2421,15 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    profile.disable()
-    profile.print_stats(sort='tottime')
+    # profile.disable()
+    # profile.print_stats(sort='tottime')
     # profile.print_stats(sort='cumulative')
     # profile.print_stats(sort='line')
     # profile.print_stats(sort='nfl')
 
     toc = cpu_time.time()
     print(f"Total CPU Time = {toc -tic} seconds.")
-    print(f"CPU Time / timestep is {(toc -tic)/args.Nt} seconds.")
+    print(f"Mean CPU Time / timestep is {(toc -tic)/args.Nt} seconds.")
 
 
     # Save the result    

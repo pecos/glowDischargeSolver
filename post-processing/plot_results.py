@@ -59,6 +59,9 @@ g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
 
 
 Te_exp = {}; ne_exp = {}; ni_exp = {}; gi_exp = {}; Ei_exp = {}
+# AR(m), AR(r), AR(4p)
+ni_lumped_exp = {}; Eps_lumped_exp = np.array([11.577,11.725,13.168]); gi_lumped_exp = np.array([6, 6, 36])
+
 ExpCase = '1Torr-150V' # 150V is the tip-to-tip Voltage. In our case V0 would be Vmax = 75 V.
 Te_exp[ExpCase] = 7.01 # [eV]
 ne_exp[ExpCase] = 2.2e15 # [#/m^3]
@@ -67,17 +70,35 @@ ni_exp[ExpCase] = np.array([0.0, 9.59E+15, 3.27E+15, 3.16E+14, 9.58E+14, 2.63E+1
                             5.25E+11, 8.53E+11, 3.47E+11, 3.43E+11, 4.43E+11, 4.64E+11, 6.43E+11])
 gi_exp[ExpCase] = np.array([1, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1])   
 Ei_exp[ExpCase] =  np.array([ 0.0, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153, 13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902, 13.30222747, 13.32785705, 13.47988682])
-
-# AR(m), AR(r), AR(4p)
-ni_lumped_exp = {}; Eps_lumped_exp = np.array([11.577,11.725,13.168]); gi_lumped_exp = np.array([6, 6, 36])
 ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase][2]+ni_exp[ExpCase][4], np.sum(ni_exp[ExpCase][5:]) ]
 
-
+ExpCase = '1Torr-200V' # 150V is the tip-to-tip Voltage. 
+Te_exp[ExpCase] = np.nan # [eV]
+ne_exp[ExpCase] = np.nan # [#/m^3]
+ni_exp[ExpCase] = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 3.07E+12, 1.12E+12, 1.3E+12, 1.42E+12, 1.33E+12,1.86E+12, 7.62E+11, 7.85E+11, 7.95E+11, 4.35E+12])
+gi_exp[ExpCase] = gi_exp['1Torr-150V']; Ei_exp[ExpCase] =  Ei_exp['1Torr-150V']
+ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase][2]+ni_exp[ExpCase][4], np.sum(ni_exp[ExpCase][5:]) ]
 
 
 
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
+
+
+# ic = 1; c = True; f = '../Results/6spec/1torr_75V_Np150/periodic/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'b-'; lb = "fullsoln CN"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/periodic/newton_6spec_BE_Np150_fullsoln.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 3; c = True; f = '../Results/CR/1Torr_75V_Np150_MaxEEDF_ConstDiff/periodic/newton_CR_BE_Np150_fullsoln.npy'; cl = 'r-'; lb = "CR - MaxEEDF - Const De"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 4; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff/newton_CR_CN_Np150_fullsoln.npy'; cl = 'm-'; lb = "CR - Bolsig+ - Const De"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 5; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - Bolsig+"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 1; c = True; f = '../fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
 # ic = 1; c = True; f = '../Results/CR/CR_Np150_fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
@@ -95,27 +116,26 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-# ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'm-'; lb = "CR"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 # ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2400.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-# ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1250.npy'; cl = 'm-'; lb = "T1250"; m = "CR"
+# ic = 1; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/fullsoln/CR_Np150_fullsoln_T1250.npy'; cl = 'm-'; lb = "T1250"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 2; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1500.npy'; cl = 'g-'; lb = "T1500"; m = "CR"
+# ic = 2; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/fullsoln/CR_Np150_fullsoln_T1500.npy'; cl = 'g-'; lb = "T1500"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 3; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T1750.npy'; cl = 'r-'; lb = "T1750"; m = "CR"
+# ic = 3; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/fullsoln/CR_Np150_fullsoln_T1750.npy'; cl = 'r-'; lb = "T1750"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 4; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "T2000"; m = "CR"
+# ic = 4; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/fullsoln/CR_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "T2000"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 5; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2250.npy'; cl = 'm-'; lb = "T2250"; m = "CR"
+# ic = 5; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/fullsoln/CR_Np150_fullsoln_T2250.npy'; cl = 'm-'; lb = "T2250"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 6; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2500.npy'; cl = 'm-'; lb = "T2500"; m = "CR"
+# ic = 6; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/fullsoln/CR_Np150_fullsoln_T2500.npy'; cl = 'm-'; lb = "T2500"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 7; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'm-'; lb = "T2750"; m = "CR"
+# ic = 7; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/fullsoln/CR_Np150_fullsoln_T2750.npy'; cl = 'r'; lb = "T2750"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 1; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T400.npy'; cl = 'b-'; lb = "T400"; m = "6sp"
@@ -151,27 +171,37 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 10; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T3600.npy'; cl = 'b-'; lb = "T3600"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 11; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "T4000"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 11; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "T4000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 12; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T5000.npy'; cl = 'b-'; lb = "T5000"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 13; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T6000.npy'; cl = 'b-'; lb = "T6000"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 13; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T6000.npy'; cl = 'b-'; lb = "T6000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 14; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T7000.npy'; cl = 'b-'; lb = "T7000"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 15; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T8000.npy'; cl = 'b-'; lb = "T8000"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 15; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T8000.npy'; cl = 'b-'; lb = "T8000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 16; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T9000.npy'; cl = 'b-'; lb = "T9000"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 17; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T10000.npy'; cl = 'b-'; lb = "T10000"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-
-
-# ic = 1; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff_oldRates/fullsoln/newton_6spec_CN_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# ic = 17; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T10000.npy'; cl = 'b-'; lb = "T10000"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# ic = 18; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T11000.npy'; cl = 'b-'; lb = "T11000"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 19; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T12000.npy'; cl = 'b-'; lb = "T12000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 20; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T13000.npy'; cl = 'b-'; lb = "T13000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 21; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T14000.npy'; cl = 'b-'; lb = "T14000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 22; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T15000.npy'; cl = 'b-'; lb = "T15000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 23; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T16000.npy'; cl = 'b-'; lb = "T16000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 24; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T18000.npy'; cl = 'b-'; lb = "T18000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 25; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T20000.npy'; cl = 'b_'; lb = "T20000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 
@@ -186,7 +216,8 @@ nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk te
 ne0 = 8e16           # "nominal" electron density [1/m^3]
 L   = 2.00*0.005     # half-gap-width [m] (gap width is 2 cm)
 tau = (1./13.56e6)   # period of driving voltage [s]
-V0  = 100.0          # amplitude of driving voltage [V]
+# V0  = 100.0          # amplitude of driving voltage [V]
+V0  = 75.0          # amplitude of driving voltage [V]
 p_0 = Pressure
 
 
@@ -534,7 +565,7 @@ if (isPlotMeans):
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r" Ion. Degree [$\%$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/nb_mean.png')
+   plt.savefig('./png/IonDegree_mean.png')
 
 
 
@@ -542,7 +573,7 @@ if (isPlotMeans):
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.plot(xr, np.mean(Te[ic],axis=1), lw=2, label=label[ic])
+         ax.plot(xr, np.mean(Te[ic],axis=1),lw=2, label=label[ic])
    ax.legend(fontsize=12,loc=2)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=16)
@@ -601,21 +632,17 @@ if (isPlotMeans):
 
    # npop
    ExpCase = '1Torr-150V'
+   # ExpCase = '1Torr-200V'
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid,:,:],axis=1)/g[ic][0:-2], marker='.', lw=1.5, label=label[ic])
-         ax.loglog(dEps[ic][-1], np.mean(ne[ic][i_mid,:],axis=0),'*', lw=1.5)
-         # print("Ionization degree = ", round(np.mean(ne[ic][i_mid,:],axis=0)/np.mean(npop[ic][i_mid,0,:],axis=0)*100,7), " %")      
-         # if ic ==1:
-            # ax.scatter(dEps[ic][0:-2], N_sp_i/g[ic][0:-2], lw=2, c='k', label="Bolsig's input")
-   label_tmp = "Exp - " + ExpCase
+         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid,:,:],axis=1)/g[ic][0:-2], marker='.', lw=1.5, label=label[ic]+ " - " + ExpCase)
+         ax.plot(dEps[ic][-1], np.mean(ne[ic][i_mid,:],axis=0),marker='*', lw=1.5)
+   label_tmp = "Exp" " - " + ExpCase
    ax.scatter(Ei_exp[ExpCase], ni_exp[ExpCase]/gi_exp[ExpCase], c='k', marker='x', lw=1.5, label=label_tmp)        
-   ax.loglog(dEps[ic][-1], ne_exp[ExpCase],'k*', lw=1)
-
-   label_tmp = "Exp (lumped) - " + ExpCase
-   ax.scatter(Eps_lumped_exp, ni_lumped_exp[ExpCase]/gi_lumped_exp, c='k', marker='.', lw=1.5, label=label_tmp)        
-
+   ax.plot(dEps[ic][-1], ne_exp[ExpCase],'k*', lw=1)
+   # label_tmp = "Exp (lumped) - " + ExpCase
+   # ax.scatter(Eps_lumped_exp, ni_lumped_exp[ExpCase]/gi_lumped_exp, c='k', marker='.', lw=1.5, label=label_tmp)        
    # ax.scatter(dEps[ic0][0:-2], npop_LTE/g[ic0][0:-2], c='r', label="Boltzmann")        
    ax.legend(fontsize=12,loc=2)
    ax.loglog()

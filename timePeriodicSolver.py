@@ -15,8 +15,15 @@ class timePeriodicSolver:
                                                   EinsteinForm,
                                                   gam, V0,
                                                   VDC, scenario, scheme, iSample)
+
+        self.args      = args
+        self.xp_module = np
+
         self.res = np.zeros((self.tds.Ndof,1))
         self.jac = np.zeros((self.tds.Ndof,self.tds.Ndof))
+
+        self.I_Np =  np.identity(self.tds.Np)
+        self.I_Ndof = np.identity(self.tds.Ndof)
 
         if (restart!=None):
             self.tds.U1 = np.load(restart)
@@ -27,6 +34,15 @@ class timePeriodicSolver:
             self.tds.U1[0:self.tds.Np] = 1e-3
             self.tds.U1[self.tds.Np:2*self.tds.Np] = 1e-4
             self.tds.U1[2*self.tds.Np:] = 0.75
+
+            # #tds.U1[0:tds.Ns*tds.Np] = 1e-4
+            # self.tds.U1[0:(self.tds.Ns-1)*self.tds.Np] = 1.0e-4             # 'usual' species
+            # self.tds.U1[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = 1.0  # background specie
+            # self.tds.U1[self.tds.Ns*self.tds.Np:] = self.tds.params.EeBC*self.tds.U1[0:self.tds.Np] # electron energy
+
+
+
+
 
         self.tds.U2 = np.copy(self.tds.U1)
 
@@ -47,11 +63,14 @@ class timePeriodicSolver:
         Returns:
         None.  Residual is computed
         '''
+        
+        I_Ndof = self.I_Ndof
+
         # reset ICs for time domain solve
         self.tds.U1 = np.copy(Uic)
         self.tds.U2 = np.copy(Uic)
-        self.tds.A0 = np.copy(np.identity(self.tds.Ndof))
-        self.tds.A1 = np.copy(np.identity(self.tds.Ndof))
+        self.tds.A0 = np.copy(I_Ndof)
+        self.tds.A1 = np.copy(I_Ndof)
 
         # Run from IC for 1 period
         self.tds.solve(0.0, 1.0/Nt, Nt,
@@ -62,9 +81,13 @@ class timePeriodicSolver:
         self.res = self.tds.U2 - Uic
 
         # Compute the Jacobian
-        A = np.identity(self.tds.Ndof)
+        
+
+        A = I_Ndof
+        # A = np.identity(self.tds.Ndof)
 
         self.jac = self.tds.A1 - A
+ 
 
         # if we aren't solving for the background specie density, need
         # to modify Jacobian to avoid having Np rows of 0 for the to
@@ -74,7 +97,7 @@ class timePeriodicSolver:
         # enforces that the background specie doesn't change.
         if (self.tds.backgroundSpecieActivationFactor == 0):
             self.jac[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np,
-                     (self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = np.identity(self.tds.Np)
+                     (self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = self.I_Np 
 
         # return norm of residual
         return np.linalg.norm(self.res)
@@ -240,13 +263,15 @@ if __name__ == "__main__":
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4
+    elif(args.scenario==15):
+        print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
+        Ns = 17 # background state + 4 4s levels + 10 4p levels + electrons + ions 
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)
 
 
     print("#")
-
     elasticCollisionActivationFactor = 1.0
     if(args.elasticCollisionActivation==True):
          print("#   The elastic collision term is included.")
@@ -270,6 +295,8 @@ if __name__ == "__main__":
     else:
         print("#   The Einstein's form for diffusion coefficient is not used.")
         EinsteinForm = False
+        
+    
 
     tps = timePeriodicSolver(args, Ns, 1, args.Np, elasticCollisionActivationFactor,
                              backgroundSpecieActivationFactor,
@@ -279,6 +306,7 @@ if __name__ == "__main__":
                              scheme=args.tscheme,
                              alpha0 = args.alpha0, increaseFac = args.increaseFac,
                              iSample = args.iSample)
+
 
     # Get the IC, for use in computing the residual below
     Uic = np.copy(tps.tds.U1)
@@ -290,6 +318,7 @@ if __name__ == "__main__":
     print(resPrint.format(0,rnorm,rnorm/rnorm0))
 
     tic_0 = cpu_time.time()
+
 
     # Newton iterations
     niter = 0

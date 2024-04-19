@@ -25,24 +25,67 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 
 
 # ic = 2; c = False; f = '../Results/6spec/restart.npy'; cl = 'r-'; lb = "6spec"; m = "6sp"
-# ic = 2; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T2000.npy'; cl = 'r-'; lb = "CR"; m = "CR"
+# ic = 2; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/restart_CR_Np150_T2000.npy'; cl = 'b-'; lb = "CR"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/restart_6spec_CN_Np150_T2400.npy'; cl = 'r-'; lb = "6sp"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 3; c = True; f = '../restart_6spec_CN_Np150_T400.npy'; cl = 'g-'; lb = "400"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-ic = 4; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T4000.npy'; cl = 'b-'; lb = "4000"; m = "6sp"
+ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 5; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T3200.npy'; cl = 'r-'; lb = "3600"; m = "6sp"
+ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 4; c = True; f = '../restart_CR_BE_Np150_T250.npy'; cl = 'm-'; lb = "T250"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "Max"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 4; c = True; f = '../nonconverged_U0_t014.npy'; cl = 'r-'; lb = "U0 maxwell"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 5; c = True; f = '../restart_test.npy'; cl = 'm-'; lb = "T1 const De"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 6; c = True; f = '../restart_Maxwell_constDiff.npy'; cl = 'k-'; lb = "T1 Maxwell const De"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 7; c = True; f = '../restart_Maxwell.npy'; cl = 'r-'; lb = "T1 Maxwell"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 8; c = True; f = '../restart.npy'; cl = 'b-'; lb = "const De"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 4; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/restart_6spec_CN_Np150_T2400.npy'; cl = 'r-'; lb = "6sp"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 5; c = True; f = '../restart_6spec_CN_Np150_T400.npy'; cl = 'g-'; lb = "400"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 6; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T4000.npy'; cl = 'b-'; lb = "4000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 7; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T3200.npy'; cl = 'r-'; lb = "3600"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 8; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T14000.npy'; cl = 'b-'; lb = "14000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 9; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T16000.npy'; cl = 'r-'; lb = "16000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 10; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T18000.npy'; cl = 'g-'; lb = "18000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 11; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T20000.npy'; cl = 'k-'; lb = "20000"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 
@@ -247,6 +290,27 @@ if (isPlot):
    plt.savefig('./png/nb_mean.png')
 
 
+
+   # n4p
+   for isp in range(Ns-2): 
+
+      fig,ax = plt.subplots(dpi=160)
+      for ic in case: 
+         if case[ic] and model[ic] == "CR":
+            ax.plot(xr, npop[ic][:,isp], clr[ic], lw=2, label=label[ic])
+      ax.legend(fontsize=12)
+      ax.set_xlim((xr[0], xr[-1]))
+      ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+      plt.setp(ax.get_xticklabels(), fontsize=12)
+      ax.set_ylabel(r"$n_i}$ [m$^{-3}$] isp = " + str(isp), fontsize=18)
+      plt.setp(ax.get_yticklabels(), fontsize=12)
+      plt.savefig('./png/n4p_mean.png')
+
+
+
+
+
+
    # Te/phi
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
@@ -286,7 +350,7 @@ if (isPlot):
    ##ax2.set_ylim((0,70))
    #ax2.set_ylabel(r"$\phi$ [V]", fontsize=18)
    #plt.setp(ax2.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/Te_mean.png')
+   plt.savefig('./png/Tg_mean.png')
 
 
    # # distribution
