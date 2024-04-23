@@ -15,8 +15,8 @@ Np=150
 # Nt=32000
 Nt=128
 
-# dt=0.0078125
-dt=0.00390625
+dt=0.0078125
+# dt=0.00390625
 # dt=0.001953125
 # dt=0.0009765625
 
@@ -31,8 +31,7 @@ saveFile="fullsoln.npy"
 # newtFile="newton_CR_BE_Np${Np}.npy"
 # saveFile="newton_CR_BE_Np${Np}_fullsoln.npy"
 # --EinsteinForm
-
-baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --elasticCollisionActivation --backgroundSpecieActivation"
+baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --tscheme BE --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
 newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme BE --alpha0 0.1 --increaseFac 1.5 --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
 saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt1 --scenario $scenario --tscheme BE --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
 

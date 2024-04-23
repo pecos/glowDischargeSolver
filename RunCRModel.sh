@@ -14,7 +14,7 @@ NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 0 --gpu_device_id 0"
 
 # 6 species + 34 rxn - Nominal Rates case
 Np=150
-Nt=64000
+Nt=32000
 # dt=0.0078125
 dt=0.00390625
 
@@ -116,30 +116,30 @@ rm -f $screenOut
 # $baseCmd --V0 75 --VDC 0.0 --t0 0.0 \
 #                --outfile "${baseFile}T250.npy" > $screenOut || error_exit "First run failed"
 
-# echo "Run 250 to 500...${baseFile}T500.npy"
-# $baseCmd --V0 75 --VDC 0.0 --t0 250.0 --restart "${baseFile}T250.npy"  \
-#                --outfile "${baseFile}T500.npy" >> $screenOut || error_exit "Second run failed"
+# # echo "Run 250 to 500...${baseFile}T500.npy"
+# # $baseCmd --V0 75 --VDC 0.0 --t0 250.0 --restart "${baseFile}T250.npy"  \
+# #                --outfile "${baseFile}T500.npy" >> $screenOut || error_exit "Second run failed"
+
+# echo "Run time domain shooting...${newtFile}"
+# $newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T250.npy" \
+#                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
+
+# echo "Saving one period...${saveFile}"
+# $saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart $newtFile --savedata $saveFile --outfile discard.npy >> $screenOut
+# # $saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart "${baseFile}T500.npy" --savedata $saveFile --outfile discard.npy >> $screenOut
+
+
+
+
+
+
+echo "Run 0 to 125...${baseFile}T125.npy"
+$baseCmd --V0 75 --VDC 0.0 --t0 0.0 \
+               --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"
 
 echo "Run time domain shooting...${newtFile}"
-$newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T250.npy" \
+$newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy" \
                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
 echo "Saving one period...${saveFile}"
 $saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart $newtFile --savedata $saveFile --outfile discard.npy >> $screenOut
-# $saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart "${baseFile}T500.npy" --savedata $saveFile --outfile discard.npy >> $screenOut
-
-
-
-
-
-
-# echo "Run 0 to 125...${baseFile}T125.npy"
-# $baseCmd --V0 100 --VDC 0.0 --t0 0.0 \
-#                --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"
-
-# echo "Run time domain shooting...${newtFile}"
-# $newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy" \
-#                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
-
-# echo "Saving one period...${saveFile}"
-# $saveCmd --V0 100 --VDC 0.0 --rtol 1e-8 --restart $newtFile --savedata $saveFile --outfile discard.npy >> $screenOut

@@ -807,7 +807,7 @@ class timeDomainCollocationSolver:
         iion = [1]
         
         # pull off state for convenience
-        dens = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
+        dens = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
@@ -853,11 +853,12 @@ class timeDomainCollocationSolver:
                                                        dens[:,self.Ns-1],
                                                        self.EinsteinForm)
 
-        fspec = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
+        fspec = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
-            fspec[:,i] = (   self.params.charge(i)*xp.multiply(mu[:,i], dens[:,i])*(-phi_x[:,0])
-                           - xp.multiply(diffusivity[:,i],dens_x[:,i]) )
-
+            if self.params.charge(i) != 0.0:
+                fspec[:,i] += self.params.charge(i)*xp.multiply(mu[:,i], dens[:,i])*(-phi_x[:,0])
+            fspec[:,i] -= xp.multiply(diffusivity[:,i],dens_x[:,i])  
+                        
         fT = xp.zeros((self.Np, 1),dtype=xp.float64)
         fT[:,0] = (5./3.)*(-mu[:,0]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,0], nT_x[:,0]))
 
@@ -886,6 +887,9 @@ class timeDomainCollocationSolver:
         fspec_x = self.Dp @ fspec
         fT_x = self.Dp @ fT
 
+        # Radiation heating (used in the estimation of the S field)
+        Qrad = xp.zeros((self.Np,1),dtype=xp.float64)
+
         # form source terms at collocation points
         if (self.solveCRModel):
              
@@ -895,15 +899,16 @@ class timeDomainCollocationSolver:
             vars_CR[:,0] *= self.params.nAronp0
             vars_CR[:,self.Ns] = Te[:,0] * self.params.TwoOverThree  # electron temperature [eV]
 
-            # omega_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)                          
+            # omega_CR = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)                          
             self.cr.rxnSourceTerm_UpdateTemperatureDependentPart_vec(vars_CR)
-            omega_CR = self.cr.rxnSourceTerm_vec(vars_CR)
+            omega_CR, Qrad_CR = self.cr.rxnSourceTerm_vec(vars_CR)
             # self.cr.rxnSourceTerm_Update_vec(vars_CR)
             # omega_CR = self.cr.dydt_saved
 
             omega = xp.zeros_like(omega_CR)
             omega = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
-            omega [:,self.Ns-1] /=  self.params.nAronp0                           
+            omega [:,self.Ns-1] /=  self.params.nAronp0  
+            Qrad[:,0] = Qrad_CR * self.params.tauOvernp0                        
         else:
             omega = self.params.rxnSourceTerm(Te, dens)
         
@@ -911,16 +916,18 @@ class timeDomainCollocationSolver:
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x)
 
         # elastic collision term at collocation points
-        SEC  = -self.params.EC * (nT - xp.multiply(dens[:, iele], Tg)) #NOTE(malamast): Why is this dens[0, iele] and not dens[:, iele]? I need to check this with Todd
+        SEC  = -self.params.EC * (nT - xp.multiply(dens[:, iele], Tg)) #NOTE(malamast): This was dens[0, iele] and I changed it to dens[:, iele] 
         SEC *= self.elasticCollisionActivationFactor
         
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
         fa = xp.copy(fT)
         for i in range(1,self.Ns-1):
-            fa[:,0] += (5./3.)*(self.params.charge(i) * xp.multiply(mu[:,i],
-                                xp.multiply(dens[:,i],Tg[:,0]) * (-phi_x[:,0]))
-                                - xp.multiply(diffusivity[:,i], (self.Dp @ xp.multiply(dens[:,i],Tg[:,0]))))
+            if self.params.charge(i) != 0.0:
+                fa[:,0] += (5./3.)*(self.params.charge(i) * xp.multiply(mu[:,i],
+                                    xp.multiply(dens[:,i],Tg[:,0]) * (-phi_x[:,0])))
+            fa[:,0] -= (5./3.)*(xp.multiply(diffusivity[:,i], (self.Dp @ xp.multiply(dens[:,i],Tg[:,0]))))
+
 
         # background thermal conductivity contribution
         fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0])
@@ -933,11 +940,12 @@ class timeDomainCollocationSolver:
 
         joule = xp.zeros((self.Np,1),dtype=xp.float64)
         for i in range(0, self.Ns-1):
-            joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
+            if self.params.charge(i) != 0.0:
+                joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])        
 
         S = xp.zeros((self.Np,1),dtype=xp.float64)
-        # NOTE(malamast): We forgot to add the species fluxes -fspec_x * dEps
-        S[:,0] = (sOmEp[:,0] + fa_x[:,0] - joule[:,0])/Tg[:,0]/self.params.nAronp0
+        # NOTE(malamast): The species fluxes -fspec_x * dEps cancel out with some terms in -dq/dx
+        S[:,0] = (sOmEp[:,0] + fa_x[:,0] - joule[:,0] -Qrad[:,0])/Tg[:,0]/self.params.nAronp0
 
         # form full residual
         res = xp.zeros((self.Nv*self.Np,1))
@@ -1219,7 +1227,7 @@ class timeDomainCollocationSolver:
         Imat    = self.I_Np 
 
         # pull off state for convenience
-        dens = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
+        dens = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
@@ -1286,9 +1294,6 @@ class timeDomainCollocationSolver:
             for j in range(1,self.Nv):
                 energy_U[i,j,:,:] = xp.multiply(Imat,Tg_U[:,j])
 
-
-
-
         diffusivity_U = xp.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=xp.float64)
         mu_U = xp.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=xp.float64)
         for i in range(0,self.Ns):
@@ -1298,22 +1303,6 @@ class timeDomainCollocationSolver:
                                                                    mu, diffusivity, dens[:,self.Ns-1],
                                                                    self.EinsteinForm)
                 mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, mu, dens[:,self.Ns-1])
-
-
-        # for j in range(self.Ns+1):
-        #     i = self.Ns-1
-        #     my_matrix = diffusivity_U[i,j,:,:]
-        #     # print(my_matrix)
-
-        #     rows, cols = my_matrix.shape
-        #     diag_mask = ~np.eye(rows, dtype=bool)
-        #     non_diag_elements = my_matrix[diag_mask]
-
-        #     # Sum the non-diagonal elements
-        #     sum_non_diag_elements = np.sum(non_diag_elements)
-        #     print(i, j, np.sum(my_matrix), sum_non_diag_elements)
-
-        # exit(-1)
 
 
         # form flux Jacobians
@@ -1327,20 +1316,22 @@ class timeDomainCollocationSolver:
 
         # # must have electron flux for use in Jacobian of Joule heating
         # fe = xp.zeros((self.Np, 1),dtype=xp.float64)
-        # fe[:,0] = -xp.multiply(mu[:,0], dens[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], dens_x[:,0])  # NOTE(malamast): I calculate that below at fspec[:,0]
-        # fe = fe.reshape((self.Np,1)) # NOTE(malamast): Why do we do that? Seems unnecessary
+        # fe[:,0] = -xp.multiply(mu[:,0], dens[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], dens_x[:,0]) 
+        # fe = fe.reshape((self.Np,1)) 
         
         # must have these for joule heating erms
-        fspec = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
+        fspec = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
-            fspec[:,i] = ( self.params.charge(i) * mu[:,i] * dens[:,i] * (-phi_x[:,0])
-                           - xp.multiply(diffusivity[:,i], dens_x[:,i]) )
+            if self.params.charge(i) != 0.0:
+                fspec[:,i] += self.params.charge(i) * mu[:,i] * dens[:,i] * (-phi_x[:,0])
+            fspec[:,i] -= xp.multiply(diffusivity[:,i], dens_x[:,i]) 
 
-        fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
-        fT = fT.reshape((self.Np,1))
+        # fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
+        # fT = fT.reshape((self.Np,1))
 
         # must have electron flux for use in Jacobian of Joule heating
-        fe = xp.zeros((self.Np, 1),dtype=xp.float64) # NOTE(malamast): This was double calculated before. Now we just copy the flux
+        fe = xp.zeros((self.Np, 1),dtype=xp.float64) 
+        # NOTE(malamast): This was double calculated before. Now we just copy the flux
         fe[:,0] = fspec[:,0]
 
         # overwrite endpoints in fi (weakly impose BC)
@@ -1352,33 +1343,35 @@ class timeDomainCollocationSolver:
         # species equations
         fspec_U = xp.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=xp.float64)
         for i in range(0,self.Ns-1):
-            fspec_U[i,i,:,:] = (  self.params.charge(i)
+            fspec_U[i,i,:,:] -= xp.multiply(diffusivity[:,[i]], self.Dp) 
+            if self.params.charge(i) != 0.0:
+                fspec_U[i,i,:,:] += self.params.charge(i) \
                                 * xp.multiply(mu[:,[i]], xp.multiply(Imat,-phi_x))
-                                - xp.multiply(diffusivity[:,[i]], self.Dp) )
-
-            fspec_U[i,0,:,:] += self.params.charge(i) \
-                * xp.multiply(mu[:,[i]],xp.multiply(dens[:,[i]],-phi_x_ne))
-            fspec_U[i,1,:,:] += self.params.charge(i) \
-                * xp.multiply(mu[:,[i]], xp.multiply(dens[:,[i]],-phi_x_ni))
-
+                                
+                fspec_U[i,0,:,:] += self.params.charge(i) \
+                    * xp.multiply(mu[:,[i]],xp.multiply(dens[:,[i]],-phi_x_ne))
+                fspec_U[i,1,:,:] += self.params.charge(i) \
+                    * xp.multiply(mu[:,[i]], xp.multiply(dens[:,[i]],-phi_x_ni))
+   
+                
         for i in range(0,self.Ns-1):
             for j in range(0,self.Nv):
-                fspec_U[i,j,:,:] += self.params.charge(i) * xp.multiply(mu_U[i,j,:,:], xp.multiply(dens[:,[i]],-phi_x))
+                if self.params.charge(i) != 0.0:
+                    fspec_U[i,j,:,:] += self.params.charge(i) * xp.multiply(mu_U[i,j,:,:], xp.multiply(dens[:,[i]],-phi_x))
                 fspec_U[i,j,:,:] -= xp.multiply(diffusivity_U[i,j,:,:], dens_x[:,[i]])
+        
 
         # energy equations
-        #fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
-
+        fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
+        fT = fT.reshape((self.Np,1))
+       
         fT_U = xp.zeros((self.Ns+1,self.Np, self.Np),dtype=xp.float64)
         fT_U[0,:,:] = (5./3.)*(-mu[:,iele]*xp.multiply(nT,-phi_x_ne))
         fT_U[1,:,:] = (5./3.)*(-mu[:,iele]*xp.multiply(nT,-phi_x_ni))
 
-        #NOTE(malamast): Do we need one more term for fT_U[0,:,:] for the product (ne*Te) when we take the derivative wrt ne?
-
         for j in range(0, self.Nv):
             fT_U[j,:,:] += (5./3.) * xp.multiply(-mu_U[0,j,:,:], xp.multiply(nT,-phi_x))
             fT_U[j,:,:] -= (5./3.) * xp.multiply(diffusivity_U[0, j, :, :], nT_x[:,0])
-
 
         fT_U[self.Ns,:,:] += (5./3.)*( -xp.multiply(mu[:,iele],xp.multiply(Imat,-phi_x))
                                        -xp.multiply(diffusivity[:,iele], self.Dp))
@@ -1443,15 +1436,18 @@ class timeDomainCollocationSolver:
                 * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
 
         # form Jacobians of derivatives of fluxes at collocation points
-        fspec_x_U = xp.ndarray((self.Ns, self.Ns+1, self.Np, self.Np),dtype=xp.float64)
+        fspec_x_U = xp.zeros((self.Ns, self.Ns+1, self.Np, self.Np),dtype=xp.float64)
 
         for i in range(0,self.Ns):
             for j in range(0,self.Ns+1):
                 fspec_x_U[i,j,:,:] = self.Dp @ fspec_U[i,j,:,:]
 
-        fT_x_U = xp.ndarray((self.Ns+1, self.Np, self.Np),dtype=xp.float64)
+        fT_x_U = xp.zeros((self.Ns+1, self.Np, self.Np),dtype=xp.float64)
         for j in range(0,self.Ns+1):
             fT_x_U[j, :,:] = self.Dp @ fT_U[j,:,:]
+
+        # Radiation heating (used in the estimation of the S field)
+        Qrad = xp.zeros((self.Np,1),dtype=xp.float64)
 
         # form source terms at collocation points
         # omega_V returns derivatives of chemical src terms wrt ne, ni, ..., Te
@@ -1466,11 +1462,13 @@ class timeDomainCollocationSolver:
             # omega_CR = xp.ndarray((self.Np, self.Ns+1),dtype=xp.float64)              
             # omega_V_CR = xp.zeros((self.Ns+1,self.Ns+1,self.Np),dtype=xp.float64)
 
-            omega_CR, omega_V_CR = self.cr.rxnSourceTermJac_vec(vars_CR)
+            omega_CR, omega_V_CR, Qrad_CR, Qrad_V_CR = self.cr.rxnSourceTermJac_vec(vars_CR)
 
             omega = xp.zeros_like(omega_CR)
             omega[:,:] = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
             omega[:,self.Ns-1] /=  self.params.nAronp0   
+
+            Qrad[:,0] = Qrad_CR * self.params.tauOvernp0                        
 
             omega_V = xp.zeros_like(omega_V_CR)
             omega_V[:,:,:] = omega_V_CR[self.cr.FromCRToGlowDischargeIndexing,:,:][:,self.cr.FromCRToGlowDischargeIndexing,:]  
@@ -1481,18 +1479,34 @@ class timeDomainCollocationSolver:
             omega_V *= self.params.tauOvernp0 # nondimensionalize rates for ni
             omega_V[self.Ns - 1,:,:] /=  self.params.nAronp0  # correction for ground state                                     
 
+
+            Qrad_V = xp.zeros_like(Qrad_V_CR)
+            Qrad_V[:,:] = Qrad_V_CR[self.cr.FromCRToGlowDischargeIndexing,:]
+
+            Qrad_V *= self.params.tauOvernp0 # nondimensionalize of rates 
+            Qrad_V[0:self.Ns - 1,:] *= self.params.np0 # derivatives wrt ni
+            Qrad_V[self.Ns - 1,:] *= self.params.nAr # derivatives wrt ground state
+            Qrad_V[self.Ns,:] *=  self.params.TwoOverThree  # derivatives wrt temperature
+
+
         else:
             omega = self.params.rxnSourceTerm(Te, dens)
             omega_V = self.params.rxnSourceTermJac(Te, dens)
 
         # chain rule to get derivatives wrt ne, ni, ..., nT 
         omega_U = xp.zeros_like(omega_V)
-        # omega_U = xp.ndarray(xp.shape(omega_V))
         for i in range(0,self.Ns+1):
             omega_U[i,0,:] = omega_V[i,0,:] + omega_V[i,self.Ns,:]*xp.diag(Te_ne)
-            omega_U[i,self.Ns,:] = omega_V[i,self.Ns,:]*xp.diag(Te_nT) #NOTE(malamast): is that correct?
-
+            omega_U[i,self.Ns,:] = omega_V[i,self.Ns,:]*xp.diag(Te_nT)
         omega_U[:,1:self.Ns,:] = omega_V[:,1:self.Ns,:]
+
+        if (self.solveCRModel):
+          Qrad_U = xp.zeros_like(Qrad_V) 
+          Qrad_U[0,:] = Qrad_V[0,:] + Qrad_V[self.Ns,:]*xp.diag(Te_ne)
+          Qrad_U[self.Ns,:] = Qrad_V[self.Ns,:]*xp.diag(Te_nT)
+          Qrad_U[1:self.Ns,:] = Qrad_V[1:self.Ns,:]
+        else:
+          Qrad_U = xp.zeros((self.Nv, self.Np), dtype=xp.float64)
 
         # joule heating
         SJ_ne = -self.params.qStar*( xp.multiply(fspec_U[0,0,:,:],-phi_x) + xp.multiply(fe,-phi_x_ne))
@@ -1504,12 +1518,15 @@ class timeDomainCollocationSolver:
         # elastic collisions
         SEC_U = xp.zeros((self.Ns + 1, self.Np, self.Np), dtype=xp.float64)
         for j in range(0, self.Nv):
-            SEC_U[j, :, :] = self.params.EC \
-                           * dens[:, iele] \
+            SEC_U[j, :, :] = self.params.EC * dens[:, iele] \
                            * xp.multiply(Imat, xp.diag(Tg_U[:, j]))
         SEC_U[self.Ns, :, :] -= self.params.EC * Imat
         SEC_U[      0, :, :] += self.params.EC * xp.multiply(Imat, Tg)
         SEC_U *= self.elasticCollisionActivationFactor
+
+
+        # fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
+
 
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
@@ -1518,25 +1535,31 @@ class timeDomainCollocationSolver:
         fa = xp.copy(fT)
         fa_U = xp.copy(fT_U)
 
-        naTg = xp.zeros((self.Np,1),dtype=xp.float64)
+        naTg = xp.zeros((self.Np,1),dtype=xp.float64)        
         for i in range(1,self.Ns-1):
             naTg[:,0] = dens[:,i]*Tg[:,0]
-            fa[:,0] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,i],xp.multiply(naTg[:,0],(-phi_x[:,0]))) -
-                           xp.multiply(diffusivity[:,i], (self.Dp @ naTg[:,0] )))
 
-            fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(naTg,-phi_x_ne)))
-            fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(naTg,-phi_x_ni)))
-            fa_U[i,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(xp.diag(Tg[:,0]),-phi_x))
-                                    -xp.multiply(diffusivity[:,[i]], self.Dp @ xp.diag(Tg[:,0])))
+            fa[:,0] -= (5./3.) * xp.multiply(diffusivity[:,i], (self.Dp @ naTg[:,0] ))
+            if self.params.charge(i) != 0.0:            
+                fa[:,0] += (5./3.) * self.params.charge(i)*xp.multiply(mu[:,i],xp.multiply(naTg[:,0],(-phi_x[:,0]))) 
+
+                fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(naTg,-phi_x_ne)))
+                fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(naTg,-phi_x_ni)))
+            
+                fa_U[i,:,:] += (5./3.) * self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(xp.diag(Tg[:,0]),-phi_x))
+                
+            fa_U[i,:,:] -= (5./3.) * xp.multiply(diffusivity[:,[i]], self.Dp @ xp.diag(Tg[:,0]))
+                                    
             for j in range(0, self.Nv):
-                fa_U[j,:,:] += (5./3.)*(self.params.charge(i)
-                                        *xp.multiply(mu[:,[i]], xp.multiply(dens[:,i]*(-phi_x),xp.diag(Tg_U[:,j]))) -
-                                        xp.multiply(diffusivity[:,[i]], (self.Dp @ xp.multiply(dens[:,[i]],xp.diag(Tg_U[:,j])))))
-                fa_U[j,:,:] += (5./3.)*self.params.charge(i)*xp.multiply(mu_U[i,j,:,:],xp.multiply(naTg[:,0],(-phi_x[:,0])))
+                fa_U[j,:,:] -= (5./3.)* xp.multiply(diffusivity[:,[i]], (self.Dp @ xp.multiply(dens[:,[i]],xp.diag(Tg_U[:,j]))))
+                if self.params.charge(i) != 0.0:            
+                    fa_U[j,:,:] += (5./3.)* self.params.charge(i) * xp.multiply(mu[:,[i]], xp.multiply(dens[:,i]*(-phi_x),xp.diag(Tg_U[:,j]))) 
+                
+                    fa_U[j,:,:] += (5./3.) * self.params.charge(i)*xp.multiply(mu_U[i,j,:,:],xp.multiply(naTg[:,0],(-phi_x[:,0])))
                 fa_U[j,:,:] -= (5./3.) * xp.multiply(self.Dp @ naTg, diffusivity_U[i,j,:,:])
 
         # background thermal conductivity contribution
-        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0])
+        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0]) #NOTE(malamast): This was inside the sum in the notes. Problem with the notes?
         for j in range(0,self.Nv):
             fa_U[j,:,:] += - self.params.kappaB * self.Dp @ xp.diag(Tg_U[:,j])
 
@@ -1556,21 +1579,27 @@ class timeDomainCollocationSolver:
         joule = xp.zeros((self.Np,1),dtype=xp.float64)
         joule_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
         for i in range(0, self.Ns-1):
-            joule[:,0] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,i],(-phi_x[:,0]))
-            for j in range(0,self.Nv):
-                joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec_U[i,j,:,:],(-phi_x))
+            if self.params.charge(i) != 0.0:                       
+                joule[:,0] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,i],(-phi_x[:,0]))
+                for j in range(0,self.Nv):
+                    joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec_U[i,j,:,:],(-phi_x))
 
-            joule_U[0,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,[i]],(-phi_x_ne))
-            joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,[i]],(-phi_x_ni))
+                joule_U[0,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,[i]],(-phi_x_ne))
+                joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,[i]],(-phi_x_ni))
 
-        S  = (sOmEp + fa_x - joule)/Tg/self.params.nAronp0
+
+        Qrad_UI = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
+        for j in range(0,self.Nv):
+            Qrad_UI[j,:,:] = xp.diag(Qrad_U[j,:]) 
+        
+        S  = (sOmEp + fa_x - joule -Qrad)/Tg/self.params.nAronp0
         S *= self.backgroundSpecieActivationFactor
 
         S_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
-        S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/self.params.nAronp0
+        S_U = (sOmEp_U + fa_x_U - joule_U -Qrad_UI)/Tg/self.params.nAronp0
         S_U *= self.backgroundSpecieActivationFactor
         for j in range(0,self.Nv):
-            S_U[j,:,:] += xp.multiply(xp.diag( -(S/Tg)*Tg_U[:,j] ),Imat)
+            S_U[j,:,:] += xp.multiply(xp.diag( -(S/Tg)*Tg_U[:,j] ),Imat) #NOTE(malamast): But the numerator is also a function of Tg
 
         # form the full jacobian
         self.jac = xp.zeros((self.Ndof,self.Ndof))
@@ -1597,15 +1626,14 @@ class timeDomainCollocationSolver:
                 jac_diag -= dt*omega_U[i,j,:]
 
 
-
         # Joule heating (electron energy eqn)
         self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*(SJ_ne + SEC_U[0, :, :])
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*(SJ_ni + SEC_U[1, :, :])
         self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
         self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*(SJ_nT + SEC_U[self.Ns, :, :])
-
-        # print(np.shape(self.jac[self.Ns*self.Np:,0:self.Np]), np.shape(self.jac[self.Ns*self.Np:,self.Np:2*self.Np]))
-        # exit(-1)
+        for j in range(2,self.Ns): 
+            #NOTE(malamast): This part was missing although its contribution is probably small. 
+            self.jac[self.Ns*self.Np:,j*self.Np:(j+1)*self.Np] -= dt*(SEC_U[j, :, :])
         
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):

@@ -405,7 +405,7 @@ class CollisionalRadiativeModel:
 
         # user specifies an absolute step
         x0 = Uin
-        method='2-point'
+        # method='2-point'
         sign_x0 = (x0 >= 0).astype(float) * 2 - 1
         h = epsilon
 
@@ -415,9 +415,11 @@ class CollisionalRadiativeModel:
         h = xp.where(dx == 0, epsilon * sign_x0 * xp.maximum(1.0, xp.abs(x0)), h)
     
         omega_U = xp.zeros((self.Ns+1,self.Ns+1,self.Np),dtype=xp.float64) # We have already calculated that. 
+        Qrad_U = xp.zeros((self.Ns+1,self.Np),dtype=xp.float64) # We have already calculated that. 
+
 
         self.rxnSourceTerm_UpdateTemperatureDependentPart_vec(Uin) # We have already called that. 
-        omega = self.rxnSourceTerm_vec(Uin)
+        omega, Qrad = self.rxnSourceTerm_vec(Uin)
         # omega = self.dydt_saved
         Uin_perturbed = Uin.copy()
        
@@ -426,27 +428,31 @@ class CollisionalRadiativeModel:
             # Perturb the input at index i
             Uin_perturbed[:,i] += h[:,i]
             # self.rxnSourceTerm_UpdateTemperatureDependentPart_vec(Uin_perturbed)
-            omega_perturbed = self.rxnSourceTerm_vec(Uin_perturbed)
+            omega_perturbed, Qrad_perturbed = self.rxnSourceTerm_vec(Uin_perturbed)
             Uin_perturbed[:,i] = Uin[:,i]
 
             # Compute the partial derivative with respect to the i-th input using finite differences
             h_i = h[:,i]
             omega_U[:, i, :] = xp.transpose((omega_perturbed[:,:] - omega[:,:]) / h_i[:, xp.newaxis])
+            Qrad_U[i,:] =  (Qrad_perturbed - Qrad) / h_i
+ 
  
         # Treat perturbation of Temperature. Update the temperature dependent rates.
         i = self.Ns
         # Perturb the input at index i
         Uin_perturbed[:,i] += h[:,i]
         self.rxnSourceTerm_UpdateTemperatureDependentPart_vec(Uin_perturbed)
-        omega_perturbed = self.rxnSourceTerm_vec(Uin_perturbed)
+        omega_perturbed, Qrad_perturbed = self.rxnSourceTerm_vec(Uin_perturbed)
         Uin_perturbed[:,i] = Uin[:,i]
 
         # Compute the partial derivative with respect to the i-th input using finite differences
         h_i = h[:,i]
         omega_U[:, i, :] = xp.transpose((omega_perturbed[:,:] - omega[:,:]) / h_i[:, xp.newaxis])
+        Qrad_U[i,:] =  (Qrad_perturbed - Qrad) / h_i
   
             
-        return omega,omega_U
+        return omega, omega_U, Qrad, Qrad_U
+
 
 
 
@@ -454,7 +460,7 @@ class CollisionalRadiativeModel:
 
     def rxnSourceTerm_Update_vec(self,y):
 
-        self.dydt_saved = self.rxnSourceTerm_vec(y)
+        self.dydt_saved, Qrad = self.rxnSourceTerm_vec(y)
 
         return
 
@@ -761,6 +767,7 @@ class CollisionalRadiativeModel:
         # allocate arrays
         dydt = xp.zeros((self.Np,self.Ns+1)) # ground state + excited levels + electrons + ions + Ee #+ Eh                        
         # dEhdt = xp.zeros((self.Np))
+        Qrad = xp.zeros((self.Np)) # Radiation Source Term
 
 
         # Temperature of heavy species (from ideal gas law)
@@ -849,7 +856,7 @@ class CollisionalRadiativeModel:
             i = self.p.index_i_lvl[itrans]
             j = self.p.index_j_lvl[itrans]
 
-            # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
+            eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
 
             
             # Calculations for escape factor
@@ -861,11 +868,12 @@ class CollisionalRadiativeModel:
                 eta=1.0
                 
             
-            Rspem =  npop[:,j]*self.p.A_ji[itrans]*eta        
+            Rspem =  npop[:,j] * self.p.A_ji[itrans] * eta        
             dydt[:,i] += + Rspem # radiative transitions into lower state
             dydt[:,j] += - Rspem # radiative transitions out of higher state
             # dydt[:,iEh] += - eij * Rspem  # Do I need to include that???
             # dEhdt += - eij * Rspem
+            Qrad -= eij * Rspem 
 
     
         ################## Atom impact Ionization ##################
@@ -940,13 +948,16 @@ class CollisionalRadiativeModel:
             dydt[:,i] +=  Rri 
             dydt[:,iNe] += - Rri 
             dydt[:,iEe] += - Rri_prime # rate of change of eletron energy
+            Qrad -= Rri_prime
 
 
 
         # ################## Bremsstrahlung emission ##################
-        # dydt[:,iEe] -= self.RbremsstrahlungFactor * ne * ne  # [eV/m^3/s]
-        # # Rbremsstrahlung = 1.42e-40 * parameters.Zeff**2 * xp.sqrt(T_e/K_eV) * ne * ne /spc.e  # [eV/m^3/s]
-        # # dydt[:,iEe] += - Rbremsstrahlung
+        Rbremsstrahlung = self.RbremsstrahlungFactor * ne * ne  # [eV/m^3/s]
+        dydt[:,iEe] -= Rbremsstrahlung
+        # Rbremsstrahlung = 1.42e-40 * parameters.Zeff**2 * xp.sqrt(T_e/K_eV) * ne * ne /spc.e  # [eV/m^3/s]
+        # dydt[:,iEe] += - Rbremsstrahlung
+        Qrad -= Rbremsstrahlung
 
         
         # ################## Energy transfer between electrons and heavy particles ################## 
@@ -964,7 +975,7 @@ class CollisionalRadiativeModel:
                                     # Especialy for the calculation of the jacobian
 
 
-        return dydt
+        return dydt, Qrad
 
 
     #----------------------------------------------------------------------------------

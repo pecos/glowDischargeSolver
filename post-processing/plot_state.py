@@ -29,27 +29,23 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 4; c = True; f = '../restart_CR_BE_Np150_T250.npy'; cl = 'm-'; lb = "T250"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 4; c = True; f = '../restart_CR_BE_Np150_T250.npy'; cl = 'm-'; lb = "T250"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "Max"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-
 # ic = 4; c = True; f = '../nonconverged_U0_t014.npy'; cl = 'r-'; lb = "U0 maxwell"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 5; c = True; f = '../restart_test.npy'; cl = 'm-'; lb = "T1 const De"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 6; c = True; f = '../restart_Maxwell_constDiff.npy'; cl = 'k-'; lb = "T1 Maxwell const De"; m = "CR"
@@ -58,8 +54,8 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 7; c = True; f = '../restart_Maxwell.npy'; cl = 'r-'; lb = "T1 Maxwell"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 8; c = True; f = '../restart.npy'; cl = 'b-'; lb = "const De"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 8; c = True; f = '../restart.npy'; cl = 'b-'; lb = "restart"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # ic = 4; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/restart_6spec_CN_Np150_T2400.npy'; cl = 'r-'; lb = "6sp"; m = "6sp"
