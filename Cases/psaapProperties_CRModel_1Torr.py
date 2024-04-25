@@ -51,7 +51,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     ###################################################################
 
     Pressure  = 1.0*spc.torr  # [Pa] 
-    GasTemperature = 300.0 # [K]
+    GasTemperature = 293.15 # [K]
     nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
     # densities
@@ -73,10 +73,11 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     e0 = 1.0  # [eV]
 
     # pressure
-    p  = 133.3*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
+    p  = Pressure*1.5      # [J/m^3] *1.5 to convert it to energy (1 Torr)
 
     # gas energy at the wall
-    Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
+    # Tg0 = 0.038778    # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
+    Tg0 = 3/2*GasTemperature*spc.k/spc.e # 3/2*300K*kB ~ (p0 - nT[:,0])/ntot
 
     # characteristics of driving voltage
     V0  = inputV0                 # amplitude of driving voltage [V]
@@ -117,9 +118,9 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # Constants of nature (probably shouldn't change unless you have
     # root privileges on universe)
     ###################################################################
-    qe   = 1.60217663e-19   # unit charge [C]
-    eps0 = 8.86e-12         # permittivity of free space [F/m]
-    kB   = 1.380649e-23     # Boltzmann constant [J/K]
+    qe   = spc.e #1.60217663e-19    # unit charge [C]
+    eps0 = spc.epsilon_0 #8.86e-12  # permittivity of free space [F/m]
+    kB   = spc.k #1.380649e-23      # Boltzmann constant [J/K]
     # kB   = 8.62e-5 # Boltzmann constant [eV/K]
     eV = qe/kB
 
@@ -170,9 +171,15 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     alpha    = qe*np0*L*L/(V0*eps0)
     ks       = ks*tau/L
     p0       = p/qe/np0
-    kappaB   = 4.878171165833662*1.6129 # non-dimensional thermal conductivity of background specie
-                                # (2/3)*tau/L**2*Kb/np0/kB,
-                                # where Kb is the thermal conductivity of background specie
+
+    ThermalConductivity = 17.7e-3 # [W/m/K] at 300K
+    
+    kappaB   = (2/3)*tau/L**2*ThermalConductivity/np0/kB
+    
+    # kappaB   = 4.878171165833662*1.6129 # non-dimensional thermal conductivity of background specie
+    #                             # (2/3)*tau/L**2*Kb/np0/kB,
+    #                             # where Kb is the thermal conductivity of background specie
+
 
     # 4) Set values in params class
     params.D[0]    = De

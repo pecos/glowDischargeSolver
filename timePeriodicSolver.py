@@ -43,7 +43,6 @@ class timePeriodicSolver:
 
 
 
-
         self.tds.U2 = np.copy(self.tds.U1)
 
         self.alpha = alpha0

@@ -144,6 +144,7 @@ print('ionDeg = ',ionDeg, '[-]')
 # 0        / Energy loss coefficients: 0=No; 1=Yes
 # 1        / Distribution function: 0=No; 1=Yes 
 # 1        / Skip failed runs: 0=No; 1=Yes
+# 1        / Include cross sections: 0=No; 1=Yes # This is only at the newest version
 
 
 # reaction300K = {'READCOLLISIONS': ['"test-crs.txt"', speciesList, 1],
@@ -155,14 +156,14 @@ print('ionDeg = ',ionDeg, '[-]')
 
 reaction300K = {'READCOLLISIONS': ['"test-crs.txt"', speciesList, 1],
                 'CONDITIONS': [0., 0., 0., 300., 300., 0., 1.0e-4, 8.0E16, 1., 1., 1, 1, 2, 0., 200, 0, 200., 1.0e-10, 1.0e-5, 10000, '0.99999 1e-5', 1],
-                'RUNSERIES': [2, 3.0, 30.0, 200, 3],
+                'RUNSERIES': [2, 3.0, 15.0, 100, 3],
                 'SAVERESULTS': ['"reaction_rate.300K.dat"', 1, 1, 1, 0, 0, 0, 1, 1]
                }
 
 
 bolsigCondition =  [0., 0., 0., T0, T0,  \
                     0., ionDeg, ne0, 1., \
-                    1., 1, 1, 2, 0., 600,\
+                    1., 1, 1, 2, 0., 400,\
                     0, 300., 1.0e-10,    \
                     1.0e-5, 10000, '%.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E %.5E'\
                     %(1.0 - sum(Xex0), Xex0[0], Xex0[1], Xex0[2], Xex0[3], Xex0[4], Xex0[5], Xex0[6], Xex0[7], \

@@ -89,7 +89,7 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # these values are required to "redimensionalize" the results
 # they must be consistent with the scenario input file
 Pressure  = 1.0*spc.torr               # [Pa] 
-GasTemperature = 300.0                 # [K]
+GasTemperature = 293.15                 # [K]
 nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
 ne0 = 8e16           # "nominal" electron density [1/m^3]

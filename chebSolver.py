@@ -211,8 +211,8 @@ class modelClosures:
         self.eArea   = np.pi * 0.05**2  # electrode area [m^2]
 
         # Parameters needed for the Collisional-Radiative model
-        self.Pressure = 133.3224 # [Pa] 
-        self.GasTemperature = 300.0 # [K]
+        self.Pressure = 0.0
+        self.GasTemperature = 0.0
 
 
         self.reactionsList =[]

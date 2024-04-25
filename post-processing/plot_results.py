@@ -101,8 +101,13 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 5; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - Bolsig+  - Const De - Qrad"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 6; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
+# ic = 6; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 7; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - Bolsig+  - Const De - Qrad"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
 
 
 # ic = 1; c = True; f = '../fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
@@ -215,7 +220,7 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # these values are required to "redimensionalize" the results
 # they must be consistent with the scenario input file
 Pressure  = 1.0*spc.torr               # [Pa] 
-GasTemperature = 300.0                 # [K]
+GasTemperature = 293.15                 # [K]
 nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
 ne0 = 8e16           # "nominal" electron density [1/m^3]
