@@ -73,17 +73,17 @@ energy = {}; Td = {}; mu = {}; De = {}; mu_e = {}; De_e = {}
 label = {}; clr = {}
 
 
-df = h5.File(file_path + "./transport_test.h5", 'r')
-ic = 1; energy[ic] = df["diffusivity"][:,0]/eV; 
-mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
-mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
-clr[ic] = 'b'; label[ic] = 'test'
+# df = h5.File(file_path + "./transport_test.h5", 'r')
+# ic = 1; energy[ic] = df["diffusivity"][:,0]/eV; 
+# mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
+# mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
+# clr[ic] = 'b'; label[ic] = 'test'
 
-df = h5.File(file_path + "./transport_BSR.h5", 'r')
-ic = 2; energy[ic] = df["diffusivity"][:,0]/eV; 
-mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
-mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
-clr[ic] = 'b'; label[ic] = 'BSR'
+# df = h5.File(file_path + "./transport_BSR.h5", 'r')
+# ic = 2; energy[ic] = df["diffusivity"][:,0]/eV; 
+# mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
+# mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
+# clr[ic] = 'b'; label[ic] = 'BSR'
 
 df = h5.File(file_path + "./transport_BSR_2.h5", 'r')
 ic = 3; energy[ic] = df["diffusivity"][:,0]/eV; 
@@ -91,58 +91,11 @@ mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1];
 mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
 clr[ic] = 'b'; label[ic] = 'BSR 2'
 
-
-# df = h5.File(file_path + "./transport_BSR_Kevin.h5", 'r')
-# ic = 3; energy[ic] = df["diffusivity"][:,0]/eV; 
-# mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
-# mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
-# clr[ic] = 'b'; label[ic] = 'BSR (Kevin)'
-
-# df = h5.File(file_path + "./transport_LXCat-June2013.h5", 'r')
-# ic = 3; energy[ic] = df["diffusivity"][:,0]/eV; 
-# mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
-# mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
-# clr[ic] = 'b'; label[ic] = 'LXCat-June2013'
-
-
-# df = h5.File(file_path + "./transport_test_2.h5", 'r')
+# df = h5.File(file_path + "./transport_BSR_V2.h5", 'r')
 # ic = 4; energy[ic] = df["diffusivity"][:,0]/eV; 
 # mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
 # mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
-# clr[ic] = 'b'; label[ic] = 'test 2'
-
-# df = h5.File(file_path + "./transport_BSR_2.h5", 'r')
-# ic = 5; energy[ic] = df["diffusivity"][:,0]/eV; 
-# mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
-# mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
-# clr[ic] = 'b'; label[ic] = 'BSR 2'
-
-
-# df = h5.File(file_path + "./transport_test_3.h5", 'r')
-# ic = 5; energy[ic] = df["diffusivity"][:,0]/eV; 
-# mu[ic] = df["mobility"][:,1]; De[ic] = df["diffusivity"][:,1]; 
-# mu_e[ic] = df["energy_mobility"][:,1]; De_e[ic] = df["energy_diffusivity"][:,1]
-# clr[ic] = 'b'; label[ic] = 'test 3'
-
-# # Read the specified sheet into a pandas DataFrame
-# df = pd.read_excel(file_path+'transport_data.xlsx', sheet_name='nominal')
-# ic = 3; energy[ic] = df['Energy (eV)']/1.5; Td[ic] = df['Electric field / N (Td)']; 
-# mu[ic] = df['Mobility *N (1/m/V/s)']; De[ic] = df['Diffusion coefficient *N (1/m/s)']; 
-# mu_e[ic] = df['Energy mobility *N (1/m/V/s)']; De_e[ic] = df['Energy diffusion coef. D*N (1/m/s)']
-# clr[ic] = 'b'; label[ic] = 'nominal'
-
-# df = pd.read_excel(file_path+'transport_data.xlsx', sheet_name='Sheet4')
-# ic = 4; energy[ic] = df['Energy (eV)']/1.5; Td[ic] = df['Electric field / N (Td)']; 
-# mu[ic] = df['Mobility *N (1/m/V/s)']; De[ic] = df['Diffusion coefficient *N (1/m/s)']; 
-# mu_e[ic] = df['Energy mobility *N (1/m/V/s)']; De_e[ic] = df['Energy diffusion coef. D*N (1/m/s)']
-# clr[ic] = 'r'; label[ic] = "high"
-
-# df = pd.read_excel(file_path+'transport_data.xlsx', sheet_name='Sheet5')
-# ic = 5; energy[ic] = df['Energy (eV)']/1.5; Td[ic] = df['Electric field / N (Td)']; 
-# mu[ic] = df['Mobility *N (1/m/V/s)']; De[ic] = df['Diffusion coefficient *N (1/m/s)']; 
-# mu_e[ic] = df['Energy mobility *N (1/m/V/s)']; De_e[ic] = df['Energy diffusion coef. D*N (1/m/s)']
-# clr[ic] = 'r'; label[ic] = "low"
-
+# clr[ic] = 'b'; label[ic] = 'BSR V2'
 
 
 
@@ -155,8 +108,8 @@ ax.plot(Te_trans, De_interp, marker = 'o', label = 'Nominal')
 
 for ic in energy: 
     ax.plot(energy[ic], De[ic]/nAr, marker = 'o', label=label[ic])
-    # De_Eins = np.multiply(mu[ic]/nAr,energy[ic])
-    # ax.plot(energy[ic], De_Eins, label =label[ic]+' Ein. Relation')
+    De_Eins = np.multiply(mu[ic]/nAr,energy[ic])
+    ax.plot(energy[ic], De_Eins, label =label[ic]+' Ein. Relation')
 
 plt.axhline(y=De_ct, color='k', linestyle='--')
 
@@ -182,6 +135,8 @@ ax.set_title('Energy Mobility Coef.')
 ax.set_xlabel('Te [eV]')
 for ic in energy: 
     ax.plot(energy[ic], mu_e[ic]/nAr, marker = 'o', label=label[ic])
+    ax.plot(energy[ic], 5.0/3.0*mu[ic]/nAr, marker = 'o', label=label[ic]+" 5/3 \mu")
+
 ax.legend()
 
 fig, ax = plt.subplots()
@@ -189,23 +144,28 @@ ax.set_title('Energy Diffusion Coef.')
 ax.set_xlabel('Te [eV]')
 for ic in energy: 
     ax.plot(energy[ic], De_e[ic]/nAr, marker = 'o', label=label[ic])
+    ax.plot(energy[ic], 5.0/3.0*De[ic]/nAr, marker = 'o', label=label[ic]+" 5/3 De")
+    De_Eins = np.multiply(mu[ic]/nAr,energy[ic])
+    ax.plot(energy[ic], 5.0/3.0*De_Eins, marker = 'o', label=label[ic]+" 5/3 De Einstein")
+
 ax.legend()
 
 
 
 EEDF_list = {}; Te = {}; Te2 = {}; df_dict = {}
 
-df = h5.File(file_path_EEDF + "./EEDF_test_2.h5", 'r')
-ic = 1; df_dict[ic] = df; Te[ic] = []; Te2[ic] = df["temperature"][:]/eV; EEDF_list[ic] = []; clr[ic] = 'b'; label[ic] = 'test'
+# df = h5.File(file_path_EEDF + "./EEDF_test_2.h5", 'r')
+# ic = 1; df_dict[ic] = df; Te[ic] = []; Te2[ic] = df["temperature"][:]/eV; EEDF_list[ic] = []; clr[ic] = 'b'; label[ic] = 'test'
         
-
-df = h5.File(file_path_EEDF + "./EEDF_BSR.h5", 'r')
-ic = 2;  df_dict[ic] = df; Te[ic] = []; Te2[ic] = df["temperature"][:]/eV; EEDF_list[ic] = []; clr[ic] = 'r'; label[ic] = 'BSR'
+# df = h5.File(file_path_EEDF + "./EEDF_BSR.h5", 'r')
+# ic = 2;  df_dict[ic] = df; Te[ic] = []; Te2[ic] = df["temperature"][:]/eV; EEDF_list[ic] = []; clr[ic] = 'r'; label[ic] = 'BSR'
 
 df = h5.File(file_path_EEDF + "./EEDF_BSR_2.h5", 'r')
 ic = 3;  df_dict[ic] = df; Te[ic] = []; Te2[ic] = df["temperature"][:]/eV; EEDF_list[ic] = []; clr[ic] = 'r'; label[ic] = 'BSR 2'
             
-
+df = h5.File(file_path_EEDF + "./EEDF_BSR_V2.h5", 'r')
+ic = 4;  df_dict[ic] = df; Te[ic] = []; Te2[ic] = df["temperature"][:]/eV; EEDF_list[ic] = []; clr[ic] = 'r'; label[ic] = 'BSR V2'
+  
 
 for ic in EEDF_list: 
     print("Reading case: ", ic)

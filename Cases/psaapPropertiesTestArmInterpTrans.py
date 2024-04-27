@@ -72,6 +72,8 @@ def setPsaapPropertiesTestArmInterpTrans(gam, inputV0, inputVDC, params, Nr, iSa
     L   = 2.54*0.005              # half-gap-width [m] (gap width is 2.54cm)
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
+    params.EeBC = 0.75
+
     # transport parameters
     nmue = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
     nmui = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
@@ -180,10 +182,12 @@ def setPsaapPropertiesTestArmInterpTrans(gam, inputV0, inputVDC, params, Nr, iSa
     params.D[0]    = De
     params.D[1]    = Di
     params.D[2]    = Dm
+    params.D[4]    = (5./3.) * De
 
     params.mu[0]   = mue
     params.mu[1]   = mui
     params.mu[2]   = mum
+    params.mu[4]    = (5./3.) * mue
 
     params.A[:]    = Ck[:]
     params.B[:]    = 0.0
@@ -313,6 +317,11 @@ def setPsaapPropertiesTestArmInterpTrans(gam, inputV0, inputVDC, params, Nr, iSa
     for i in range(1, Ns):
         diffList.append(Diffusivity(interpolate = False))
 
+    Dee_spline = CubicSpline(Te, (5./3.)*De_interp)
+    Dee_Te_spline = CubicSpline.derivative(Dee_spline)
+    diffusivity_ee = Diffusivity(interpolate = True, D_expression = Dee_spline, D_T_expression = Dee_Te_spline)
+    diffList.append(diffusivity_ee)
+
     params.diffusivityList = diffList
 
     muList = []
@@ -372,6 +381,12 @@ def setPsaapPropertiesTestArmInterpTrans(gam, inputV0, inputVDC, params, Nr, iSa
     Ns = 4
     for i in range(1, Ns):
         muList.append(Mobility(interpolate = False))
+
+
+    muee_spline = CubicSpline(Te, (5./3.) * mue_interp)
+    muee_Te_spline = CubicSpline.derivative(muee_spline)
+    mobility_ee = Mobility(interpolate = True, mu_expression = muee_spline, mu_T_expression = muee_Te_spline)
+    muList.append(mobility_ee)
 
     params.mobilityList = muList
 

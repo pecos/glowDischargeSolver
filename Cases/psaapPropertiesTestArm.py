@@ -25,7 +25,7 @@ class Mobility(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
+def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     """Sets non-dimensional properties corresponding to Liu 2014 paper.
 
     Inputs:
@@ -35,6 +35,8 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     Outputs: None
       params data is overwritten using values from Liu 2014.
     """
+    assert iSample == 0, "This scenario is not set up for sampling"
+
     ###################################################################
     # User specified parameters (you may change these if you wish to
     # run a different scenario from Liu 2014)
@@ -71,6 +73,8 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     L   = 2.54*0.005              # half-gap-width [m] (gap width is 2.54cm)
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
+    params.EeBC = 0.75
+
     # transport parameters
     nmue = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
     nmui = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
@@ -104,7 +108,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
 
     A  = np.array([18.687,15.06,4.95,2.14,0.0,0.0,0.0,0.0]) # activation temperature [eV]
     dH = np.array([15.7,11.56,4.14,-11.56,0.0,0.0,0.0,0.0]) # energy lost per electron due to ionization rxn [eV]
-    dEps = np.array([0.0,15.7,11.56,0.0]) # e, A+, A*, Ar(g)
+    dEps = np.array([0.0,15.7,11.56,0.0])
 
     # BC parameters
     # ks = 1.19e7  # electron recombination rate [cm/s]
@@ -179,10 +183,12 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
     params.D[0]    = De
     params.D[1]    = Di
     params.D[2]    = Dm
+    params.D[4]    = (5./3.) * De
 
     params.mu[0]   = mue
     params.mu[1]   = mui
     params.mu[2]   = mum
+    params.mu[4]   = (5./3.) * mue
 
     params.A[:]    = Ck[:]
     params.B[:]    = 0.0
@@ -239,7 +245,7 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr):
         rxn_T = eval("lambda energy :" + reactionTExpressionslist[i])
 
         reaction = Reaction(rxnAlfa = params.alfa[:,[i]], rxnBeta = params.beta[:,[i]],
-                            kf = rxn, kf_T = rxn_T)
+                            kf = rxn, kf_T = rxn_T, rxnBolsig = False )
         reactionsList.append(reaction)
 
     params.reactionsList = reactionsList

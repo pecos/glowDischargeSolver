@@ -31,9 +31,9 @@ saveFile="fullsoln.npy"
 # newtFile="newton_CR_BE_Np${Np}.npy"
 # saveFile="newton_CR_BE_Np${Np}_fullsoln.npy"
 # --EinsteinForm
-baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --tscheme BE  --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
-newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme BE --alpha0 0.1 --increaseFac 1.5 --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
-saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt1 --scenario $scenario --tscheme BE --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
+baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --tscheme BE --elasticCollisionActivation --backgroundSpecieActivation"
+newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --alpha0 0.05 --increaseFac 1.2 --elasticCollisionActivation --backgroundSpecieActivation"
+saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt1 --scenario $scenario --tscheme CN --elasticCollisionActivation --backgroundSpecieActivation"
 
 
 screenOut="run.txt"
@@ -43,9 +43,9 @@ rm -f $screenOut
 echo "Run time marching case..."
 $baseCmd --V0 75 --VDC 0.0 --t0 0.0 --outfile  $baseFile --verbose #|| error_exit "First run failed"
 
-# echo "Run time domain shooting..."
-# $newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart $baseFile \
-#                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
+echo "Run time domain shooting..."
+$newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart $baseFile \
+                                --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
 # echo "Saving one period..."
 # $saveCmd --V0 100 --VDC 0.0 --rtol 1e-8 --restart $baseFile --savedata $saveFile --outfile discard.npy

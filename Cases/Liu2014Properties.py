@@ -124,8 +124,10 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
     # 4) Set values in params class
     params.D[0]    = De
     params.D[1]    = Di
+    params.D[3]    = (5./3.) * De
     params.mu[0]   = mue
     params.mu[1]   = mui
+    params.mu[3]   = (5./3.) * mue
     params.A[0]    = Ck
     params.B[0]    = 0.0
     params.C[0]    = A
@@ -145,6 +147,8 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
     # params.EC = 2.0 * me / mAr * 3.8e9 * tau
 
     params.verticalShift = verticalShift / V0
+
+    params.EeBC = 0.75
 
     # Parameters needed to compute the current with dimensions
     params.V0Ltau  = V0 / (L * tau)

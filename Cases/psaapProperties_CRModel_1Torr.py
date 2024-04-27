@@ -3,7 +3,7 @@ from scipy.interpolate import CubicSpline
 import scipy.constants as spc
 
 import csv
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #import matplotlib.colors as mcolors
 import h5py as h5
 
@@ -32,6 +32,23 @@ class Mobility(object):
                 setattr(self, key, dictionary[key])
         for key in kwargs:
             setattr(self, key, kwargs[key])
+
+
+# class EnergyDiffusivity(object):
+#     def __init__(self, *initial_data, **kwargs):
+#         for dictionary in initial_data:
+#             for key in dictionary:
+#                 setattr(self, key, dictionary[key])
+#         for key in kwargs:
+#             setattr(self, key, kwargs[key])
+
+# class EnergyMobility(object):
+#     def __init__(self, *initial_data, **kwargs):
+#         for dictionary in initial_data:
+#             for key in dictionary:
+#                 setattr(self, key, dictionary[key])
+#         for key in kwargs:
+#             setattr(self, key, kwargs[key])
 
 
 def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
@@ -185,10 +202,12 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     params.D[0]    = De
     params.D[1]    = Di
     params.D[2:]   = Dm
+    params.D[-1]   = 5.0/3.0*De # Electron Energy
     
     params.mu[0]   = mue
     params.mu[1]   = mui
     params.mu[2:]  = mum
+    params.mu[-1]  = 5.0/3.0*mue # Electron Energy
 
 
     # Non-dimensionalization parameters
@@ -233,35 +252,27 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     params.eArea   = electrodeArea # electrode area [m^2]
 
 
+
     ## Electron Transport Data 
+    diffList = []
+    muList = []
+
+    transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_2.h5", 'r')
 
     # Electron Diffusion Coef.  
-    # diffList = []
-    # transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_2.h5", 'r')
-    # diffusivityData = transport["diffusivity"] 
-    # NDe_v_Te = diffusivityData[:,1]
-    # Te_trans = diffusivityData[:,0]
-    # Te_trans /= eV
-    # threshold_Te0 = 2.0    
-    # # indices_Te0 = np.where(Te_trans < threshold_Te0)[0]    
-    # # NDe_v_Te[indices_Te0] = NDe_v_Te[indices_Te0[-1]+1]
-    # indices_Te0 = np.searchsorted(Te_trans, threshold_Te0)
-    # NDe_v_Te[0:indices_Te0] = NDe_v_Te[indices_Te0]
-    # De_interp = (NDe_v_Te[:]/nAr)*tau/(L*L)
-    # De_spline = CubicSpline(Te_trans, De_interp)
-    # De_Te_spline = CubicSpline.derivative(De_spline)
-    # diffusivity = Diffusivity(interpolate = False, D_expression = De_spline, D_T_expression = De_Te_spline)
-    # diffList.append(diffusivity)
-
-    diffList = []
-    Te_trans = np.linspace(0, 1000, 10)
-    De_interp = params.D[0]*np.ones(10)  
+    diffusivityData = transport["diffusivity"] 
+    NDe_v_Te = diffusivityData[:,1]
+    Te_trans = diffusivityData[:,0]
+    Te_trans /= eV
+    threshold_Te0 = 2.0    
+    indices_Te0 = np.searchsorted(Te_trans, threshold_Te0)
+    NDe_v_Te[0:indices_Te0] = NDe_v_Te[indices_Te0]
+    De_interp = (NDe_v_Te[:]/nAr)*tau/(L*L)
     De_spline = CubicSpline(Te_trans, De_interp)
     De_Te_spline = CubicSpline.derivative(De_spline)
     diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
     diffList.append(diffusivity)
 
-    # from matplotlib import pyplot as plt
     # fig,ax = plt.subplots()
     # ax.set_title('Diffusion Coef.')
     # ax.set_xlabel('Te [eV]')
@@ -275,30 +286,40 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # ax.legend()
     # # plt.savefig('EinsteinRelation.png')
 
-
-
-    Ns = len(params.mu)
     for i in range(1, Ns):
         diffList.append(Diffusivity(interpolate = False))
 
-    params.diffusivityList = diffList
+    # Electron Energy Diffusion Coef.  
+    energydiffusivityData = transport["energy_diffusivity"] 
+    NDee_v_Te = energydiffusivityData[:,1]
+    NDee_v_Te[0:indices_Te0] = NDee_v_Te[indices_Te0]
+    Dee_interp = (NDee_v_Te[:]/nAr)*tau/(L*L)
+    Dee_spline = CubicSpline(Te_trans, Dee_interp)
+    Dee_Te_spline = CubicSpline.derivative(Dee_spline)
+    energydiffusivity = Diffusivity(interpolate = True, D_expression = Dee_spline, D_T_expression = Dee_Te_spline)
+    diffList.append(energydiffusivity)
+
+    # fig,ax = plt.subplots()
+    # ax.set_title('Energy Diffusion Coef.')
+    # ax.set_xlabel('Te [eV]')
+    # # ax.set_ylabel('D [m2/s]')
+    # ax.set_ylabel(r"$D_{ee} \, $ [$ \, m^{2}/s$]")
+    # # ax.loglog(Te_trans, NDe_v_Te[:]/nAr, marker = 'o', label = 'Nominal')
+    # ax.plot(Te_trans, Dee_interp, marker = 'o', label = 'Nominal')
+    # DEEf = diffList[-1].D_T_expression(Te_trans)
+    # ax.plot(Te_trans, DEEf, marker = '*', label = 'spline')
+    # # plt.axhline(y=params.D[0], color='k', linestyle='--')
+    # ax.legend()
+
 
 
     #  Electron Mobility 
-    # muList = []
-    # mobilityData = transport["mobility"] 
-    # Nmue_v_Te = mobilityData[:,1]
-    # # Nmue_v_Te[indices_Te0] = Nmue_v_Te[indices_Te0[-1]+1]
-    # Nmue_v_Te[0:indices_Te0] = Nmue_v_Te[indices_Te0]
-    # mue_interp = (Nmue_v_Te[:]/nAr)*V0*tau/(L*L)
-    # mue_spline = CubicSpline(Te_trans, mue_interp)
-    # mue_Te_spline = CubicSpline.derivative(mue_spline)
-    # mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
-    # muList.append(mobility)
-
     muList = []
-    Te_trans = np.linspace(0, 1000, 10)
-    mue_interp = params.mu[0]*np.ones(10) 
+    mobilityData = transport["mobility"] 
+    Nmue_v_Te = mobilityData[:,1]
+    # Nmue_v_Te[indices_Te0] = Nmue_v_Te[indices_Te0[-1]+1]
+    Nmue_v_Te[0:indices_Te0] = Nmue_v_Te[indices_Te0]
+    mue_interp = (Nmue_v_Te[:]/nAr)*V0*tau/(L*L)
     mue_spline = CubicSpline(Te_trans, mue_interp)
     mue_Te_spline = CubicSpline.derivative(mue_spline)
     mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
@@ -310,24 +331,45 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # ax.set_ylabel(r"$\mu_e \, $ [$ \, m^{2}/V/s$]")
     # # ax.loglog(Te_trans, Nmue_v_Te[:]/nAr, marker = 'o', label = 'Nominal')
     # ax.plot(Te_trans, mue_interp, marker = 'o', label = 'Nominal')
+    # mu_e = muList[-1].mu_T_expression(Te_trans) 
+    # ax.plot(Te_trans, mu_e, marker = '*', label = 'Nominal')
+    # # plt.axhline(y=params.mu[0], color='k', linestyle='--')
+    # ax.legend()
+
+    for i in range(1, Ns):
+        muList.append(Mobility(interpolate = False))
+
+    #  Electron Energy Mobility 
+    energymobilityData = transport["energy_mobility"] 
+    Nmuee_v_Te = energymobilityData[:,1]
+    Nmuee_v_Te[0:indices_Te0] = Nmuee_v_Te[indices_Te0]
+    muee_interp = (Nmuee_v_Te[:]/nAr)*V0*tau/(L*L)
+    muee_spline = CubicSpline(Te_trans, muee_interp)
+    muee_Te_spline = CubicSpline.derivative(muee_spline)
+    energymobility = Mobility(interpolate = True, mu_expression = muee_spline, mu_T_expression = muee_Te_spline)
+    muList.append(energymobility)
+
+    # fig, ax = plt.subplots()
+    # ax.set_title('Energy Mobility Coef.')
+    # ax.set_xlabel('Te [eV]')
+    # ax.set_ylabel(r"$\mu_e \, $ [$ \, m^{2}/V/s$]")
+    # # ax.loglog(Te_trans, Nmue_v_Te[:]/nAr, marker = 'o', label = 'Nominal')
+    # ax.plot(Te_trans, muee_interp, marker = 'o', label = 'Nominal')
     # mu_ee = muList[-1].mu_T_expression(Te_trans) 
     # ax.plot(Te_trans, mu_ee, marker = '*', label = 'Nominal')
     # # plt.axhline(y=params.mu[0], color='k', linestyle='--')
     # ax.legend()
-    # plt.show()
-    # # exit(-1)
-    
-    #Ns = 6
-    for i in range(1, Ns):
-        muList.append(Mobility(interpolate = False))
 
+
+
+
+
+
+    params.diffusivityList = diffList
     params.mobilityList = muList
-
-    
+      
     # 5) Dump to screen
     params.print()
-
-
 
 
     ### Indexing
