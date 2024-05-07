@@ -1,0 +1,113 @@
+directory: './BOLSIGChemistry_N2_5SpeciesRates/'
+
+prefix: 'Arrhenius'
+
+number_of_samples: 7200
+
+relative_error: 100.0      # percent
+
+reactions:
+  - equation: Excitation_Vibrational                            # Reaction 1
+    rate_type: table
+  - equation: Excitation_Electronic                             # Reaction 2
+    rate_type: table
+  - equation: Ionization_N2                                     # Reaction 3
+    rate_type: table
+  - equation: Excitation_N                                      # Reaction 4
+    rate_type: table
+  - equation: Ionization_N                                      # Reaction 5
+    rate_type: table
+  - equation: E + N+ => N                                       # Reaction 6
+    rate_type: arrhenius
+    arrhenius:    # output unit (m3/mol)^n/s, temperature unit in K
+      coefficients: [2.41e5, -0.5, 0.0]
+  - equation: 2N + E => N2 + E                                  # Reaction 7
+    rate_type: arrhenius
+    arrhenius:    # output unit (m3/mol)^n/s, temperature unit in K
+      coefficients: [2.61e3, 0.0, 0.0]
+  - equation: 2N + N2+ => N2 + N2+                              # Reaction 8
+    rate_type: arrhenius
+    arrhenius:    # output unit (m3/mol)^n/s, temperature unit in K
+      coefficients: [2.61e3, 0.0, 0.0]
+  - equation: 2N + N+ => N2 + N+                                # Reaction 9
+    rate_type: arrhenius
+    arrhenius:    # output unit (m3/mol)^n/s, temperature unit in K
+      coefficients: [2.61e3, 0.0, 0.0]
+  - equation: 2N + N => N2 + N                                  # Reaction 10
+    rate_type: arrhenius
+    arrhenius:    # output unit (m3/mol)^n/s, temperature unit in K
+      coefficients: [2.61e3, 0.0, 0.0]
+  - equation: 2N + N2 => N2 + N2                                # Reaction 11
+    rate_type: arrhenius
+    arrhenius:    # output unit (m3/mol)^n/s, temperature unit in K
+      coefficients: [2.61e3, 0.0, 0.0]
+  - equation: Dissociation                                      # Reaction 12
+    rate_type: table
+  - equation: E + N2+ + N+ => N + N2+                           # Reaction 13
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: E + N+ + N+ => N + N+                             # Reaction 14
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: E + N + N+ => N + N                               # Reaction 15
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: E + N2 + N+ => N + N2                             # Reaction 16
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: 2E + N+ => E + N                                  # Reaction 17
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.81e9, -4.5, 0.0]
+  - equation: N+ + N + E => N2+ + E                             # Reaction 18
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [3.63e6, 0.0, 0.0]
+  - equation: N+ + N + N2+ => N2+ + N2+                         # Reaction 19
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [3.63e6, 0.0, 0.0]
+  - equation: N+ + N + N+ => N2+ + N+                           # Reaction 20
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [3.63e6, 0.0, 0.0]
+  - equation: N+ + N + N => N2+ + N                             # Reaction 21
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [3.63e6, 0.0, 0.0]
+  - equation: N+ + N + N2 => N2+ + N2                           # Reaction 22
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [3.63e6, 0.0, 0.0]
+  - equation: N2+ + N => N+ + N2                                # Reaction 23
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [6.02e5, 0.0, 0.0]
+  - equation: E + N2+ => 2N                                     # Reaction 24
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.0e12, -0.7, 0.0]
+  - equation: E + N2+ + N2+ => N2 + N2+                         # Reaction 25
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: E + N2+ + N+ => N2 + N+                           # Reaction 26
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: E + N2+ + N => N2 + N                             # Reaction 27
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: E + N2+ + N2 => N2 + N2                           # Reaction 28
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.13e13, -1.5, 0.0]
+  - equation: 2E + N2+ => E + N2                                # Reaction 29
+    rate_type: arrhenius
+    arrhenius:
+        coefficients: [1.81e9, -4.50, 0.0]
