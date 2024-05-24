@@ -18,10 +18,10 @@ Nt=32000
 # dt=0.0078125
 dt=0.00390625
 
-# Nt1=128
-# dt1=0.0078125
-Nt1=256
-dt1=0.00390625
+Nt1=128
+dt1=0.0078125
+# Nt1=256
+# dt1=0.00390625
 
 scenario=15
 # crashedFile="restart_CR_Np150_crashed.npy"
@@ -30,10 +30,12 @@ newtFile="newton_CR_CN_Np${Np}.npy"
 saveFile="newton_CR_CN_Np${Np}_fullsoln.npy"
 
 
-
+# --EinsteinForm
 baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --tscheme BE --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
-newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --alpha0 0.05 --increaseFac 1.5 --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
+newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --EinsteinForm --alpha0 0.1 --increaseFac 1.5 --elasticCollisionActivation --backgroundSpecieActivation"
 saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt1 --scenario $scenario --tscheme CN --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
+
+
 
 
 screenOut="run_CR.out"
@@ -132,10 +134,14 @@ rm -f $screenOut
 
 
 
+# echo "Run time domain shooting...${newtFile}"
+# $newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy"
 
-echo "Run 0 to 125...${baseFile}T125.npy"
-$baseCmd --V0 75 --VDC 0.0 --t0 0.0 \
-               --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"
+
+
+# echo "Run 0 to 125...${baseFile}T125.npy"
+# $baseCmd --V0 75 --VDC 0.0 --t0 0.0 \
+#                --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"
 
 echo "Run time domain shooting...${newtFile}"
 $newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy" \

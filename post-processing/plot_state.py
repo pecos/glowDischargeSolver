@@ -38,8 +38,12 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 4; c = True; f = '../restart_CR_BE_Np150_T250.npy'; cl = 'm-'; lb = "T250"; m = "CR"
+# ic = 4; c = True; f = '../restart.npy'; cl = 'm-'; lb = "restart"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'm-'; lb = "T125"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 # ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "Max"; m = "CR"

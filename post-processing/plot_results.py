@@ -110,6 +110,10 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 ic = 8; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "TeBC = 1.0"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
+# ic = 9; c = True; f = '../Results/CR/new/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "new"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
 
 
 # ic = 1; c = True; f = '../fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
@@ -651,8 +655,8 @@ if (isPlotMeans):
          ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid,:,:],axis=1)/g[ic][0:-2], marker='.', lw=1.5, label=label[ic]+ " - " + ExpCase)
          ax.plot(dEps[ic][-1], np.mean(ne[ic][i_mid,:],axis=0),marker='*', lw=1.5)
 
-      print(np.mean(ne[ic][i_mid,:],axis=0))
-      exit(-1)
+      # print(np.mean(ne[ic][i_mid,:],axis=0))
+      # exit(-1)
 
    label_tmp = "Exp" " - " + ExpCase
    ax.scatter(Ei_exp[ExpCase], ni_exp[ExpCase]/gi_exp[ExpCase], c='k', marker='x', lw=1.5, label=label_tmp)        

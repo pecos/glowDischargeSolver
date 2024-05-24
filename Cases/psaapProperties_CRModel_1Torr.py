@@ -234,8 +234,13 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
                   / (3.0 * np.pi * me * mAr)) * se * nAr * tau
     # params.EC = 2.0 * me / mAr * 3.8e9 * tau
     
-
     params.verticalShift = verticalShift / V0
+
+
+    # What about params.ksion?
+    # params.ksion = 1/4 * np.sqrt(8*kB*Tg0/pi/mi) # I need to nondimensionalize this
+
+
     
     # Parameters needed for the CR model
     params.Pressure = Pressure
@@ -252,8 +257,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     params.eArea   = electrodeArea # electrode area [m^2]
 
 
-
-    ## Electron Transport Data 
+    # Electron Transport Data 
     diffList = []
     muList = []
 
@@ -270,7 +274,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     De_interp = (NDe_v_Te[:]/nAr)*tau/(L*L)
     De_spline = CubicSpline(Te_trans, De_interp)
     De_Te_spline = CubicSpline.derivative(De_spline)
-    diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
+    diffusivity = Diffusivity(interpolate = False, D_expression = De_spline, D_T_expression = De_Te_spline)
     diffList.append(diffusivity)
 
     # fig,ax = plt.subplots()
@@ -296,7 +300,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     Dee_interp = (NDee_v_Te[:]/nAr)*tau/(L*L)
     Dee_spline = CubicSpline(Te_trans, Dee_interp)
     Dee_Te_spline = CubicSpline.derivative(Dee_spline)
-    energydiffusivity = Diffusivity(interpolate = True, D_expression = Dee_spline, D_T_expression = Dee_Te_spline)
+    energydiffusivity = Diffusivity(interpolate = False, D_expression = Dee_spline, D_T_expression = Dee_Te_spline)
     diffList.append(energydiffusivity)
 
     # fig,ax = plt.subplots()
@@ -336,6 +340,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # # plt.axhline(y=params.mu[0], color='k', linestyle='--')
     # ax.legend()
 
+
     for i in range(1, Ns):
         muList.append(Mobility(interpolate = False))
 
@@ -346,7 +351,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     muee_interp = (Nmuee_v_Te[:]/nAr)*V0*tau/(L*L)
     muee_spline = CubicSpline(Te_trans, muee_interp)
     muee_Te_spline = CubicSpline.derivative(muee_spline)
-    energymobility = Mobility(interpolate = True, mu_expression = muee_spline, mu_T_expression = muee_Te_spline)
+    energymobility = Mobility(interpolate = False, mu_expression = muee_spline, mu_T_expression = muee_Te_spline)
     muList.append(energymobility)
 
     # fig, ax = plt.subplots()
@@ -359,7 +364,6 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # ax.plot(Te_trans, mu_ee, marker = '*', label = 'Nominal')
     # # plt.axhline(y=params.mu[0], color='k', linestyle='--')
     # ax.legend()
-
 
 
 
@@ -386,3 +390,5 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # i = Ns - 2  -> electrons
     # i = Ns - 1  -> ions
     # i = Ns      -> electron energy
+
+

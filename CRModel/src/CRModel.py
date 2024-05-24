@@ -503,7 +503,7 @@ class CollisionalRadiativeModel:
         # Clip negative values
         
         # y[:,xp.where(y <= 0.0)] = 0.0
-        y[y < 0.0] = 0.0
+        # y[y < 0.0] = 0.0
 
         n_g = y[:,iNg]    # [#/m^3]
         ne = y[:,iNe]     # [#/m^3]
@@ -750,7 +750,7 @@ class CollisionalRadiativeModel:
         # Clip negative values
         
         # y[:,xp.where(y <= 0.0)] = 0.0
-        y[y < 0.0] = 0.0
+        # y[y < 0.0] = 0.0
 
         n_g = y[:,iNg]    # [#/m^3]
         ne = y[:,iNe]     # [#/m^3]
@@ -774,7 +774,6 @@ class CollisionalRadiativeModel:
         #  Ideal gas law: p_0 = p_n + p_i + p_e
         T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion)   # [K]
  
-        # T_g[T_g < 290.0] = 290.0 # eeeeeeeeee???????
         
 
         """
