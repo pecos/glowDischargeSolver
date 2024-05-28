@@ -314,7 +314,6 @@ class modelClosures:
 
             DEf[:,0] = self.diffusivityList[i].D_expression((2./3)*energy[:,i]) / nb
 
-
         elif EinsteinForm and i == 0:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             DEf = 2.0 / 3.0 * xp.multiply(energy[:,[i]], mu[:,[i]]) / V0
@@ -341,6 +340,7 @@ class modelClosures:
             D_U_tmp = D_ee * xp.diag(energy_U[i,j,:,:])
             D_U[:,:] = xp.diag(D_U_tmp)
 
+
         elif EinsteinForm and i == 0:
         # elif EinsteinForm and self.Z[i] == -1:
 
@@ -355,6 +355,7 @@ class modelClosures:
 
         if (j == self.Ns - 1):
             D_U[:,:] -= xp.diag(D[:,i] / nb)
+
 
         return D_U
 
@@ -868,7 +869,8 @@ class timeDomainCollocationSolver:
         # Temperature of species
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64) #NOTE(malamast): We now have self.Ns+1 instead of Ns
         energy[:,0] = Te[:,0] # For electrons
-        for i in range(1,self.Ns):
+        energy[:,1] = Te[:,0] # For ions
+        for i in range(2,self.Ns):
             energy[:,i] = Tg[:,0]
         energy[:,iee] = Te[:,0] # Electron Energy
 
@@ -884,6 +886,8 @@ class timeDomainCollocationSolver:
         if self.EinsteinForm:
             mu[:,iee] = (5./3.) * mu[:,0] 
             diffusivity[:,iee] = (5./3.) * diffusivity[:,0] 
+
+
 
 
 
@@ -990,7 +994,7 @@ class timeDomainCollocationSolver:
 
 
         joule = xp.zeros((self.Np,1),dtype=xp.float64)
-        for i in range(0, self.Ns-1):
+        for i in range(0, self.Ns-1): #NOTE(malamast): Should this be a loop or just electrons?
             if self.params.charge(i) != 0.0:
                 joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])        
 
@@ -1324,7 +1328,7 @@ class timeDomainCollocationSolver:
         # NOTE(malamast): I clip the electron temperature when a low value occurs. 
         # Te = np.where(Te < Tg,Tg, Te) 
 
-        Te_ne = -xp.multiply(Te/dens[:,iele],Imat) # NOTE(malamast): Why is there a minus here?
+        Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
         Te_nT = xp.multiply(Imat,1./dens[:,iele])          
 
         #print("Mean gas temperature = {0:.6e}".format((2./3)*xp.mean(Tg)*11604.))
@@ -1338,9 +1342,11 @@ class timeDomainCollocationSolver:
         mu     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         energy[:,0] = Te[:,0]
-        for i in range(1,self.Ns):
+        energy[:,1] = Te[:,0]
+        for i in range(2,self.Ns): #NOTE(malamast): We assume the ion mobility is a function of Te
             energy[:,i] = Tg[:,0]
         energy[:,iee] = Te[:,0]
+
 
         for i in range(0,self.Ns+1):
             mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
@@ -1350,13 +1356,16 @@ class timeDomainCollocationSolver:
         if self.EinsteinForm:
             mu[:,iee] = (5./3.) * mu[:,0] 
             diffusivity[:,iee] = (5./3.) * diffusivity[:,0] 
+
             
         energy_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
-        energy_U[0,0,:,:] = Te_ne;  energy_U[iee,0,:,:] = Te_ne
-        energy_U[0,self.Ns,:,:] = Te_nT; energy_U[iee,self.Ns,:,:] = Te_nT
-        for i in range(1,self.Ns):
+        energy_U[0,0,:,:] = Te_ne; energy_U[0,self.Ns,:,:] = Te_nT 
+        energy_U[iee,0,:,:] = Te_ne; energy_U[iee,self.Ns,:,:] = Te_nT
+        energy_U[1,0,:,:] = Te_ne; energy_U[1,self.Ns,:,:] = Te_nT 
+        for i in range(2,self.Ns): #NOTE(malamast): We assume the ion mobility is a function of Te
             for j in range(1,self.Nv):
-                energy_U[i,j,:,:] = xp.multiply(Imat,Tg_U[:,j]) # NOTE(malamast): Do we actually use that? 
+                energy_U[i,j,:,:] = xp.multiply(Imat,Tg_U[:,j]) # NOTE(malamast): This assumes that the diffusion coefficients of species 
+                                                                # is a function of Tg. It is not used for constant D's
 
 
         diffusivity_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
@@ -1723,9 +1732,9 @@ class timeDomainCollocationSolver:
         self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*(SJ_ni + SEC_U[1, :, :])
         self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
         self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*(SJ_nT + SEC_U[self.Ns, :, :])
-        for j in range(2,self.Ns): 
+        # for j in range(2,self.Ns): 
             #NOTE(malamast): This part was missing although its contribution is probably small. 
-            self.jac[self.Ns*self.Np:,j*self.Np:(j+1)*self.Np] -= dt*(SEC_U[j, :, :])
+            # self.jac[self.Ns*self.Np:,j*self.Np:(j+1)*self.Np] -= dt*(SEC_U[j, :, :])
         
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
@@ -2187,7 +2196,7 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
-            # start_time = cpu_time.time()
+            start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
@@ -2215,7 +2224,7 @@ class timeDomainCollocationSolver:
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
-            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
         if(savedata!=None):
             xp.save(savedata,Usave)

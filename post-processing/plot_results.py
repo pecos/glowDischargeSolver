@@ -104,15 +104,21 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # ic = 6; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 7; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "TeBC = 0.5"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 7; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "TeBC = 0.5"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 8; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "TeBC = 1.0"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "TeBC = 1.0"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 9; c = True; f = '../Results/CR/new/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "new"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
+
+ic = 10; c = True; f = '../Results/CR/new/1Torr_75V_Np150_BolsigEEDF_Einstein_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Einstein"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 11; c = True; f = '../newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Einstein"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 

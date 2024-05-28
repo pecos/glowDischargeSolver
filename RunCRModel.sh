@@ -14,14 +14,18 @@ NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 0 --gpu_device_id 0"
 
 # 6 species + 34 rxn - Nominal Rates case
 Np=150
-Nt=32000
+# Nt=32000
+Nt=128
+
 # dt=0.0078125
 dt=0.00390625
+# dt=0.001953125
+# dt=0.0009765625
 
-Nt1=128
-dt1=0.0078125
-# Nt1=256
-# dt1=0.00390625
+# Nt1=128
+# dt1=0.0078125
+Nt1=256
+dt1=0.00390625
 
 scenario=15
 # crashedFile="restart_CR_Np150_crashed.npy"
@@ -31,8 +35,8 @@ saveFile="newton_CR_CN_Np${Np}_fullsoln.npy"
 
 
 # --EinsteinForm
-baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --tscheme BE --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
-newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --EinsteinForm --alpha0 0.1 --increaseFac 1.5 --elasticCollisionActivation --backgroundSpecieActivation"
+baseCmd="$EXE --Np $Np --Nt $Nt --dt $dt --scenario $scenario --tscheme CN --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
+newtCmd="$NEWTEXE --Np $Np --Nt $Nt1 --Nn 20 --scenario $scenario --tscheme CN --alpha0 0.05 --increaseFac 1.5 --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
 saveCmd="$EXE --Np $Np --Nt $Nt1 --dt $dt1 --scenario $scenario --tscheme CN --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation"
 
 
@@ -131,21 +135,23 @@ rm -f $screenOut
 # # $saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart "${baseFile}T500.npy" --savedata $saveFile --outfile discard.npy >> $screenOut
 
 
+# $baseCmd --V0 100 --VDC 0.0 --t0 250.0 --restart "${baseFile}T250.npy"  \
+#                --outfile "${baseFile}T500.npy" >> $screenOut || error_exit "Second run failed"
 
 
 
-# echo "Run time domain shooting...${newtFile}"
-# $newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy"
 
+echo "Run 0 to 125...${baseFile}T125.npy"
+$baseCmd --V0 75 --VDC 0.0 --t0 0.0 --verbose --weakbc --outfile "discard.npy" 
 
 
 # echo "Run 0 to 125...${baseFile}T125.npy"
 # $baseCmd --V0 75 --VDC 0.0 --t0 0.0 \
 #                --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"
 
-echo "Run time domain shooting...${newtFile}"
-$newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy" \
-                                --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
+# echo "Run time domain shooting...${newtFile}"
+# $newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy" \
+#                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
-echo "Saving one period...${saveFile}"
-$saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart $newtFile --savedata $saveFile --outfile discard.npy >> $screenOut
+# echo "Saving one period...${saveFile}"
+# $saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart $newtFile --savedata $saveFile --outfile discard.npy >> $screenOut

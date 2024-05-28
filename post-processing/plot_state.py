@@ -29,20 +29,27 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 4; c = True; f = '../restart.npy'; cl = 'm-'; lb = "restart"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'm-'; lb = "T125"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 4; c = True; f = '../discard.npy'; cl = 'm-'; lb = "discard"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 4; c = True; f = '../restart.npy'; cl = 'm-'; lb = "restart"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 
@@ -291,20 +298,20 @@ if (isPlot):
 
 
 
-   # n4p
-   for isp in range(Ns-2): 
+   # # n4p
+   # for isp in range(Ns-2): 
 
-      fig,ax = plt.subplots(dpi=160)
-      for ic in case: 
-         if case[ic] and model[ic] == "CR":
-            ax.plot(xr, npop[ic][:,isp], clr[ic], lw=2, label=label[ic])
-      ax.legend(fontsize=12)
-      ax.set_xlim((xr[0], xr[-1]))
-      ax.set_xlabel(r"$x$ [cm]", fontsize=18)
-      plt.setp(ax.get_xticklabels(), fontsize=12)
-      ax.set_ylabel(r"$n_i}$ [m$^{-3}$] isp = " + str(isp), fontsize=18)
-      plt.setp(ax.get_yticklabels(), fontsize=12)
-      plt.savefig('./png/n4p_mean.png')
+   #    fig,ax = plt.subplots(dpi=160)
+   #    for ic in case: 
+   #       if case[ic] and model[ic] == "CR":
+   #          ax.plot(xr, npop[ic][:,isp], clr[ic], lw=2, label=label[ic])
+   #    ax.legend(fontsize=12)
+   #    ax.set_xlim((xr[0], xr[-1]))
+   #    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   #    plt.setp(ax.get_xticklabels(), fontsize=12)
+   #    ax.set_ylabel(r"$n_i}$ [m$^{-3}$] isp = " + str(isp), fontsize=18)
+   #    plt.setp(ax.get_yticklabels(), fontsize=12)
+   #    plt.savefig('./png/n4p_mean.png')
 
 
 

@@ -503,7 +503,7 @@ class CollisionalRadiativeModel:
         # Clip negative values
         
         # y[:,xp.where(y <= 0.0)] = 0.0
-        # y[y < 0.0] = 0.0
+        y[y < 0.0] = 0.0
 
         n_g = y[:,iNg]    # [#/m^3]
         ne = y[:,iNe]     # [#/m^3]
