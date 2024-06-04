@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 from Constants import *
 from read_Data import NIST_read_ArI, NIST_read_ArII, read_ArI_transitions,LXCat_read
+from crossSections import multipleCrossSections, typeDictS2I, typeDictI2S
 from ExcitationCrossSections import CharacteriseTransitions
 
 #----------------------------------------------------------------------------------
@@ -416,68 +417,158 @@ class modelParameters:
         """
         Read in LXCat data for excitation collision cross-sections
         """
-        self.collDict, self.Nlvl_InExcDat, self.NTrans_InExcDat = \
-            LXCat_read('./CRModel/Data/LXCat-Data/Excitation/','Cross section.txt')
-        os.chdir(homeDir)
-   
-        # fig,ax = plt.subplots(dpi=140)
-        # sigma = self.collDict['Ar']['Ar -> Ar(4s[3/2]2)']
-        # ax.plot(sigma[:,0],sigma[:,1],c='b',label="Ar -> Ar(4s[3/2]2)")
-        # ax.loglog()
-        #  # plt.ylim([1e2,1e26])
-        # plt.xlabel('E [eV]')
-        # plt.ylabel('$\sigma_{ex}$ [m$^2]$')
-        # plt.title('Excitation cross-sections')
-        # plt.grid(True)
-        # plt.legend()
-
-        # print(self.collDict.keys())
-        # print(self.collDict['Ar'].keys())
-        # print(self.collDict['Ar']['Ar -> Ar(4s[3/2]2)'][0,0])
 
         #----------------------------------------------------------------------------------
 
+        # self.collDict, self.Nlvl_InExcDat, self.NTrans_InExcDat = \
+            # LXCat_read('./CRModel/Data/LXCat-Data/Excitation/','Cross section.txt')
+        # os.chdir(homeDir)
+ 
+   
+        # # fig,ax = plt.subplots(dpi=140)
+        # # sigma = self.collDict['Ar']['Ar -> Ar(4s[3/2]2)']
+        # # ax.plot(sigma[:,0],sigma[:,1],c='b',label="Ar -> Ar(4s[3/2]2)")
+        # # ax.loglog()
+        # #  # plt.ylim([1e2,1e26])
+        # # plt.xlabel('E [eV]')
+        # # plt.ylabel('$\sigma_{ex}$ [m$^2]$')
+        # # plt.title('Excitation cross-sections')
+        # # plt.grid(True)
+        # # plt.legend()
+
+        # # print(self.collDict.keys())
+        # # print(self.collDict['Ar'].keys())
+        # # print(self.collDict['Ar']['Ar -> Ar(4s[3/2]2)'][0,0])
+
+
+        # self.collDict_list_2 = {}
+        # self.CollTransitions_LXCat_2 = []
+        # icount = 0
+        # for key1 in self.collDict:
+        #     for key2 in self.collDict[key1]:
+        #         if (key2.split(" ")[2] != 'Ar(Rydberg)'):
+        #             if (key2.split(" ")[0] in self.DictRacah_lvl.keys()) and  \
+        #                 (key2.split(" ")[2] in self.DictRacah_lvl.keys()):
+        #                 icount += 1
+        #                 i = self.DictRacah_lvl[key2.split(" ")[0]]
+        #                 j = self.DictRacah_lvl[key2.split(" ")[2]]
+        #                 # if (i > j):
+        #                 #     print(i,self.Racah_lvl[i],self.p.E_lvl[i]*cm_eV)
+        #                 #     print(j,self.Racah_lvl[j],self.p.E_lvl[j]*cm_eV)
+        #                 #     raise SystemExit(0)
+        #                 if (i < j):
+        #                     iCollTrans = self.CollTransition_Dict[i,j]
+        #                     self.CollTransitions_LXCat_2.append(iCollTrans)
+        #                     self.collDict_list_2[iCollTrans] = self.collDict[key1][key2]
+
+
+        #----------------------------------------------------------------------------------
+
+
+        # crsFileName = './CRModel/Data/LXCat-Data/Excitation/Cross section.txt'
+        # crsFileName = './CRModel/Data/LXCat-Data/BSR/Excitation/Download/Cross section.txt'
+        # crsFileName = './CRModel/Data/LXCat-Data/Case1_BSR/Cross section.txt'
+        crsFileName = './CRModel/Data/LXCat-Data/Case2_Biagi+BSR/Cross section.txt'
+
+        CrossSections = multipleCrossSections(crsFileName)
+        # self.collDict, self.Nlvl_InExcDat, self.NTrans_InExcDat 
+
         self.collDict_list = {}
-        self.CollTransitions_LXCat_BSR = []
+        self.CollTransitions_LXCat = []
         icount = 0
-        for key1 in self.collDict:
-            for key2 in self.collDict[key1]:
-                if (key2.split(" ")[2] != 'Ar(Rydberg)'):
-                    if (key2.split(" ")[0] in self.DictRacah_lvl.keys()) and  \
-                        (key2.split(" ")[2] in self.DictRacah_lvl.keys()):
-                        icount += 1
-                        i = self.DictRacah_lvl[key2.split(" ")[0]]
-                        j = self.DictRacah_lvl[key2.split(" ")[2]]
-                        # if (i > j):
-                        #     print(i,self.Racah_lvl[i],self.p.E_lvl[i]*cm_eV)
-                        #     print(j,self.Racah_lvl[j],self.p.E_lvl[j]*cm_eV)
-                        #     raise SystemExit(0)
-                        if (i < j):
-                            iCollTrans = self.CollTransition_Dict[i,j]
-                            self.CollTransitions_LXCat_BSR.append(iCollTrans)
-                            self.collDict_list[iCollTrans] = self.collDict[key1][key2]
+        for c in CrossSections.crs:
+            if typeDictI2S[c.colType] == "EXCITATION":
+
+                lower_lvl = c.colName.split(" ")[0]
+                upper_lvl = c.colName.split(" ")[2]
+                # if (upper_lvl != 'Ar(Rydberg)' and  upper_lvl != 'Ar(HIGH)'):
+                    
+                if (lower_lvl in self.DictRacah_lvl.keys()) and  \
+                    (upper_lvl in self.DictRacah_lvl.keys()):
+                
+
+                    icount += 1
+                    i = self.DictRacah_lvl[lower_lvl]
+                    j = self.DictRacah_lvl[upper_lvl]
+                    # if (i > j):
+                    #     print(i,self.Racah_lvl[i],self.p.E_lvl[i]*cm_eV)
+                    #     print(j,self.Racah_lvl[j],self.p.E_lvl[j]*cm_eV)
+                    #     raise SystemExit(0)
+                    if (i < j):
+                        iCollTrans = self.CollTransition_Dict[i,j]
+                        self.CollTransitions_LXCat.append(iCollTrans)
+                        self.collDict_list[iCollTrans] = c.data
+
+            if typeDictI2S[c.colType] == "IONIZATION": # NOTE(malamast): LXCat data includes cs only for ground state.
+                self.IonizationGround = c.data
+
+        #----------------------------------------------------------------------------------
 
         self.CollTransitions_Rest = []
         for element in self.CollTransitionsList:
-            if element not in self.CollTransitions_LXCat_BSR:
+            if element not in self.CollTransitions_LXCat:
                 self.CollTransitions_Rest.append(element)
 
 
-        self.CollTransitions_LXCat_BSR = np.array(self.CollTransitions_LXCat_BSR)
-        self.NCollTrans_LXCat_BSR = len(self.CollTransitions_LXCat_BSR)
+        self.CollTransitions_LXCat = np.array(self.CollTransitions_LXCat)
+        self.NCollTrans_LXCat = len(self.CollTransitions_LXCat)
 
-        self.eij_LXCat_BSR = np.zeros([self.NCollTrans_LXCat_BSR])
+        self.eij_LXCat = np.zeros([self.NCollTrans_LXCat])
 
-        self.CollTransition_ij_LXCat_BSR = np.zeros([2*self.NCollTrans_LXCat_BSR],dtype=np.int32)
-        for iter in range(self.NCollTrans_LXCat_BSR):
-            iCollTrans = self.CollTransitions_LXCat_BSR[iter]
+        self.CollTransition_ij_LXCat = np.zeros([2*self.NCollTrans_LXCat],dtype=np.int32)
+        for iter in range(self.NCollTrans_LXCat):
+            iCollTrans = self.CollTransitions_LXCat[iter]
             i = self.CollTransition_ij[iCollTrans,0] # Lower lever
             j = self.CollTransition_ij[iCollTrans,1] # Upper level    
-            self.CollTransition_ij_LXCat_BSR[iter] = i 
-            self.CollTransition_ij_LXCat_BSR[iter + self.NCollTrans_LXCat_BSR] = j 
+            self.CollTransition_ij_LXCat[iter] = i 
+            self.CollTransition_ij_LXCat[iter + self.NCollTrans_LXCat] = j 
 
             eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV  
-            self.eij_LXCat_BSR[iter] = eij
+            self.eij_LXCat[iter] = eij
+
+
+
+
+        # # LXCat data - Map
+        # sigma_ij = np.zeros([self.N_lvl,self.N_lvl])
+        # for iCollTrans in self.CollTransitions_LXCat:
+            
+        #     i = self.CollTransition_ij[iCollTrans,0] # Lower lever
+        #     j = self.CollTransition_ij[iCollTrans,1] # Upper level                               
+        #     eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV 
+
+        #     sigma_ij[i,j] = max(self.collDict_list[iCollTrans][:,1])
+            
+                        
+        # sigma_ij[np.where(sigma_ij == 0.0)] = 'nan'
+
+        # # creating a plot
+        # pixel_plot = plt.figure(dpi=140)
+        # # plotting a plot
+        # # pixel_plot.add_axes()
+        # # customizing plot
+        # plt.title("Max $\sigma$ for all possible transitions")
+        # # pixel_plot = plt.imshow(sigma_ij, cmap='jet', interpolation='nearest', origin='lower')
+        # pixel_plot = plt.imshow(sigma_ij, cmap='jet',origin='lower')
+        # plt.xlabel('upper level index')
+        # plt.ylabel('lower level index')    
+        # plt.colorbar(pixel_plot)
+        # # ## save a plot
+        # # ## plt.savefig('pixel_plot.png')
+
+        # # fig,ax = plt.subplots(dpi=140)
+        # # ax.plot(range(self.N_lvl),self.E_lvl*cm_eV,'.')
+        # # # ax.plot(E_lvl*cm_eV,'.')
+        # # # ax.semilogy()
+        # # # plt.ylim([1e2,1e26])
+        # # plt.ylabel('E [ev]')
+        # # plt.xlabel('level index')
+        # # plt.title('Energy levels')
+        # # plt.grid(True)
+        # # # plt.legend()
+
+        # plt.show()
+        # exit(-1)
 
             
 
@@ -498,7 +589,7 @@ class modelParameters:
 
     def makeSets(self):      
         self.EmissionTransitions = set(self.EmissionTransitions)
-        # self.CollTransitions_LXCat_BSR = set(self.CollTransitions_LXCat_BSR)
+        # self.CollTransitions_LXCat = set(self.CollTransitions_LXCat)
         # self.CollTransitions_Rest = set(self.CollTransitions_Rest)
 
 
@@ -508,17 +599,17 @@ class modelParameters:
         # self.sigma_ij_Exc_2 = np.zeros([self.NCollTrans,len(eRange)])
         
         
-        # Excitation BSR
-        self.sigma_ij_Exc_BSR = {}
-        for iCollTrans in self.CollTransitions_LXCat_BSR: 
+        # Excitation LXCat
+        self.sigma_ij_Exc_LXCat = {}
+        for iCollTrans in self.CollTransitions_LXCat: 
             i = self.CollTransition_ij[iCollTrans,0] # Lower lever
             j = self.CollTransition_ij[iCollTrans,1] # Upper level
             eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV
 
-            self.sigma_ij_Exc_BSR[iCollTrans] = np.interp(eRange,self.collDict_list[iCollTrans][:,0],self.collDict_list[iCollTrans][:,1])
-            self.sigma_ij_Exc_BSR[iCollTrans][np.where(eRange < eij)] = 0
+            self.sigma_ij_Exc_LXCat[iCollTrans] = np.interp(eRange,self.collDict_list[iCollTrans][:,0],self.collDict_list[iCollTrans][:,1])
+            self.sigma_ij_Exc_LXCat[iCollTrans][np.where(eRange < eij)] = 0
 
-            # self.sigma_ij_Exc_2[iCollTrans] = self.sigma_ij_Exc_BSR[iCollTrans]
+            # self.sigma_ij_Exc_2[iCollTrans] = self.sigma_ij_Exc_LXCat[iCollTrans]
 
 
         # Excitation Rest
@@ -578,8 +669,8 @@ class modelParameters:
         self.sigma_ij_Exc = []
 
         for iCollTrans in range(self.NCollTrans):
-            if iCollTrans in self.CollTransitions_LXCat_BSR:
-                self.sigma_ij_Exc.append(self.sigma_ij_Exc_BSR[iCollTrans])
+            if iCollTrans in self.CollTransitions_LXCat:
+                self.sigma_ij_Exc.append(self.sigma_ij_Exc_LXCat[iCollTrans])
             elif iCollTrans in self.CollTransitions_Rest:
                 self.sigma_ij_Exc.append(self.sigma_ij_Exc_Rest[iCollTrans])
             else:
@@ -608,11 +699,11 @@ class modelParameters:
 
    
         # Electron Impact Ionization
-        self.sigma_ionBSR = np.interp(eRange,IonizationBSR[:,0],IonizationBSR[:,1])  
+        self.sigma_ionLXCat = np.interp(eRange,self.IonizationGround[:,0],self.IonizationGround[:,1])  
         deltaIon = Eion - self.E_lvl[0]*cm_eV 
-        self.sigma_ionBSR[np.where(eRange < deltaIon)] = 0
+        self.sigma_ionLXCat[np.where(eRange < deltaIon)] = 0
 
-        # sigma_ion = self.sigma_ionBSR     
+        # sigma_ion = self.sigma_ionLXCat     
         # sigma_ion_2 = 4*np.pi*a0**2*RydEn**2/(eRange + 3.25*deltaIon)*(5/(3*deltaIon) - 1/eRange - 2*deltaIon/(3*eRange**2))   # (Vriens and Smeets, 1980) Which Borh radius do I need here?         
         # # sigma_ion[np.where(eRange < deltaIon)] = 0
 
@@ -626,7 +717,7 @@ class modelParameters:
         # plt.show()
 
         self.sigma_ij_Ion = {}
-        self.sigma_ij_Ion[0] = self.sigma_ionBSR
+        self.sigma_ij_Ion[0] = self.sigma_ionLXCat
         for i in range(1,self.N_lvl):              
             SubShell = str(self.SubShell_lvl[i])
             # print(SubShell)
@@ -779,7 +870,7 @@ class modelParameters:
         self.sigma_ij_deExc = np.array(self.sigma_ij_deExc)  
         # self.sigma_ij_Exc_comb = np.stack((self.sigma_ij_Exc, self.sigma_ij_deExc), axis=2)
 
-        self.sigma_ij_Exc_BSR = np.array(list(self.sigma_ij_Exc_BSR.values()))        
+        self.sigma_ij_Exc_LXCat = np.array(list(self.sigma_ij_Exc_LXCat.values()))        
         self.sigma_ij_Ion = np.array(list(self.sigma_ij_Ion.values()))
         
         self.sigma_ia_ion = np.array(list(self.sigma_ia_ion.values()))

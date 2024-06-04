@@ -866,6 +866,8 @@ class timeDomainCollocationSolver:
         nT_x   = self.Dp @ nT
         phi_x  = self.Dp @ self.phi
 
+        # Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,self.Ns-1])
+
         # Temperature of species
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64) #NOTE(malamast): We now have self.Ns+1 instead of Ns
         energy[:,0] = Te[:,0] # For electrons
@@ -889,8 +891,6 @@ class timeDomainCollocationSolver:
 
 
 
-
-
         # Form species fluxes
         fspec = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
@@ -902,7 +902,6 @@ class timeDomainCollocationSolver:
         # overwrite endpoints in fi (weakly impose BC)
         fspec[ 0,1] = -self.params.ksion*dens[ 0,iion] + mu[0,iion]*dens[ 0,iion]*(-phi_x[ 0])
         fspec[-1,1] =  self.params.ksion*dens[-1,iion] + mu[-1,iion]*dens[-1,iion]*(-phi_x[-1])
-
 
 
         # overwrite endpoints in fe (weakly impose BC)
@@ -1023,7 +1022,8 @@ class timeDomainCollocationSolver:
         # Computation of total, displacement, and particle current #
         ############################################################
         E_currentTimeStep = - phi_x
-
+ 
+ 
         # pull off state for convenience
         dens_previousTimeStep = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
@@ -1038,6 +1038,7 @@ class timeDomainCollocationSolver:
 
         displacementCurrent = self.params.eps0 \
             * (E_currentTimeStep - E_previousTimeStep) / dt * self.params.V0Ltau
+
 
         particleCurrent = xp.zeros((2,self.Ns),dtype=xp.float64)
         particleCurrent[0,iion]  = mu[0,1] * self.params.LLV0tau \
@@ -1415,11 +1416,11 @@ class timeDomainCollocationSolver:
         # NOTE(malamast): This was double calculated before. Now we just copy the flux
         fe[:,0] = fspec[:,0]
 
+
+
         # overwrite endpoints in fi (weakly impose BC)
-        fspec[ 0,1] = -self.params.ksion * dens[ 0,iion] \
-                    + mu[0,1] * dens[ 0,iion] * (-phi_x[ 0])
-        fspec[-1,1] = +self.params.ksion * dens[-1,iion] \
-                    + mu[-1,1] * dens[-1,iion] * (-phi_x[-1])
+        fspec[ 0,1] = -self.params.ksion * dens[ 0,iion] + mu[0,1] * dens[ 0,iion] * (-phi_x[ 0])
+        fspec[-1,1] = +self.params.ksion * dens[-1,iion] + mu[-1,1] * dens[-1,iion] * (-phi_x[-1])
 
         # species equations
         fspec_U = xp.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=xp.float64)
@@ -2063,7 +2064,7 @@ class timeDomainCollocationSolver:
 
             # self.U2[self.U2<0.0] = 0.0 # NOTE(malamast): This causes the periodic solver to fail. 
             #                              # Some small negative values can occur close to the boundaries 
-            #                              # where the numver densities are zero.
+            #                              # where the number densities are zero.
 
             r = self.residual(self.U2, time, dt, weak_bc)
 
@@ -2196,7 +2197,7 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
-            start_time = cpu_time.time()
+            # start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
@@ -2224,7 +2225,7 @@ class timeDomainCollocationSolver:
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
-            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
         if(savedata!=None):
             xp.save(savedata,Usave)
@@ -2478,8 +2479,8 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==15):
         print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
-        Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
-        # Ns = 1+30+1+1 # background state + excited states + electrons + ions 
+        # Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        Ns = 1+30+1+1 # background state + excited states + electrons + ions 
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)

@@ -202,7 +202,7 @@ class CollisionalRadiativeModel:
         self.ElecrtonImpactIonizationRate = np.zeros((self.N_lvl,self.Np,2), dtype=np.float64)       
         self.ElecrtonImpactExcitationRate = np.zeros((self.p.NCollTrans,self.Np,2), dtype=np.float64)
 
-        self.ElecrtonImpactExcitationRate_LXCat = np.zeros((self.p.NCollTrans_LXCat_BSR,self.Np,2), dtype=np.float64)
+        self.ElecrtonImpactExcitationRate_LXCat = np.zeros((self.p.NCollTrans_LXCat,self.Np,2), dtype=np.float64)
 
         # self.Aeff_ji = np.zeros((self.p.NRadTrans,self.Np), dtype=np.float64)
 
@@ -309,14 +309,14 @@ class CollisionalRadiativeModel:
 
         self.p.sigma_ij_Exc = cp.asarray(self.p.sigma_ij_Exc) 
 
-        # for key in self.p.sigma_ij_Exc_BSR: 
-            # self.p.sigma_ij_Exc_BSR[key] = cp.asarray(self.p.sigma_ij_Exc_BSR[key]) 
-        self.p.sigma_ij_Exc_BSR = cp.asarray(self.p.sigma_ij_Exc_BSR) 
+        # for key in self.p.sigma_ij_Exc_LXCat: 
+            # self.p.sigma_ij_Exc_LXCat[key] = cp.asarray(self.p.sigma_ij_Exc_LXCat[key]) 
+        self.p.sigma_ij_Exc_LXCat = cp.asarray(self.p.sigma_ij_Exc_LXCat) 
 
         for key in self.p.sigma_ij_Exc_Rest: 
             self.p.sigma_ij_Exc_Rest[key] = cp.asarray(self.p.sigma_ij_Exc_Rest[key])
 
-        self.p.sigma_ionBSR  = cp.asarray(self.p.sigma_ionBSR)
+        self.p.sigma_ionLXCat  = cp.asarray(self.p.sigma_ionLXCat)
 
         # for key in self.p.sigma_ij_Ion:
             # self.p.sigma_ij_Ion[key] = cp.asarray(self.p.sigma_ij_Ion[key])  
@@ -675,7 +675,6 @@ class CollisionalRadiativeModel:
             self.AtomImpactExcitationRate[itrans,:,0] = Kij
             self.AtomImpactExcitationRate[itrans,:,1] = Lji
             
- 
 
         ################# Photorecombination/photoionization ##################
         nTrans = 5

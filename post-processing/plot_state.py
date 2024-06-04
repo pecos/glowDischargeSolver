@@ -29,14 +29,14 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 4; c = True; f = '../restart.npy'; cl = 'm-'; lb = "restart"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -47,8 +47,19 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # ic = 4; c = True; f = '../discard.npy'; cl = 'm-'; lb = "discard"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 4; c = True; f = '../restart.npy'; cl = 'm-'; lb = "restart"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'm-'; lb = "restart"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+# ic = 1; c = True; f = '../exception_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 2; c = True; f = '../exception_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 3; c = True; f = '../exception_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 
@@ -134,6 +145,15 @@ g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
 
 
 
+dEps_CR = np.array([ 0.0, 15.7596119, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153,
+                     13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902,
+                     13.30222747, 13.32785705, 13.47988682, 13.84503846, 13.86366857, 13.90345461,
+                     13.97923734, 14.01273812, 14.06302723, 14.06829767, 14.0899685,  14.09905592,
+                     14.15251505, 14.2136715,  14.23402264, 14.23610607, 14.24102775, 14.25508557,
+                     14.30366841,  0.0])
+
+g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 
+                 1, 3, 5, 9, 7, 5, 5, 3, 7, 3, 5, 5, 7, 1, 3, 3, 1])
 
 
 ne = {}; ni = {}; nb = {}; nee = {}; npop = {}; Tg = {}
@@ -153,6 +173,8 @@ for ic in case:
       # Ns is the number of scpecies
       if model[ic] == "CR":
          Ns = 17 # electrons + ions + 4 4s levels + 10 4p levels + background state
+         Ns = 1+30+1+1
+
       elif model[ic] == "6sp":
          Ns = 6 #  electrons + ions + nm + nr + n4p + nb 
          

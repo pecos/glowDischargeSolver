@@ -131,6 +131,17 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # BC parameters
     # ks = 1.19e7  # electron recombination rate [cm/s]
     ks = 1.366109824889323e7 # electron recombination rate [cm/s/eV] #NOTE(malamast): How did we estimate that?
+    # 1/4 * (2/3 e 8/pi/me)**0.5  * 100  
+    # 1/4 * np.sqrt(2/3*spc.e * 8/np.pi/spc.m_e) * 100.0
+
+
+    Mr_Ar = 39.948/1000.0       # [kg/mol]
+    M_Ar = Mr_Ar/spc.N_A        # [kg] mass of argon atom (6.63352088e-26 kg)
+    M_ArIon = M_Ar - spc.m_e    # [kg] mass of argon ion 
+    
+    ksion = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_ArIon) * 100.0 # electron rate [cm/s] 
+
+    ksa = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_Ar) * 100.0 # electron rate [cm/s] 
 
     ###################################################################
     # Constants of nature (probably shouldn't change unless you have
@@ -149,15 +160,17 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     ###################################################################
 
     # 1) Convert input units to base SI (except eV)
-    nDe  *= 100. # 1/(m*s)
-    nDi  *= 100. # 1/(m*s)
-    nDm  *= 100.
-    nDr  *= 100.
-    nD4p *= 100.
-    nmue *= 100. # 1/(V*m*s)
-    nmui *= 100. # 1/(V*m*s)
-    ks   *= 0.01 # m/s
-    se   *= 1.0e-20  # m^2
+    nDe   *= 100. # 1/(m*s)
+    nDi   *= 100. # 1/(m*s)
+    nDm   *= 100.
+    nDr   *= 100.
+    nD4p  *= 100.
+    nmue  *= 100. # 1/(V*m*s)
+    nmui  *= 100. # 1/(V*m*s)
+    ks    *= 0.01 # m/s
+    ksion *= 0.01 # m/s
+    ksa   *= 0.01 # m/s
+    se    *= 1.0e-20  # m^2
 
     # 2) Compute "raw" transport parameters
     De  = nDe/nAr
@@ -188,6 +201,8 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     qStar    = V0/e0 # qe*V0/e0, since e0 in eV, need qe*V0 in eV, which is just V0 in V
     alpha    = qe*np0*L*L/(V0*eps0)
     ks       = ks*tau/L
+    ksion    = ksion*tau/L
+    ksa      = ksa*tau/L
     p0       = p/qe/np0
 
     ThermalConductivity = 17.7e-3 # [W/m/K] at 300K
@@ -212,13 +227,12 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
 
 
     # Non-dimensionalization parameters
-    params.np0     = np0           # "nominal" electron density [1/m^3]
-    params.nAr     = nAr
-    params.nAronp0 = nAr / np0
-    params.tau     = tau
-
-    params.tauOvernp0 = tau/np0
-    params.tauOvernAr = tau/nAr
+    params.np0         = np0   # "nominal" electron density [1/m^3]
+    params.nAr         = nAr
+    params.nAronp0     = nAr / np0
+    params.tau         = tau
+    params.tauOvernp0  = tau/np0
+    params.tauOvernAr  = tau/nAr
 
     
     # params.dH[:]   = dH[:]
@@ -226,6 +240,8 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     params.qStar   = qStar
     params.alpha   = alpha
     params.ks      = ks
+    params.ksion   = ksion
+    params.ksa     = ksa
     params.gam     = gam
     params.kappaB  = kappaB
     params.p0      = p0
@@ -236,11 +252,6 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # params.EC = 2.0 * me / mAr * 3.8e9 * tau
     
     params.verticalShift = verticalShift / V0
-
-
-    # What about params.ksion?
-    # params.ksion = 1/4 * np.sqrt(8*kB*Tg0/pi/mi) # I need to nondimensionalize this
-
 
     
     # Parameters needed for the CR model
@@ -271,22 +282,24 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     EN = ElectricFieldData[:,1]
     Te_trans = ElectricFieldData[:,0]
     Te_trans /= eV
-    threshold_Te0 = 2.0    
+    threshold_Te0 = 3.0    
     indices_Te0 = np.searchsorted(Te_trans, threshold_Te0)
 
-    threshold_Te0_2 = 2.5    
-    indices_Te0_2 = np.searchsorted(Te_trans, threshold_Te0_2)
-    clip_factor = smooth_clip(Te_trans, threshold_Te0)
+    # threshold_Te0_2 = 2.5    
+    # indices_Te0_2 = np.searchsorted(Te_trans, threshold_Te0_2)
+    # clip_factor = smooth_clip(Te_trans, threshold_Te0)
 
     # fig, ax = plt.subplots()
     # ax.set_title('Electric field / N (Td)')
-    # ax.set_ylabel('Te [eV]')
-    # ax.set_xlabel(r"$ E / N_{Ar} \, $ [$ \, Td$]")
-    # ax.plot(EN,Te_trans, marker = '.', label = 'bolsig+')
-    # energy_fit = 2.5 * np.sqrt(EN) * (1+(EN/5)**2)**(-0.2) * (1+(EN/1000)**2)**0.7
-    # ax.plot(EN,energy_fit*2.0/3.0, marker = '.', label = 'Empirical fit')
+    # ax.set_ylabel(r"$ E / N_{Ar} \, $ [$ \, Td$]")
+    # ax.set_xlabel('Te [eV]')
+    # ax.plot(Te_trans,EN, marker = '.', label = 'bolsig+')
+    # # energy_fit = 2.5 * np.sqrt(EN) * (1+(EN/5)**2)**(-0.2) * (1+(EN/1000)**2)**0.7
+    # # ax.plot(EN,energy_fit*2.0/3.0, marker = '.', label = 'Empirical fit')
     # ax.legend()
-
+    
+    # plt.show()
+    # exit(-1)
 
 
 
@@ -303,7 +316,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     mue_Te_spline = CubicSpline.derivative(mue_spline)
     # mue_spline_2 = CubicSpline(Te_trans, mue_interp_2)
     # mue_Te_spline_2 = CubicSpline.derivative(mue_spline_2)
-    mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    mobility = Mobility(interpolate = False, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
     muList.append(mobility)
     
     # fig, ax = plt.subplots()
@@ -378,7 +391,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # De_interp_2 = uniform_filter1d(De_interp, size=20)
     De_spline = CubicSpline(Te_trans, De_interp)
     De_Te_spline = CubicSpline.derivative(De_spline)
-    diffusivity = Diffusivity(interpolate = True, D_expression = De_spline, D_T_expression = De_Te_spline)
+    diffusivity = Diffusivity(interpolate = False, D_expression = De_spline, D_T_expression = De_Te_spline)
     diffList.append(diffusivity)
 
     # De_spline_2 = CubicSpline(Te_trans, De_interp_2)
@@ -394,10 +407,10 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # ax.set_ylabel(r"$D_e \, $ [$ \, m^{2}/s$]")
     # ax.plot(Te_trans, De_interp, marker = '.', label = 'raw')
     # # ax.plot(Te_trans, De_interp_2, marker = '.', label = 'smoothed')
-    # ax.plot(Te_trans, De_Te_spline(Te_trans), marker = '*', label = 'raw - grad')
+    # # ax.plot(Te_trans, De_Te_spline(Te_trans), marker = '*', label = 'raw - grad')
     # # ax.plot(Te_trans, De_Te_spline_2(Te_trans), marker = '*', label = 'smoothed - grad')
     # ax.plot(Te_trans, De_spline_Ein(Te_trans), marker = '.', label = 'Einstein')
-    # ax.plot(Te_trans, De_Te_spline_Ein(Te_trans), marker = '*', label = 'Einstein - grad')
+    # # ax.plot(Te_trans, De_Te_spline_Ein(Te_trans), marker = '*', label = 'Einstein - grad')
     # plt.axhline(y=params.D[0], color='k', linestyle='--')
     # ax.legend()
 
@@ -409,7 +422,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     Di_interp = uniform_filter1d(Di_interp, size=10)
     Di_spline = CubicSpline(Te_trans, Di_interp)
     Di_Te_spline = CubicSpline.derivative(Di_spline)
-    diffusivity = Diffusivity(interpolate = True, D_expression = Di_spline, D_T_expression = Di_Te_spline)
+    diffusivity = Diffusivity(interpolate = False, D_expression = Di_spline, D_T_expression = Di_Te_spline)
     diffList.append(diffusivity)
 
     # fig,ax = plt.subplots()
