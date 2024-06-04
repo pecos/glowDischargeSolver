@@ -17,7 +17,7 @@ sys.path.append(crmodel_dir)
 
 
 from os import environ
-N_THREADS = '8'
+N_THREADS = '4'
 environ['OMP_NUM_THREADS'] = N_THREADS
 environ['OPENBLAS_NUM_THREADS'] = N_THREADS
 environ['MKL_NUM_THREADS'] = N_THREADS
@@ -586,11 +586,9 @@ class timeDomainCollocationSolver:
             Nr = 23
         elif(scenario==14):
             Nr = 23
-        elif(scenario==16):
-            Nr = 23
         elif(scenario==21):
             Nr = 8
-        elif(scenario==15):
+        elif(scenario==15 or scenario==16):
             Nr = 0 # It is evaluated within the model based on the number of species you include.            
             self.solveCRModel = True
             # if self.temporal_scheme != "BE" or self.temporal_scheme != "CN":
@@ -635,11 +633,9 @@ class timeDomainCollocationSolver:
             setPsaapProperties_6Species_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==14):
             setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
-        elif(scenario==16):
-            setPsaapProperties_6Species_5Torr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
-        elif(scenario==15):
+        elif(scenario==15 or scenario==16):
             setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
             self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, \
                 self.params.Pressure, self.params.GasTemperature, backgroundSpecieActivationFactor)
@@ -746,9 +742,9 @@ class timeDomainCollocationSolver:
 
         self.I_Np               = cp.asarray(self.I_Np)
         self.I_Ndof             = cp.asarray(self.I_Ndof)
-        
-        self.ntot_U             = cp.asarray(self.ntot_U)
 
+        self.ones_Np             = cp.asarray(self.ones_Np)
+        self.ntot_U             = cp.asarray(self.ntot_U)
 
 
       return
@@ -2026,8 +2022,8 @@ class timeDomainCollocationSolver:
 
         normr = normr0 = xp.linalg.norm(r)
 
-        # if xp == cp:
-        #   cp.cuda.runtime.deviceSynchronize()
+        if xp == cp:
+          cp.cuda.runtime.deviceSynchronize()
 
         count = 0
         converged = ((normr/normr0 < rtol) or (normr < atol))
@@ -2197,7 +2193,7 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
-            # start_time = cpu_time.time()
+            start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
@@ -2225,7 +2221,7 @@ class timeDomainCollocationSolver:
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
-            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
         if(savedata!=None):
             xp.save(savedata,Usave)
@@ -2479,7 +2475,9 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==15):
         print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
-        # Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+    elif(args.scenario==16):
+        print('#   Running CR model = 16 (33 species, 1Torr, Nominal)')
         Ns = 1+30+1+1 # background state + excited states + electrons + ions 
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
@@ -2548,8 +2546,8 @@ if __name__ == "__main__":
         gpu_device = cp.cuda.Device(args.gpu_device_id)
         gpu_device.use()
 
-    # profile = cProfile.Profile()
-    # profile.enable()
+    profile = cProfile.Profile()
+    profile.enable()
     tic = cpu_time.time()
 
     # Run for desired number of time steps
@@ -2564,8 +2562,8 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    # profile.disable()
-    # profile.print_stats(sort='tottime')
+    profile.disable()
+    profile.print_stats(sort='tottime')
     # profile.print_stats(sort='cumulative')
     # profile.print_stats(sort='line')
     # profile.print_stats(sort='nfl')

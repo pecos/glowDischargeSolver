@@ -21,6 +21,7 @@ from scipy.optimize import approx_fprime
 from scipy.interpolate import RegularGridInterpolator
 
 # import cupyx.scipy.sparse.linalg
+# from cupyx.scipy.interpolate import RegularGridInterpolator
 
 import time as cpu_time
 
@@ -308,6 +309,8 @@ class CollisionalRadiativeModel:
 
 
         self.p.sigma_ij_Exc = cp.asarray(self.p.sigma_ij_Exc) 
+        self.p.sigma_ij_deExc = cp.asarray(self.p.sigma_ij_deExc) 
+
 
         # for key in self.p.sigma_ij_Exc_LXCat: 
             # self.p.sigma_ij_Exc_LXCat[key] = cp.asarray(self.p.sigma_ij_Exc_LXCat[key]) 
@@ -328,11 +331,13 @@ class CollisionalRadiativeModel:
             # self.p.sigma_ia_ion[key] = cp.asarray(self.p.sigma_ia_ion[key])
         self.p.sigma_ia_ion = cp.asarray(self.p.sigma_ia_ion)
 
-        for key in self.p.sigma_ij_Atom_ExcFromGround:
-            self.p.sigma_ij_Atom_ExcFromGround[key]  = cp.asarray(self.p.sigma_ij_Atom_ExcFromGround[key] )
+        # for key in self.p.sigma_ij_Atom_ExcFromGround:
+            # self.p.sigma_ij_Atom_ExcFromGround[key]  = cp.asarray(self.p.sigma_ij_Atom_ExcFromGround[key])
+        self.p.sigma_ij_Atom_ExcFromGround  = cp.asarray(self.p.sigma_ij_Atom_ExcFromGround)
 
-        for key in self.p.sigma_ij_Atom_Exc:
-            self.p.sigma_ij_Atom_Exc[key] = cp.asarray(self.p.sigma_ij_Atom_Exc[key] )
+        # for key in self.p.sigma_ij_Atom_Exc:
+            # self.p.sigma_ij_Atom_Exc[key] = cp.asarray(self.p.sigma_ij_Atom_Exc[key])
+        self.p.sigma_ij_Atom_Exc = cp.asarray(self.p.sigma_ij_Atom_Exc)
 
         # for key in self.p.sigma_c_ion:
             # self.p.sigma_c_ion[key] = cp.asarray(self.p.sigma_c_ion[key])
@@ -526,29 +531,29 @@ class CollisionalRadiativeModel:
         T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion)   # [K]
  
         # T_g[T_g < 290.0] = 290.0 # eeeeeeeeee???????
-        # T_e = np.where(T_e < T_g*K_eV,T_g*K_eV, T_e)       
+        # T_e = xp.where(T_e < T_g*K_eV,T_g*K_eV, T_e)       
 
         """
         Compute Electron Energy Distribution Function (EEDF) based on a Maxwellian distribution:
         """  
 
-        # EEDF= self.MaxwellianDistribution_vec(self.eRange,T_e) # np.shape(EEDF) -> (1000, 150)
+        # EEDF= self.MaxwellianDistribution_vec(self.eRange,T_e) # xp.shape(EEDF) -> (1000, 150)
         # EEDFnorm = self.trapz(EEDF, axis=0 )
         # eVelTimesEEDF =  self.eVel*EEDF/EEDFnorm 
 
-        # Te_index = np.searchsorted(self.Te_eedf, T_e)
+        # Te_index = xp.searchsorted(self.Te_eedf, T_e)
         # Te_index[T_e > self.Te_eedf[-1]] = len(self.Te_eedf)-1
-        # EEDF = np.transpose(self.EEDF_list[Te_index])     
-        # eVelTimesEEDF =  self.eVel*EEDF # np.shape(eVelTimesEEDF) -> (1000, 150)
+        # EEDF = xp.transpose(self.EEDF_list[Te_index])     
+        # eVelTimesEEDF =  self.eVel*EEDF # xp.shape(eVelTimesEEDF) -> (1000, 150)
         
 
-        EEDF = np.zeros((self.NeRange,self.Np), dtype=np.float64)        
+        EEDF = xp.zeros((self.NeRange,self.Np), dtype=xp.float64)        
         for ip in range(self.Np): 
-            points = np.column_stack((self.ones_eRange * T_e[ip], self.eRange[:,0]))
+            points = xp.column_stack((self.ones_eRange * T_e[ip], self.eRange[:,0]))
             EEDF[:,ip] = self.EEDFinterpolator(points)
 
         EEDF[EEDF<0.0] = 0.0
-        eVelTimesEEDF =  self.eVel*EEDF # np.shape(eVelTimesEEDF) -> (1000, 150)
+        eVelTimesEEDF =  self.eVel*EEDF # nx.shape(eVelTimesEEDF) -> (1000, 150)
 
 
         
@@ -558,12 +563,12 @@ class CollisionalRadiativeModel:
 
           
         # i_mid = 6         
-        # Te_index_tmp = np.searchsorted(self.Te_eedf, T_e[i_mid])
+        # Te_index_tmp = xp.searchsorted(self.Te_eedf, T_e[i_mid])
         # Te_index_tmp = min(len(self.Te_eedf)-1,Te_index_tmp)
         # EEDF_tmp = self.EEDF_list[Te_index_tmp]      
 
         # Te_tmp = T_e[i_mid]
-        # EEDF_Maxwellian = 2*np.sqrt(self.eRange[:,0]/np.pi)*(Te_tmp)**(-1.5)*np.exp(-self.eRange[:,0]/(Te_tmp))
+        # EEDF_Maxwellian = 2*xp.sqrt(self.eRange[:,0]/xp.pi)*(Te_tmp)**(-1.5)*xp.exp(-self.eRange[:,0]/(Te_tmp))
 
         # fig, ax = plt.subplots()
         # ax.set_title('EEDF ')
@@ -799,9 +804,9 @@ class CollisionalRadiativeModel:
         #     b = self.trapz(AEDF,self.eRange, axis=0 )
         # print(f"CPU Time / timestep is {cpu_time.time() - tic} seconds.")
         
-        # # print(np.shape(a),np.shape(b))
-        # # print(np.array_equal(a,b) )    
-        # print(np.allclose(a, b, atol=1e-100))
+        # # print(xp.shape(a),xp.shape(b))
+        # # print(xp.array_equal(a,b) )    
+        # print(xp.allclose(a, b, atol=1e-100))
 
         # exit(-1) 
 
@@ -1004,6 +1009,7 @@ class CollisionalRadiativeModel:
             
     def readEEDFFile(self,filename):
             
+
             
 
         EEDF_Bolsig = []
@@ -1098,8 +1104,13 @@ class CollisionalRadiativeModel:
             # EEDF_Maxwellian_2= self.MaxwellianDistribution_vec(self.eRange, Te_eedf[Te_index])
 
 
+        eRange = self.eRange[:,0] 
 
-        EEDFinterpolator = RegularGridInterpolator((Te_eedf, self.eRange[:,0]), EEDF_list, bounds_error=False, fill_value=None)
+        # Te_eedf                 = cp.asarray(Te_eedf) 
+        # eRange                  = cp.asarray(eRange) 
+        # EEDF_list               = cp.asarray(EEDF_list) 
+
+        EEDFinterpolator = RegularGridInterpolator((Te_eedf, eRange), EEDF_list, bounds_error=False, fill_value=None)
 
         # T_e = 4.0 
         # points = np.column_stack((np.ones_like(self.eRange) * T_e, self.eRange))

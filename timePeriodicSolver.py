@@ -264,9 +264,10 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==15):
         print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
-        # Ns = 17 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        Ns = 17 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+    elif(args.scenario==16):
+        print('#   Running CR model = 16 (33 species, 1Torr, Nominal)')        
         Ns = 1+30+1+1 # background state + excited states + electrons + ions 
-
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)

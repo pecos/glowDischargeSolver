@@ -9,13 +9,14 @@ error_exit()
 # EXE="python3 ./chebSolver.py"
 # NEWTEXE="python3 ./timePeriodicSolver.py"
 EXE="python3 ./chebSolver.py --use_gpu 0 --gpu_device_id 0"
-NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 0 --gpu_device_id 0"
+NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 1 --gpu_device_id 0"
 
 
 # 6 species + 34 rxn - Nominal Rates case
 Np=150
 # Nt=32000
-Nt=16000
+# Nt=16000
+Nt=10
 
 
 # dt=0.0078125
@@ -30,8 +31,7 @@ dt1=0.00390625
 # Nt1=512
 # dt1=0.001953125
 
-scenario=15
-# crashedFile="restart_CR_Np150_crashed.npy"
+scenario=16
 baseFile="restart_CR_BE_Np${Np}_"
 newtFile="newton_CR_BE_Np${Np}.npy"
 saveFile="newton_CR_BE_Np${Np}_fullsoln.npy"
@@ -144,17 +144,17 @@ rm -f $screenOut
 
 
 # echo "Run 1 period ..."
-# $baseCmd --V0 75 --VDC 0.0 --t0 7.441406e-01 --restart "exception_U1.npy" --verbose --outfile "shooting.npy"
+$baseCmd --V0 75 --VDC 0.0 --t0 0.0 --verbose --outfile "discard.npy"
 
 
 
-echo "Run 0 to 125...${baseFile}T125.npy"
-$baseCmd --V0 75 --VDC 0.0 --t0 0.0 --restart "restart_CR_BE_Np150_T125.npy" \
-               --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"
+# echo "Run 0 to 125...${baseFile}T125.npy"
+# $baseCmd --V0 75 --VDC 0.0 --t0 0.0 --restart "restart_CR_BE_Np150_T125.npy" \
+#                --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"
 
-echo "Run time domain shooting...${newtFile}"
-$newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy" \
-                                --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
+# echo "Run time domain shooting...${newtFile}"
+# $newtCmd --V0 75 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "${baseFile}T125.npy" \
+#                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
-echo "Saving one period...${saveFile}"
-$saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart $newtFile --savedata $saveFile --outfile discard.npy >> $screenOut
+# echo "Saving one period...${saveFile}"
+# $saveCmd --V0 75 --VDC 0.0 --rtol 1e-8 --restart $newtFile --savedata $saveFile --outfile discard.npy >> $screenOut
