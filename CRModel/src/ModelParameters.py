@@ -467,8 +467,8 @@ class modelParameters:
 
         # crsFileName = './CRModel/Data/LXCat-Data/Excitation/Cross section.txt'
         # crsFileName = './CRModel/Data/LXCat-Data/BSR/Excitation/Download/Cross section.txt'
-        # crsFileName = './CRModel/Data/LXCat-Data/Case1_BSR/Cross section.txt'
-        crsFileName = './CRModel/Data/LXCat-Data/Case2_Biagi+BSR/Cross section.txt'
+        crsFileName = './CRModel/Data/LXCat-Data/Case1_BSR/Cross section.txt'
+        # crsFileName = './CRModel/Data/LXCat-Data/Case2_Biagi+BSR/Cross section.txt'
 
         CrossSections = multipleCrossSections(crsFileName)
         # self.collDict, self.Nlvl_InExcDat, self.NTrans_InExcDat 

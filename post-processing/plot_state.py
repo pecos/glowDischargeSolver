@@ -16,93 +16,52 @@ isPlot = True
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
-# ic = 3; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; cl = 'g'; lb = "6spec"; m = "6sp"
+# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 1; c = True; f = '../restart.npy'; cl = 'b-'; lb = "CR"; m = "CR"
-# ic = 1; c = True; f = '../discard.npy'; cl = 'b-'; lb = "CR"; m = "CR"; m = "CR"
-# ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T1750.npy'; cl = 'b-'; lb = "CR"; m = "CR"
+# ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-
-# ic = 2; c = False; f = '../Results/6spec/restart.npy'; cl = 'r-'; lb = "6spec"; m = "6sp"
-# ic = 2; c = True; f = '../Results/CR/1Torr_100V_Np150_MaxEEDF_ConstDiff/restart_CR_Np150_T2000.npy'; cl = 'b-'; lb = "CR"; m = "CR"
+# ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-
-ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+ic = 4; c = False; f = '../discard.npy'; cl = 'b-'; lb = "discard"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 5; c = False; f = '../exception_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 6; c = False; f = '../exception_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 7; c = False; f = '../exception_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+ic = 8; c = False; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+
+ic = 9; c = False; f = '../Results/CR/1Torr75V/Ns17_EnergyTransport_BSR/2/nonconverged_U1.npy'; cl = 'b-'; lb = "U1"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 4; c = True; f = '../restart.npy'; cl = 'm-'; lb = "restart"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'm-'; lb = "T125"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 4; c = True; f = '../discard.npy'; cl = 'm-'; lb = "discard"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'm-'; lb = "restart"; m = "CR"
+ic = 9; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 10; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 11; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-
-# ic = 1; c = True; f = '../exception_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+# ic = 9; c = True; f = '../Results/CR/5Torr150V/Ns17_MaxEEDF_ConstDiff_BSR/nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 2; c = True; f = '../exception_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+# ic = 10; c = True; f = '../Results/CR/5Torr150V/Ns17_MaxEEDF_ConstDiff_BSR/nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 3; c = True; f = '../exception_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+# ic = 11; c = True; f = '../Results/CR/5Torr150V/Ns17_MaxEEDF_ConstDiff_BSR/nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-
-
-# ic = 4; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "Max"; m = "CR"
+# ic = 8; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150.npy'; cl = 'g'; lb = "6spec"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 4; c = True; f = '../nonconverged_U0_t014.npy'; cl = 'r-'; lb = "U0 maxwell"; m = "CR"
+# ic = 9; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/restart_CR_Np150_T1750.npy'; cl = 'b-'; lb = "CR"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 6; c = True; f = '../restart_Maxwell_constDiff.npy'; cl = 'k-'; lb = "T1 Maxwell const De"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 7; c = True; f = '../restart_Maxwell.npy'; cl = 'r-'; lb = "T1 Maxwell"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 8; c = True; f = '../restart.npy'; cl = 'b-'; lb = "restart"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-
-# ic = 4; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/restart_6spec_CN_Np150_T2400.npy'; cl = 'r-'; lb = "6sp"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 5; c = True; f = '../restart_6spec_CN_Np150_T400.npy'; cl = 'g-'; lb = "400"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 6; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T4000.npy'; cl = 'b-'; lb = "4000"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 7; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T3200.npy'; cl = 'r-'; lb = "3600"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-
-# ic = 8; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T14000.npy'; cl = 'b-'; lb = "14000"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 9; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T16000.npy'; cl = 'r-'; lb = "16000"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 10; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T18000.npy'; cl = 'g-'; lb = "18000"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 11; c = True; f = '../Results/6spec/1torr_75V_Np150/restart_6spec_CN_Np150_T20000.npy'; cl = 'k-'; lb = "20000"; m = "6sp"
+# ic = 10; c = True; f = '../Results/CR/new/Crashed/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC_Biagi_30lvl/nonconverged_U1.npy'; cl = 'b-'; lb = "U1"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
@@ -145,15 +104,15 @@ g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
 
 
 
-dEps_CR = np.array([ 0.0, 15.7596119, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153,
-                     13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902,
-                     13.30222747, 13.32785705, 13.47988682, 13.84503846, 13.86366857, 13.90345461,
-                     13.97923734, 14.01273812, 14.06302723, 14.06829767, 14.0899685,  14.09905592,
-                     14.15251505, 14.2136715,  14.23402264, 14.23610607, 14.24102775, 14.25508557,
-                     14.30366841,  0.0])
+# dEps_CR = np.array([ 0.0, 15.7596119, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153,
+#                      13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902,
+#                      13.30222747, 13.32785705, 13.47988682, 13.84503846, 13.86366857, 13.90345461,
+#                      13.97923734, 14.01273812, 14.06302723, 14.06829767, 14.0899685,  14.09905592,
+#                      14.15251505, 14.2136715,  14.23402264, 14.23610607, 14.24102775, 14.25508557,
+#                      14.30366841,  0.0])
 
-g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 
-                 1, 3, 5, 9, 7, 5, 5, 3, 7, 3, 5, 5, 7, 1, 3, 3, 1])
+# g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 
+#                  1, 3, 5, 9, 7, 5, 5, 3, 7, 3, 5, 5, 7, 1, 3, 3, 1])
 
 
 ne = {}; ni = {}; nb = {}; nee = {}; npop = {}; Tg = {}
@@ -173,8 +132,8 @@ for ic in case:
       # Ns is the number of scpecies
       if model[ic] == "CR":
          Ns = 17 # electrons + ions + 4 4s levels + 10 4p levels + background state
+      elif model[ic] == "CR2":
          Ns = 1+30+1+1
-
       elif model[ic] == "6sp":
          Ns = 6 #  electrons + ions + nm + nr + n4p + nb 
          
@@ -213,7 +172,7 @@ for ic in case:
       npop[ic][:,0] = nb[ic]
       npop[ic][:,1:] = ne0 * D_reshaped[:,2:Ns-1]
 
-      if model[ic] == "CR":
+      if model[ic] == "CR" or model[ic] == "CR2":
          nm[ic] = ne0 * (D_reshaped[:,2] + D_reshaped[:,4]) 
          nr[ic] = ne0 * (D_reshaped[:,3] + D_reshaped[:,5]) 
          n4p[ic] = np.zeros_like(nr[ic])

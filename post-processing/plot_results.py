@@ -6,7 +6,6 @@ import scipy.constants as spc
 import pandas as pd
 
 
-
 #----------------------------------------------------------------------------------
 
 def PartitionFunctionsAnalytical(T_e):
@@ -33,12 +32,219 @@ def BoltzmannDistribution(n_tot,T_e,Qtot,E_lvl,g_lvl):
     return npop_LTE
               
 
+
+
+
+def CalcBoltzmannDistribution(ic0, Te0 , model, npop,dEps, g, i_mid):
+
+
+   if model[ic0] == "CR":
+      Ns = 17 # electrons + ions + 4 4s levels + 10 4p levels + background state
+   elif model[ic0] == "CR2":
+      Ns = 33 # electrons + ions + 4 4s levels + 10 4p levels + background state
+
+   Ntot = 0; 
+   for isp in range(Ns-2):
+      # print(np.mean(npop[ic0][i_mid,isp,:],axis=0))
+      Ntot = Ntot + np.mean(npop[ic0][i_mid,isp,:],axis=0)
+      
+   # print("Te0 = ",Te0)
+   Q_n,Q_i = PartitionFunctionsAnalytical(Te0)
+   npop_LTE = BoltzmannDistribution(Ntot,Te0,Q_n,dEps[ic0][0:-2],g[ic0][0:-2])
+
+
+
+   return npop_LTE
+
+
+
+#----------------------------------------------------------------------------------
+                     
+def GetOpCondName(Torr, Voltage, decimal_point=3):
+      operatingConditionName = str(round(Torr,decimal_point)) + "Torr-" + str(round(Voltage)) + "V"
+      return operatingConditionName
+
+
+
+def ReadLumpedAr4pData():
+
+   # Read experimental data.
+   Ar_Exp_gi = np.array([6, 6, 36])   
+   Ar_Exp_Ei =  np.array([11.577, 11.725, 13.168])
+
+   pathToData = "../ExperimentalData/Ar4p_data/"
+   fileName = pathToData + "Ar(4p) Paper Data.xlsx"
+   Exp_Data_m = pd.read_excel(fileName, header=None, skiprows=3)
+ 
+ 
+   num_columns = Exp_Data_m.shape[1]
+   num_rows = Exp_Data_m.shape[0]
+
+
+   Ar_Exp = {}
+   Ar_Exp["Ei"] = Ar_Exp_Ei; Ar_Exp["gi"] = Ar_Exp_gi
+
+   for ExpID in range(num_rows):   
+
+      OpCond = GetOpCondName(Exp_Data_m.iloc[ExpID,2], Exp_Data_m.iloc[ExpID,1], decimal_point=1)
+
+      Ar_Exp_ni_m = Exp_Data_m.iloc[ExpID,13]
+      Ar_Exp_ni_95 = Exp_Data_m.iloc[ExpID,15]
+      Ar_Exp_ni_5 = Exp_Data_m.iloc[ExpID,14]
+
+      Ar_Exp_ni = np.array([Ar_Exp_ni_m, Ar_Exp_ni_95, Ar_Exp_ni_5]) 
+      Ar_Exp[OpCond] = Ar_Exp_ni
+
+   return Ar_Exp
+
+
+
+
+def ReadOESAr4pData():
+
+
+   # Read experimental data.
+   Ar_Exp_gi = np.array([3, 7, 5, 3, 5, 1, 3, 5, 3, 1])   
+   Ar_Exp_Ei =  np.array([12.9070153, 13.07571571, 13.09487256, 13.15314387, 13.1717777,  
+                          13.2730381,  13.28263902, 13.30222747, 13.32785705, 13.47988682])
+
+   pathToData = "../ExperimentalData/Ar4p_data/"
+   fileName = pathToData + "populationBayesianResult_Median.csv"
+   Exp_Data_m = pd.read_csv(fileName, header=None)
+ 
+   fileName = pathToData + "populationBayesianResult_95percentile.csv"
+   Exp_Data_95 = pd.read_csv(fileName, header=None) 
+
+   fileName = pathToData + "populationBayesianResult_5percentile.csv"
+   Exp_Data_5 = pd.read_csv(fileName, header=None)
+   
+   num_columns = Exp_Data_m.shape[1]
+   num_rows = Exp_Data_m.shape[0]
+
+   Ar_Exp = {}
+   Ar_Exp["Ei"] = Ar_Exp_Ei; Ar_Exp["gi"] = Ar_Exp_gi
+
+   for ExpID in range(num_columns):   
+
+      OpCond = GetOpCondName(Exp_Data_m.iloc[1,ExpID], Exp_Data_m.iloc[0,ExpID])
+      # print(OpCond)
+
+      Ar4p_Exp = Exp_Data_m.iloc[2:12,ExpID].to_numpy('float64'); Ar4p_Exp = Ar4p_Exp[::-1]
+      Ar_Exp_ni_m = Ar4p_Exp
+
+      Ar4p_Exp = Exp_Data_95.iloc[2:12,ExpID].to_numpy('float64'); Ar4p_Exp = Ar4p_Exp[::-1]
+      Ar_Exp_ni_95 = Ar4p_Exp
+
+      Ar4p_Exp = Exp_Data_5.iloc[2:12,ExpID].to_numpy('float64'); Ar4p_Exp = Ar4p_Exp[::-1]
+      Ar_Exp_ni_5 = Ar4p_Exp 
+
+      Ar_Exp_ni = np.empty((len(Ar_Exp_ni_m),3)) 
+      Ar_Exp_ni[:,0] = Ar_Exp_ni_m
+      Ar_Exp_ni[:,1] = Ar_Exp_ni_95
+      Ar_Exp_ni[:,2] = Ar_Exp_ni_5
+
+      Ar_Exp[OpCond] = Ar_Exp_ni
+
+
+
+   # fig,ax = plt.subplots(dpi=160)
+   # for ic in Ar_Exp:
+   #    if ic != "Ei" and ic != "gi":
+   #       # if ic == "0.5Torr-100V" or ic == "1.0Torr-100V" or ic == "5.0Torr-100V" :
+   #       # if ic == "0.1Torr-150V" or ic == "0.5Torr-150V" or ic == "1.0Torr-150V" or ic == "5.0Torr-150V" or ic == "10.0Torr-150V" :
+   #       if ic == "0.1Torr-300V" or ic == "0.5Torr-300V" or ic == "1.0Torr-300V" or ic == "5.0Torr-300V" or ic == "10.0Torr-300V":
+   #       # if ic == "0.1Torr-500V" or ic == "0.5Torr-500V" :
+   #       # if ic == "0.1Torr-750V" or ic == "0.5Torr-750V" :
+   #       # if ic == "0.1Torr-150V" or ic == "0.1Torr-300V" or ic == "0.1Torr-500V" or ic == "0.1Torr-750V" or ic == "0.1Torr-1000V" :
+   #       # if ic == "0.5Torr-100V" or ic == "0.5Torr-150V" or ic == "0.5Torr-300V" or ic == "0.5Torr-500V" or ic == "0.5Torr-750V":
+   #       # if ic == "1.0Torr-100V" or ic == "1.0Torr-150V" or ic == "1.0Torr-300V" or ic == "1.0Torr-400V" :
+   #       # if ic == "5.0Torr-100V" or ic == "5.0Torr-150V" or ic == "5.0Torr-300V" :
+   #       # if ic == "10.0Torr-150V" or ic == "10.0Torr-300V" :
+   #          Ar_Exp_ni = Ar_Exp[ic]         
+   #          ls = ':'
+   #          uplims =  Ar_Exp_ni[:,1]/Ar_Exp_gi
+   #          lolims =  Ar_Exp_ni[:,2]/Ar_Exp_gi
+   #          # plt.errorbar(Ar_Exp_Ei, Ar_Exp_ni[:,0]/Ar_Exp_gi, 
+   #          #             yerr=(lolims, uplims), marker='+' ,linestyle=ls, lw=1.5, label=ic)
+   #          plt.errorbar(Ar_Exp_Ei, Ar_Exp_ni[:,0]/Ar_Exp_gi, 
+   #                       marker='*', linestyle=ls, lw=1.5, label=ic)
+   # ax.legend(fontsize=12,loc=2)
+   # # ax.loglog()
+   # ax.semilogy()
+   # ax.set_xlim((Ar_Exp_Ei[0]-0.1, Ar_Exp_Ei[-1]+0.1))
+   # ax.set_xlabel(r"$E$ [eV]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # # ax.set_ylim((0,5.5))
+   # ax.set_ylabel(r"$n_i / g_i$ [m$^{-3}$]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+
+   # plt.show()
+   # exit(-1)
+
+
+   return Ar_Exp
+
+
+
+def ReadLangmuirData():
+
+
+   pathToData = "../ExperimentalData/Langmuir/"
+   fileName = pathToData + "Annual Review Data - Langmuir.xlsx"
+   Exp_Data_m = pd.read_excel(fileName, header=None, skiprows=5)
+
+   num_columns = Exp_Data_m.shape[1]
+   num_rows = Exp_Data_m.shape[0]
+
+   Langmuir_Exp = {}
+
+   for ExpID in range(num_rows):   
+
+      OpCond = GetOpCondName(Exp_Data_m.iloc[ExpID,0], Exp_Data_m.iloc[ExpID,4])
+      # print(OpCond)
+
+      Ne_Exp = Exp_Data_m.iloc[ExpID,13]
+      Te_Exp = Exp_Data_m.iloc[ExpID,15]
+
+      Langmuir_Exp[OpCond] = np.array([Ne_Exp, Te_Exp])
+      
+
+   return Langmuir_Exp
+
+
+
+def ReadLASAr4sData():
+
+   Ar_Exp_gi = np.array([5, 3, 1, 3])   
+   Ar_Exp_Ei =  np.array([11.54835442, 11.62359272, 11.72316039, 11.82807116])
+
+   pathToData = "../ExperimentalData/"
+   fileName = pathToData + "1Torr-150V.xlsx"
+   Exp_Data_m = pd.read_excel(fileName, header=None, skiprows=4)
+   # num_columns = Exp_Data_m.shape[1]
+   # num_rows = Exp_Data_m.shape[0]
+   # OpCond = GetOpCondName(Exp_Data_m.iloc[ExpID,0], Exp_Data_m.iloc[ExpID,4])
+   OpCond = "1.0Torr-150V"
+
+   Ar4s_Exp = Exp_Data_m.iloc[0:4,2].to_numpy('float64') ; Ar4s_Exp = Ar4s_Exp[::-1]
+
+   LES_Exp = {}
+   LES_Exp[OpCond] = Ar4s_Exp
+   LES_Exp["Ei"] = Ar_Exp_Ei; LES_Exp["gi"] = Ar_Exp_gi   
+
+   return LES_Exp
+
+
+
+
+
 #----------------------------------------------------------------------------------
 
 
 # sys.path.insert(0, '../')
 # Constants
 K_eV = spc.k/spc.e             # Convert energy units: from K to eV
+Eion = 15.7596119 # ionization energies of Ar in [eV]
 
 # Flags
 isPlotLines = False
@@ -57,67 +263,81 @@ dEps_CR = np.array([ 0.0,         15.7596119,  11.54835442, 11.62359272, 11.7231
 g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
 
 
+dEps_CR2 = np.array([ 0.0, 15.7596119, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153,
+                     13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902,
+                     13.30222747, 13.32785705, 13.47988682, 13.84503846, 13.86366857, 13.90345461,
+                     13.97923734, 14.01273812, 14.06302723, 14.06829767, 14.0899685,  14.09905592,
+                     14.15251505, 14.2136715,  14.23402264, 14.23610607, 14.24102775, 14.25508557,
+                     14.30366841,  0.0])
 
-# dEps_CR = np.array([ 0.0, 15.7596119, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153,
-#                      13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902,
-#                      13.30222747, 13.32785705, 13.47988682, 13.84503846, 13.86366857, 13.90345461,
-#                      13.97923734, 14.01273812, 14.06302723, 14.06829767, 14.0899685,  14.09905592,
-#                      14.15251505, 14.2136715,  14.23402264, 14.23610607, 14.24102775, 14.25508557,
-#                      14.30366841,  0.0])
-
-# g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 
-#                  1, 3, 5, 9, 7, 5, 5, 3, 7, 3, 5, 5, 7, 1, 3, 3, 1])
+g_CR2 = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 
+                 1, 3, 5, 9, 7, 5, 5, 3, 7, 3, 5, 5, 7, 1, 3, 3, 1])
 
 
 
 #----------------------------------------------------------------------------------
 # Read experimental data.
-Ar_Exp_gi = np.array([5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1])   
-Ar_Exp_Ei =  np.array([ 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153, 13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902, 13.30222747, 13.32785705, 13.47988682])
-Ar4s_Exp_nan = np.array([np.nan, np.nan, np.nan, np.nan])
-
-ExpID = 1
-
-fileName = "../ExperimentalData/Ar4p_data/populationBayesianResult_Median.csv"
-Exp_Data = pd.read_csv(fileName)
-Ar4p_Exp = Exp_Data.iloc[1:11,ExpID].to_numpy('float64'); Ar4p_Exp = Ar4p_Exp[::-1]
-Ar4s_Exp = Ar4s_Exp_nan
-Ar_Exp_ni = np.concatenate((Ar4s_Exp, Ar4p_Exp))
-
-fileName = "../ExperimentalData/Ar4p_data/populationBayesianResult_95percentile.csv"
-Exp_Data = pd.read_csv(fileName)
-Ar4p_Exp = Exp_Data.iloc[1:11,ExpID].to_numpy('float64'); Ar4p_Exp = Ar4p_Exp[::-1]
-Ar4s_Exp = Ar4s_Exp_nan
-Ar_Exp_ni_95 = np.concatenate((Ar4s_Exp, Ar4p_Exp))
-
-fileName = "../ExperimentalData/Ar4p_data/populationBayesianResult_5percentile.csv"
-Exp_Data = pd.read_csv(fileName)
-Ar4p_Exp = Exp_Data.iloc[1:11,ExpID].to_numpy('float64'); Ar4p_Exp = Ar4p_Exp[::-1]
-Ar4s_Exp = Ar4s_Exp_nan
-Ar_Exp_ni_5 = np.concatenate((Ar4s_Exp, Ar4p_Exp))
+Ar_OES_Exp = ReadOESAr4pData()
+Ar_Langmuir_Exp = ReadLangmuirData()
+Ar_LAS_Exp = ReadLASAr4sData()
+Ar_Lumped4p_Exp  = ReadLumpedAr4pData()
 
 
+ExpCase = "5.0Torr-300V"
 
-Te_exp = {}; ne_exp = {}; ni_exp = {}; gi_exp = {}; Ei_exp = {}
-# AR(m), AR(r), AR(4p)
-ni_lumped_exp = {}; Eps_lumped_exp = np.array([11.577,11.725,13.168]); gi_lumped_exp = np.array([6, 6, 36])
+Ar_OES_Exp_Ei = Ar_OES_Exp["Ei"]; Ar_OES_Exp_gi = Ar_OES_Exp["gi"];
+if ExpCase in Ar_OES_Exp.keys():
+   Ar_OES_Exp_ni = Ar_OES_Exp[ExpCase]
+else:
+   Ar_OES_Exp_ni = np.full((np.shape(Ar_OES_Exp_Ei)[0],3), np.nan)
 
-ExpCase = '1Torr-150V' # 150V is the tip-to-tip Voltage. In our case V0 would be Vmax = 75 V.
-Te_exp[ExpCase] = 7.01 # [eV]
-ne_exp[ExpCase] = 2.2e15 # [#/m^3]
 
-ni_exp[ExpCase] = np.array([0.0, 9.59E+15, 3.27E+15, 3.16E+14, 9.58E+14, 2.63E+12, 1.40E+11,  7.72E+11, 
-                            5.25E+11, 8.53E+11, 3.47E+11, 3.43E+11, 4.43E+11, 4.64E+11, 6.43E+11])
-gi_exp[ExpCase] = np.array([1, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1])   
-Ei_exp[ExpCase] =  np.array([ 0.0, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153, 13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902, 13.30222747, 13.32785705, 13.47988682])
-ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase][2]+ni_exp[ExpCase][4], np.sum(ni_exp[ExpCase][5:]) ]
+if ExpCase in Ar_Langmuir_Exp.keys():
+   Ar_Exp_Ne = Ar_Langmuir_Exp[ExpCase][0] 
+   Ar_Exp_Te = Ar_Langmuir_Exp[ExpCase][1]
+else:
+   Ar_Exp_Ne = np.nan; Ar_Exp_Te = np.nan
 
-ExpCase = '1Torr-200V' # 150V is the tip-to-tip Voltage. 
-Te_exp[ExpCase] = np.nan # [eV]
-ne_exp[ExpCase] = np.nan # [#/m^3]
-ni_exp[ExpCase] = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 3.07E+12, 1.12E+12, 1.3E+12, 1.42E+12, 1.33E+12,1.86E+12, 7.62E+11, 7.85E+11, 7.95E+11, 4.35E+12])
-gi_exp[ExpCase] = gi_exp['1Torr-150V']; Ei_exp[ExpCase] =  Ei_exp['1Torr-150V']
-ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase][2]+ni_exp[ExpCase][4], np.sum(ni_exp[ExpCase][5:]) ]
+
+Ar_LAS_Exp_Ei = Ar_LAS_Exp["Ei"]; Ar_LAS_Exp_gi = Ar_LAS_Exp["gi"];
+if ExpCase in Ar_LAS_Exp.keys():
+   Ar_LAS_Exp_ni = Ar_LAS_Exp[ExpCase]
+else:
+   Ar_LAS_Exp_ni = np.full(np.shape(Ar_LAS_Exp_Ei)[0], np.nan)
+
+
+Ar_Lumped4p_Exp_Ei = Ar_Lumped4p_Exp["Ei"]; Ar_Lumped4p_Exp_gi = Ar_Lumped4p_Exp["gi"];
+if ExpCase in Ar_Lumped4p_Exp.keys():
+   Ar_Lumped4p_Exp_ni = Ar_Lumped4p_Exp[ExpCase]
+else:
+   Ar_Lumped4p_Exp_ni = np.full(3, np.nan)
+
+
+
+
+# Te_exp = {}; ne_exp = {}; ni_exp = {}; gi_exp = {}; Ei_exp = {}
+# # AR(m), AR(r), AR(4p)
+# ni_lumped_exp = {}; Eps_lumped_exp = np.array([11.577,11.725,13.168]); gi_lumped_exp = np.array([6, 6, 36])
+
+# ExpCase = '1Torr-150V' # 150V is the tip-to-tip Voltage. In our case V0 would be Vmax = 75 V.
+# Te_exp[ExpCase] = 7.01 # [eV]
+# ne_exp[ExpCase] = 2.2e15 # [#/m^3]
+
+# ni_exp[ExpCase] = np.array([0.0, 9.59E+15, 3.27E+15, 3.16E+14, 9.58E+14, 2.63E+12, 1.40E+11,  7.72E+11, 
+#                             5.25E+11, 8.53E+11, 3.47E+11, 3.43E+11, 4.43E+11, 4.64E+11, 6.43E+11])
+# gi_exp[ExpCase] = np.array([1, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1])   
+# Ei_exp[ExpCase] =  np.array([ 0.0, 11.54835442, 11.62359272, 11.72316039, 11.82807116, 12.9070153, 13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,  13.28263902, 13.30222747, 13.32785705, 13.47988682])
+# ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase][2]+ni_exp[ExpCase][4], np.sum(ni_exp[ExpCase][5:]) ]
+
+# ni_exp[ExpCase][5:] = np.nan
+
+
+# ExpCase = '1Torr-200V' # 150V is the tip-to-tip Voltage. 
+# Te_exp[ExpCase] = np.nan # [eV]
+# ne_exp[ExpCase] = np.nan # [#/m^3]
+# ni_exp[ExpCase] = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 3.07E+12, 1.12E+12, 1.3E+12, 1.42E+12, 1.33E+12,1.86E+12, 7.62E+11, 7.85E+11, 7.95E+11, 4.35E+12])
+# gi_exp[ExpCase] = gi_exp['1Torr-150V']; Ei_exp[ExpCase] =  Ei_exp['1Torr-150V']
+# ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase][2]+ni_exp[ExpCase][4], np.sum(ni_exp[ExpCase][5:]) ]
 
 
 
@@ -125,62 +345,88 @@ ni_lumped_exp[ExpCase] = [ ni_exp[ExpCase][1]+ni_exp[ExpCase][3], ni_exp[ExpCase
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
 
-# ic = 1; c = True; f = '../Results/6spec/1torr_75V_Np150/periodic/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# ic = 11; c = True; f = '../Results/CR/1Torr75V/new/1Torr_75V_Np150_BolsigEEDF_Einstein_Qrad_Tg_1TeBC_Biagi/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Biagi old"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/periodic/newton_6spec_BE_Np150_fullsoln.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# ic = 1; c = True; f = '../Results/CR/1Torr75V/new/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC_Biagi_gam01/newton_CR_BE_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ns = 17"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 3; c = True; f = '../Results/CR/1Torr_75V_Np150_MaxEEDF_ConstDiff/periodic/newton_CR_BE_Np150_fullsoln.npy'; cl = 'r-'; lb = "CR - MaxEEDF - Const De"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 4; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff/newton_CR_CN_Np150_fullsoln.npy'; cl = 'm-'; lb = "CR - Bolsig+ - Const De"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 5; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 6; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 7; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "TeBC = 0.5"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 8; c = True; f = '../Results/CR/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "const"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 9; c = True; f = '../Results/CR/new/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "new"; m = "CR"
+# ic = 2; c = True; f = '../Results/CR/1Torr75V/new/1Torr_75V_Np150_BolsigEEDF_ConstDiff_Qrad_Tg_1TeBC_Biagi_33_gam01/newton_CR_BE_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ns = 33"; m = "CR2"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-ic = 10; c = True; f = '../Results/CR/new/1Torr_75V_Np150_BolsigEEDF_Einstein_Qrad_Tg_1TeBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "BSR"; m = "CR"
+# ic = 3; c = True; f = '../Results/6spec/1torr_75V_Np150/periodic/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - old"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+# ic = 3; c = True; f = '../Results/CR/1Torr75V/Ns17_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "const De"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 4; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 11; c = True; f = '../Results/CR/new/1Torr_75V_Np150_BolsigEEDF_Einstein_Qrad_Tg_1TeBC_Biagi/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Biagi"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-
-# ic = 1; c = True; f = '../fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
-# ic = 1; c = True; f = '../Results/CR/CR_Np150_fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
-# ic = 1; c = True; f = '../Results/test/1/fullsoln.npy'; cl = 'b-'; lb = "CR"; m = "CR"
-# ic = 1; c = True; f = '../Results/CR/1Torr_100V/Maxwellian/fullsoln/CR_Np150_fullsoln_T2000.npy'; cl = 'b'; lb = "CR"; m = "CR"
+# ic = 5; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_Biagi/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Biagi"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 2; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "6sp"; m = "6sp"
+# ic = 6; c = True; f = '../Results/CR/1Torr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "1Torr-150V"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 3; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150_TimeMarching/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'm'; lb = "6sp - Time Marching"; m = "6sp"
+
+# ic = 7; c = True; f = '../Results/CR/100mTorr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "100mTorr-150V"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 4; c = True; f = '../Results/6spec/nominalCase_V100_P1torr_Np150_constDiff/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "6sp - constDiff"; m = "6sp"
+
+# ic = 8; c = True; f = '../Results/CR/500mTorr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "500mTorr-150V"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 5; c = False; f = '../Results/6spec/nominalCase_V100_P1torr_Np150_dEps/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'k'; lb = "6sp - dEps"; m = "6sp"
+
+# ic = 7; c = True; f = '../Results/CR/100mTorr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ein"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 8; c = True; f = '../Results/CR/100mTorr150V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "MaxEEDF - ConstDiff"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 9; c = True; f = '../Results/CR/5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_BE_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 10; c = True; f = '../Results/CR/1Torr75V/Ns33_Ein_Biagi/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Biagi - Ns33"; m = "CR2"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 11; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_LessReactions/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "BSR - no aa react"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-# ic = 2; c = True; f = '../Results/6spec/1torr_100V_Np150_constDiff/fullsoln/newton_6spec_CN_Np150_fullsoln_T2400.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 2; c = True; f = '../Results/6spec/1torr_75V_Np150/fullsoln/newton_6spec_CN_Np150_fullsoln_T4000.npy'; cl = 'b-'; lb = "6sp"; m = "6sp"
+# ic = 12; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR/newton_6sp_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
+# ic = 13; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_Np300/newton_6sp_CN_Np300_fullsoln.npy'; cl = 'c-'; lb = "6sp - Np = 300"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 14; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_LessReactions/newton_6sp_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - less reac."; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 15; c = True; f = '../Results/CR/5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR_LessReactions/newton_CR_BE_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V - no aa react."; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 16; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_NoAAReactions/newton_6sp_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - no aa reac."; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 17; c = True; f = '../Results/CR/5Torr150V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 18; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_No1stReaction/newton_6sp_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - no 1st reac."; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 19; c = True; f = '../Results/CR/5Torr75V/Ns33_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V"; m = "CR2"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 20; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "2.5Torr-75V"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 21; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_AAReactions/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "with aa react"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 22; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_WallLosses/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Wall Losses"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # these values are required to "redimensionalize" the results
@@ -227,12 +473,30 @@ ne = {}; ni = {}; nb = {}; nee = {}; npop = {}; Tg = {}
 nm = {}; nr = {}; n4p = {}; Te = {}; dEps = {}; g = {}
 FromGlowDischargeToCRIndexing = {}
 FromCRToGlowDischargeIndexing = {}
+xr = {}; i_mid = {}
 
 # if case1:
 for ic in case: 
    if case[ic]: 
       print("Loading case ",ic, " from file :", file[ic])
+
+      # spatial grid
+      xp = -np.cos(np.pi*np.linspace(0,Np-1,Np)/(Np-1))
+      xr[ic] = (xp+1)*L*100 # [cm]
+
+      abs_diff = np.abs(xr[ic] - 1.0) # Calculate absolute differences between each value and the midpoint
+      i_mid[ic] = np.argmin(abs_diff) # Find the index of the minimum absolute difference
+
+
+      # if ic == 13:
+      #    Np=300
          
+      #    # spatial grid
+      #    xp = -np.cos(np.pi*np.linspace(0,Np-1,Np)/(Np-1))
+      #    xr[ic] = (xp+1)*L*100 # [cm]         
+
+
+                  
       # load solution file
       D = np.load(file[ic].format(Np))
       D = np.transpose(D)
@@ -241,8 +505,13 @@ for ic in case:
       # Ns is the number of scpecies
       if model[ic] == "CR":
          Ns = 17 # electrons + ions + 4 4s levels + 10 4p levels + background state
+      elif model[ic] == "CR2":
+         Ns = 33 # electrons + ions + 4 4s levels + 10 4p levels + background state
       elif model[ic] == "6sp":
          Ns = 6 #  electrons + ions + nm + nr + n4p + nb 
+
+   
+
          
       # pull solution out of D
       '''
@@ -279,21 +548,20 @@ for ic in case:
       # flag = np.array_equal(ni, D_reshaped[:,1,:])
       # print(flag)
 
-      ne[ic]  = ne0 * D_reshaped[:,0,:]          # electron density
-      ni[ic]  = ne0 * D_reshaped[:,1,:]       # ion density
-      nb[ic]  = nAr * D_reshaped[:,Ns - 1,:] # "background" (argon neutral) density
-      nee[ic] = (2./3.) * ne0 * D_reshaped[:,Ns,:]          # electron energy (ne * ee)
+      ne[ic]  = ne0 * D_reshaped[:,0,:]               # electron density
+      ni[ic]  = ne0 * D_reshaped[:,1,:]               # ion density
+      nb[ic]  = nAr * D_reshaped[:,Ns - 1,:]          # "background" (argon neutral) density
+      nee[ic] = (2./3.) * ne0 * D_reshaped[:,Ns,:]    # electron energy (ne * ee)
 
       npop[ic] = np.ndarray((Np, Ns-2, np.shape(D)[1]),dtype=np.float64)
       npop[ic][:,0,:] = nb[ic]
       npop[ic][:,1:,:] = ne0 * D_reshaped[:,2:Ns-1,:]
 
-      if model[ic] == "CR":
+      if model[ic] == "CR" or model[ic] == "CR2":
          nm[ic] = ne0 * (D_reshaped[:,2,:] + D_reshaped[:,4,:]) 
          nr[ic] = ne0 * (D_reshaped[:,3,:] + D_reshaped[:,5,:]) 
          n4p[ic] = np.zeros_like(nr[ic])
          for i in range(6,15+1):
-            print(i)
             n4p[ic] += ne0 * D_reshaped[:,i,:] 
       elif model[ic] == "6sp":
          nm[ic]  = ne0 * D_reshaped[:,2,:]
@@ -309,6 +577,11 @@ for ic in case:
       if model[ic] == "CR":
          dEps[ic] = dEps_CR[FromGlowDischargeToCRIndexing[ic]]
          g[ic] = g_CR[FromGlowDischargeToCRIndexing[ic]]
+
+      elif model[ic] == "CR2":
+         dEps[ic] = dEps_CR2[FromGlowDischargeToCRIndexing[ic]]
+         g[ic] = g_CR2[FromGlowDischargeToCRIndexing[ic]]
+
          
       elif model[ic] == "6sp":
          dEps[ic] = dEps_6sp[FromGlowDischargeToCRIndexing[ic]]
@@ -461,16 +734,53 @@ if (isPlotLines):
 
 if (isPlotMeans):
    print("Plotting means...")
+
+   # ic1 = 1; ic2 = 2 
+   # print("Realative differences [%]:")
+   # x1 = (np.mean(ne[ic1],axis=1))[i_mid]
+   # x2 = (np.mean(ne[ic2],axis=1))[i_mid]
+   # print("ne = ",np.abs(x1-x2)/x1*100) 
    
+
+   # x1 = (np.mean(nm[ic1],axis=1))[i_mid]
+   # x2 = (np.mean(nm[ic2],axis=1))[i_mid]
+   # print("nm = ",np.abs(x1-x2)/x1*100) 
+   
+   # x1 = (np.mean(nr[ic1],axis=1))[i_mid]
+   # x2 = (np.mean(nr[ic2],axis=1))[i_mid]
+   # print("nr = ",np.abs(x1-x2)/x1*100) 
+   
+   # x1 = (np.mean(n4p[ic1],axis=1))[i_mid]
+   # x2 = (np.mean(n4p[ic2],axis=1))[i_mid]
+   # print("n4p = ",np.abs(x1-x2)/x1*100) 
+
+   # x1 = (np.mean(nb[ic1],axis=1))[i_mid]
+   # x2 = (np.mean(nb[ic2],axis=1))[i_mid]
+   # print("nb = ",np.abs(x1-x2)/x1*100) 
+   
+   # x1 = (np.mean(Tg[ic1],axis=1))[i_mid]
+   # x2 = (np.mean(Tg[ic2],axis=1))[i_mid]
+   # print("Tg = ",np.abs(x1-x2)/x1*100) 
+   
+   # x1 = (np.mean(Te[ic1],axis=1))[i_mid]
+   # x2 = (np.mean(Te[ic2],axis=1))[i_mid]
+   # print("Te = ",np.abs(x1-x2)/x1*100) 
+   
+
+   
+   # exit(-1)
+  
    # ne
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.semilogy(xr, np.mean(ne[ic],axis=1), lw=2, label=label[ic])
-         # ax.semilogy(xr, np.mean(ne[ic],axis=1), clr[ic], lw=2, label=label[ic])
-         # ax.semilogy(xr, np.mean(ni[ic],axis=1), '-', lw=2)
+         ax.semilogy(xr[ic], np.mean(ne[ic],axis=1), lw=2, label=label[ic])
+         # ax.semilogy(xr[ic], np.mean(ne[ic],axis=1), clr[ic], lw=2, label=label[ic])
+         ax.semilogy(xr[ic], np.mean(ni[ic],axis=1), '--', lw=2)
+
+   ax.plot(xr[ic][i_mid[ic]], Ar_Exp_Ne,'k*', lw=1, label="Exp (Langmuir)")
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{e}$ [m$^{-3}$]", fontsize=16)
@@ -483,9 +793,9 @@ if (isPlotMeans):
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.plot(xr, np.mean(nm[ic],axis=1), lw=2, label=label[ic])
+         ax.plot(xr[ic], np.mean(nm[ic],axis=1), lw=2, label=label[ic])
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(m)}$ [m$^{-3}$]", fontsize=18)
@@ -496,9 +806,9 @@ if (isPlotMeans):
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.plot(xr, np.mean(nr[ic],axis=1), lw=2, label=label[ic])
+         ax.plot(xr[ic], np.mean(nr[ic],axis=1), lw=2, label=label[ic])
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(r)}$ [m$^{-3}$]", fontsize=18)
@@ -509,22 +819,28 @@ if (isPlotMeans):
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.plot(xr, np.mean(n4p[ic],axis=1), lw=2, label=label[ic])         
+         ax.plot(xr[ic], np.mean(n4p[ic],axis=1), lw=2, label=label[ic])         
+
+   # ls = ''; uplims =  [Ar_Lumped4p_Exp_ni[1]]; lolims =  [Ar_Lumped4p_Exp_ni[2]]
+   # plt.errorbar(xr[ic][i_mid[ic]], Ar_Lumped4p_Exp_ni[0], yerr=(lolims, uplims), 
+   #              c='k', marker='s' ,linestyle=ls, lw=1.1, label="Exp (lumped)")
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[0], xr[-1]))
+   # ax.semilogy()
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(4p)}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/n4p_mean.png')
 
+
    # nb
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.plot(xr, np.mean(nb[ic],axis=1), lw=2, label=label[ic])
+         ax.plot(xr[ic], np.mean(nb[ic],axis=1), lw=2, label=label[ic])
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR}$ [m$^{-3}$]", fontsize=18)
@@ -535,9 +851,9 @@ if (isPlotMeans):
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.semilogy(xr, np.mean(ne[ic],axis=1)/np.mean(nb[ic],axis=1)*100, lw=2, label=label[ic])   
+         ax.semilogy(xr[ic], np.mean(ne[ic],axis=1)/np.mean(nb[ic],axis=1)*100, lw=2, label=label[ic])   
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r" Ion. Degree [$\%$]", fontsize=18)
@@ -550,17 +866,18 @@ if (isPlotMeans):
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.plot(xr, np.mean(Te[ic],axis=1),lw=2, label=label[ic])
+         ax.plot(xr[ic], np.mean(Te[ic],axis=1),lw=2, label=label[ic])
+   ax.plot(xr[ic][i_mid[ic]], Ar_Exp_Te,'k*', lw=1, label="Exp (Langmuir)")
    ax.legend(fontsize=12,loc=2)
-   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylim((0,5.5))
+   ax.set_ylim((0,8.0))
    ax.set_ylabel(r"$T_e$ [eV]", fontsize=16)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    #
    #ax2 = ax.twinx()
-   #ax2.plot(xr, V0*np.mean(phi,axis=1), 'r--', lw=2, label=r"$\phi$")
+   #ax2.plot(xr[ic], V0*np.mean(phi,axis=1), 'r--', lw=2, label=r"$\phi$")
    #ax2.legend(fontsize=12,loc=1)
    ##ax2.set_ylim((0,70))
    #ax2.set_ylabel(r"$\phi$ [V]", fontsize=18)
@@ -572,9 +889,9 @@ if (isPlotMeans):
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
-         ax.plot(xr, np.mean(Tg[ic],axis=1), lw=2, label=label[ic])
+         ax.plot(xr[ic], np.mean(Tg[ic],axis=1), lw=2, label=label[ic])
    ax.legend(fontsize=12,loc=2)
-   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$T_g$ [K]", fontsize=18)
@@ -584,21 +901,6 @@ if (isPlotMeans):
 
 
 
-   # X_sp_i = np.array([9.99998E-01, 1.24270E-06, 6.21350E-10, 9.32026E-07, 3.10675E-10,
-   #           6.21350E-11, 6.21350E-11, 6.21350E-11, 4.66013E-11, 4.66013E-11,
-   #           3.10675E-11, 3.10675E-11, 3.10675E-11, 3.10675E-11, 3.10675E-11])
-
-   # # Calculate Boltzmann Distribution
-   # ic0 = 1; Ntot = 0
-   # for isp in range(17-2):
-   #    print(np.mean(npop[ic0][i_mid,isp,:],axis=0))
-   #    Ntot = Ntot + np.mean(npop[ic0][i_mid,isp,:],axis=0)
-      
-   # Te0 = np.mean(Te[ic0],axis=1)[i_mid]
-   # # print("Te0 = ",Te0)
-   # Q_n,Q_i = PartitionFunctionsAnalytical(Te0)
-   # npop_LTE = BoltzmannDistribution(Ntot,Te0,Q_n,dEps[ic0][0:-2],g[ic0][0:-2])
-
    # # Just a estimation of the distribution
    # X_sp_i = np.array([9.99998E-01, 1.24270E-06, 6.21350E-10, 9.32026E-07, 3.10675E-10,
    #           6.21350E-11, 6.21350E-11, 6.21350E-11, 4.66013E-11, 4.66013E-11,
@@ -607,37 +909,40 @@ if (isPlotMeans):
    # N_sp_i = X_sp_i *  Ntot 
 
 
-   # npop
-   ExpCase = '1Torr-150V'
-   # ExpCase = '1Torr-200V'
+   # Calculate Boltzmann Distribution
+   # ic0 = 1; Te0 = np.mean(Te[ic0],axis=1)[i_mid[ic]]
+   # npop_LTE = CalcBoltzmannDistribution(ic0, Te0 , model, npop, dEps, g, i_mid[ic])
+
+
+   # ic0 = 2; Te0_2 = 0.6
+   # npop_LTE_2 = CalcBoltzmannDistribution(ic0, Te0_2 , model, npop, dEps, g, i_mid[ic])
+
+
+   # Distribution of population
    fig,ax = plt.subplots(dpi=160)
+   plt.title(ExpCase)
    for ic in case: 
       if case[ic]: 
-         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid,:,:],axis=1)/g[ic][0:-2], marker='.', lw=1.5, label=label[ic]+ " - " + ExpCase)
-         ax.plot(dEps[ic][-1], np.mean(ne[ic][i_mid,:],axis=0),marker='*', lw=1.5)
+         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid[ic],:,:],axis=1)/g[ic][0:-2], marker='.', lw=1.5, label=label[ic])
+         ax.plot(dEps[ic][-1], np.mean(ne[ic][i_mid[ic],:],axis=0),marker='*', lw=1.5)
 
-      # print(np.mean(ne[ic][i_mid,:],axis=0))
-      # exit(-1)
+   ax.scatter(Ar_LAS_Exp_Ei, Ar_LAS_Exp_ni/Ar_LAS_Exp_gi, c='k', marker='x', lw=1.5, label="Exp (LAS)")        
+   ax.plot(Eion, Ar_Exp_Ne,'k*', lw=1, label="Exp (Langmuir)")
+   ls = ''; uplims =  Ar_OES_Exp_ni[:,1]/Ar_OES_Exp_gi; lolims =  Ar_OES_Exp_ni[:,2]/Ar_OES_Exp_gi
+   plt.errorbar(Ar_OES_Exp_Ei, Ar_OES_Exp_ni[:,0]/Ar_OES_Exp_gi, 
+               yerr=(lolims, uplims), c='k', marker='+' ,linestyle=ls, lw=1.5, label="Exp (OES)")
 
-   label_tmp = "Exp" " - " + ExpCase
-   ax.scatter(Ei_exp[ExpCase], ni_exp[ExpCase]/gi_exp[ExpCase], c='k', marker='x', lw=1.5, label=label_tmp)        
-   ax.plot(dEps[ic][-1], ne_exp[ExpCase],'k*', lw=1)
-
-   ax.scatter(Ar_Exp_Ei, Ar_Exp_ni/Ar_Exp_gi, c='m', marker='x', lw=1.5, label="Exp 2")        
-
-   ls = ''
-   lolims =  Ar_Exp_ni_5/Ar_Exp_gi
-   uplims =  Ar_Exp_ni_95/Ar_Exp_gi
-   plt.errorbar(Ar_Exp_Ei, Ar_Exp_ni/Ar_Exp_gi, 
-               yerr=(lolims, uplims),marker='x', markersize=4 ,linestyle=ls, label="Exp 3")
 
 
    # label_tmp = "Exp (lumped) - " + ExpCase
    # ax.scatter(Eps_lumped_exp, ni_lumped_exp[ExpCase]/gi_lumped_exp, c='k', marker='.', lw=1.5, label=label_tmp)        
-   # ax.scatter(dEps[ic0][0:-2], npop_LTE/g[ic0][0:-2], c='r', label="Boltzmann")        
+   # ax.scatter(dEps[ic0][0:-2], npop_LTE/g[ic0][0:-2],lw=0.8, label="Boltzmann at  Te = " + str(round(Te0,2)))   
+   # ax.scatter(dEps[ic0][0:-2], npop_LTE_2/g[ic0][0:-2],marker='.',lw=1.0, label="Boltzmann at  Te = " + str(round(Te0_2,2)))   
+        
    ax.legend(fontsize=12,loc=2)
    ax.loglog()
-   # ax.set_xlim((xr[0], xr[-1]))
+   # ax.semilogy()
+   # ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$E$ [eV]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    # ax.set_ylim((0,5.5))
@@ -646,4 +951,50 @@ if (isPlotMeans):
    plt.savefig('./png/Distribution_mean.png')
 
 
+
+
+
+   # Distribution of lumped states
+   dEps_6sp_CRIndexing = np.array([0.0,11.577,11.725,13.168,0.0, 15.76]) 
+   g_6sp_CRIndexing = np.array([1, 6, 6, 36, 1, 4])
+   
+   fig,ax = plt.subplots(dpi=160)
+   plt.title(ExpCase)
+   for ic in case: 
+      if case[ic]:
+       
+         ni_lumped = np.array([np.mean(nb[ic][i_mid[ic],:],axis=0), np.mean(nm[ic][i_mid[ic],:],axis=0), 
+                               np.mean(nr[ic][i_mid[ic],:],axis=0), np.mean(n4p[ic][i_mid[ic],:],axis=0)])
+          
+         ax.scatter(dEps_6sp_CRIndexing[0:-2], ni_lumped/g_6sp_CRIndexing[0:-2], marker='.', lw=1.5, label=label[ic])
+         ax.plot(dEps_6sp_CRIndexing[-1], np.mean(ne[ic][i_mid[ic],:],axis=0),marker='*', lw=1.5)
+
+   ax.plot(Eion, Ar_Exp_Ne,'k*', lw=1, label="Exp (Langmuir)")
+
+   # ax.scatter(Ar_LAS_Exp_Ei, Ar_LAS_Exp_ni/Ar_LAS_Exp_gi, c='k', marker='P', lw=1.5, label="Exp (LAS)")        
+   Ar_LAS_Exp_nm = Ar_LAS_Exp_ni[0] + Ar_LAS_Exp_ni[2]
+   Ar_LAS_Exp_nr = Ar_LAS_Exp_ni[1] + Ar_LAS_Exp_ni[3]
+   ax.scatter(dEps_6sp_CRIndexing[1:3], np.array([Ar_LAS_Exp_nm, Ar_LAS_Exp_nr])/g_6sp_CRIndexing[1:3], c='k', marker='x', lw=1.5, label="Exp (LAS)")        
+
+
+   ls = ''; uplims =  [Ar_Lumped4p_Exp_ni[1]/Ar_Lumped4p_Exp_gi[2]]; lolims =  [Ar_Lumped4p_Exp_ni[2]/Ar_Lumped4p_Exp_gi[2]]
+   plt.errorbar(Ar_Lumped4p_Exp_Ei[2], Ar_Lumped4p_Exp_ni[0]/Ar_Lumped4p_Exp_gi[2], 
+               yerr=(lolims, uplims), c='k', marker='+' ,linestyle=ls, lw=1.0, label="Exp (OES)")
+
+   ax.legend(fontsize=12,loc=2)
+   ax.loglog()
+   # ax.semilogy()
+   # ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   ax.set_xlabel(r"$E$ [eV]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylim((0,5.5))
+   ax.set_ylabel(r"$n_i / g_i$ [m$^{-3}$]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/Distribution_lumped_mean.png')
+
+
+
+
 plt.show()
+
+

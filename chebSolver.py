@@ -17,7 +17,7 @@ sys.path.append(crmodel_dir)
 
 
 from os import environ
-N_THREADS = '4'
+N_THREADS = '8'
 environ['OMP_NUM_THREADS'] = N_THREADS
 environ['OPENBLAS_NUM_THREADS'] = N_THREADS
 environ['MKL_NUM_THREADS'] = N_THREADS
@@ -53,22 +53,7 @@ from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
 
-from psaapProperties_6Species_100mTorr_Expanded import setPsaapProperties_6Species_100mTorr_Expanded
-from psaapProperties_6Species_250mTorr_Expanded import setPsaapProperties_6Species_250mTorr_Expanded
-from psaapProperties_6Species_500mTorr_Expanded import setPsaapProperties_6Species_500mTorr_Expanded
 from psaapProperties_6Species_1Torr_Expanded import setPsaapProperties_6Species_1Torr_Expanded
-from psaapProperties_6Species_2Torr_Expanded import setPsaapProperties_6Species_2Torr_Expanded
-from psaapProperties_6Species_5Torr_Expanded import setPsaapProperties_6Species_5Torr_Expanded
-from psaapProperties_6Species_10Torr_Expanded import setPsaapProperties_6Species_10Torr_Expanded
-from psaapProperties_6Species_Sampling_100mTorr_Expanded import setPsaapProperties_6Species_Sampling_100mTorr_Expanded
-from psaapProperties_6Species_Sampling_250mTorr_Expanded import setPsaapProperties_6Species_Sampling_250mTorr_Expanded
-from psaapProperties_6Species_Sampling_500mTorr_Expanded import setPsaapProperties_6Species_Sampling_500mTorr_Expanded
-from psaapProperties_6Species_Sampling_1Torr_Expanded import setPsaapProperties_6Species_Sampling_1Torr_Expanded
-from psaapProperties_6Species_Sampling_2Torr_Expanded import setPsaapProperties_6Species_Sampling_2Torr_Expanded
-from psaapProperties_6Species_Sampling_5Torr_Expanded import setPsaapProperties_6Species_Sampling_5Torr_Expanded
-from psaapProperties_6Species_Sampling_10Torr_Expanded import setPsaapProperties_6Species_Sampling_10Torr_Expanded
-
-from psaapProperties_6Species_1Torr_Simplified import setPsaapProperties_6Species_1Torr_Simplified
 
 from psaapProperties_CRModel_1Torr import setPsaapProperties_CRModel_1Torr
 from CRModel import CollisionalRadiativeModel
@@ -199,8 +184,8 @@ class modelClosures:
         self.verticalShift = 0.0
 
         # electron energy Dirichlet BC
-        # self.EeBC = 0.75
-        self.EeBC = 1.5
+        self.EeBC = 0.75
+        # self.EeBC = 1.5
 
         # Parameters needed to compute the current with dimensions
         self.V0Ltau  = 100 / (2.54 * 0.005 * (1./13.6e6))
@@ -264,8 +249,7 @@ class modelClosures:
             indFix = (energy[:,i]>10.0)
             energy[indFix,i] = 10.0
 
-            mu = self.mobilityList[i].mu_expression((2./3)*energy[:,[i]]) / nb
-
+            mu[:,0] = self.mobilityList[i].mu_expression((2./3)*energy[:,i]) / nb
         else:
             mu[:,0] = self.mu[i] / nb
 
@@ -291,16 +275,14 @@ class modelClosures:
             mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
             mu_U_tmp = mu_ee * xp.diag(energy_U[i,j,:,:])
             mu_U[:,:] = xp.diag(mu_U_tmp)
-            
 
-        if (j == self.Ns - 1): 
+        if (j == self.Ns - 1):
             mu_U -= xp.diag(mu[:,i] / nb)
-
 
         return mu_U
 
 
-    def diffusivity(self, i, energy, mu, nb, EinsteinForm):
+    def diffusivity(self, i, energy, mu, nb, EinsteinForm, EinsteinFormIon = False):
         xp  = self.xp_module
 
         DEf = xp.zeros((energy.shape[0],1),dtype=xp.float64)
@@ -316,13 +298,23 @@ class modelClosures:
 
         elif EinsteinForm and i == 0:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-            DEf = 2.0 / 3.0 * xp.multiply(energy[:,[i]], mu[:,[i]]) / V0
+            if i==1: # ions
+                # DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,self.Ns-1], mu[:,i]) / V0
+                DEf[:,0] = self.D[i] / nb
+            else:
+                DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,i], mu[:,i]) / V0
+
+        elif EinsteinFormIon and self.Z[i] != 0 and i != 0:
+            V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+            DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,self.Ns-1], mu[:,i]) / V0
+            # DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,i], mu[:,i]) / V0
+
         else:
             DEf[:,0] = self.D[i] / nb
 
         return DEf[:,0]
 
-    def diffusivity_U(self, i, j, energy, energy_U, mu, D, nb, EinsteinForm):
+    def diffusivity_U(self, i, j, energy, energy_U, mu, D, nb, EinsteinForm, EinsteinFormIon = False):
         xp  = self.xp_module
 
         D_U = xp.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=xp.float64)
@@ -342,16 +334,26 @@ class modelClosures:
 
 
         elif EinsteinForm and i == 0:
-        # elif EinsteinForm and self.Z[i] == -1:
 
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-            D_U = 2.0 / 3.0 * xp.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
+            D_U_tmp = 2.0 / 3.0 * xp.multiply(mu[:,i], xp.diag(energy_U[i,j,:,:])) / V0
+            D_U[:,:] = xp.diag(D_U_tmp)
 
             if (len(self.mobilityList) > i and self.mobilityList[i].interpolate):
                 mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
                 mu_U_tmp = mu_ee * xp.diag(energy_U[i,j,:,:]) * 2.0 / 3.0 * energy[:,i] / V0
-                D_U[:,:] += xp.diag(mu_U_tmp)   
-                             
+                D_U[:,:] += xp.diag(mu_U_tmp)
+
+        elif EinsteinFormIon and self.Z[i] != 0 and i != 0:
+            V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
+            D_U_tmp = 2.0 / 3.0 * xp.multiply(mu[:,i], xp.diag(energy_U[i,j,:,:])) / V0
+            D_U[:,:] = xp.diag(D_U_tmp)
+
+            if (len(self.mobilityList) > i and self.mobilityList[i].interpolate):
+                mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
+                mu_U_tmp = mu_ee * xp.diag(energy_U[i,j,:,:]) * 2.0 / 3.0 * energy[:,self.Ns-1] / V0
+                D_U[:,:] += xp.diag(mu_U_tmp)
+
 
         if (j == self.Ns - 1):
             D_U[:,:] -= xp.diag(D[:,i] / nb)
@@ -572,8 +574,6 @@ class timeDomainCollocationSolver:
             Nr = 7
         elif(scenario==6):
             Nr = 23
-        elif(scenario==7):
-            Nr = 23
         elif(scenario==8):
             Nr = 23
         elif(scenario==9):
@@ -588,11 +588,15 @@ class timeDomainCollocationSolver:
             Nr = 23
         elif(scenario==21):
             Nr = 8
+        elif(scenario==7):
+            Nr = 34
         elif(scenario==15 or scenario==16):
             Nr = 0 # It is evaluated within the model based on the number of species you include.            
             self.solveCRModel = True
+            elasticCollisionActivationFactor = 0.0 # Elastic collision term is being handled within the CR model.
+            print("Elastic collision term is being handled within the CR model. ")
             # if self.temporal_scheme != "BE" or self.temporal_scheme != "CN":
-            #     print("ERROR: Curently we suppport only the 'BE' and 'CN' temporal schemes with the CR model.")
+            #     print("ERROR: Curently we suppport only the 'BE' and 'CN' temporal schemes for the CR model.")
             #     exit(-1)
         else:
             print("ERROR: scenario = {} not understood.".format(scenario))
@@ -601,6 +605,7 @@ class timeDomainCollocationSolver:
         self.elasticCollisionActivationFactor = elasticCollisionActivationFactor
         self.backgroundSpecieActivationFactor = backgroundSpecieActivationFactor
         self.EinsteinForm = EinsteinForm
+        self.EinsteinFormIon = args.EinsteinFormIon
 
         self.params = modelClosures(self.Ns, Nr)
 
@@ -618,9 +623,6 @@ class timeDomainCollocationSolver:
             setPsaapPropertiesWithSampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==6):
             setPsaapProperties_6Species_Sampling(gam, V0, VDC, self.params, Nr, iSample)
-        elif(scenario==7):
-            setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
-            # setPsaapProperties_6Species_1Torr_Simplified(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==8):
             setPsaapProperties_6Species_Sampling_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==9):
@@ -635,12 +637,14 @@ class timeDomainCollocationSolver:
             setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==7):
+             setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==15 or scenario==16):
             setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
             self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, \
                 self.params.Pressure, self.params.GasTemperature, backgroundSpecieActivationFactor)
             self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119; self.params.dEps[self.Ns-1] = 0.0
-            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]*CRconst.cm_eV; 
+            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]*CRconst.cm_eV;
 
 
         # Points used to define state and collocation
@@ -823,7 +827,7 @@ class timeDomainCollocationSolver:
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]              # Electrons
         iion = [1]              # Ions
-        inb  = self.Ns - 1      # Background species
+        # inb  = self.Ns - 1      # Background species
         iee  = self.Ns          # Electron Energy
 
      
@@ -862,12 +866,15 @@ class timeDomainCollocationSolver:
         nT_x   = self.Dp @ nT
         phi_x  = self.Dp @ self.phi
 
-        # Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,self.Ns-1])
+        # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
+        EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] # Reduced Electric field  E / N
+
+
 
         # Temperature of species
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64) #NOTE(malamast): We now have self.Ns+1 instead of Ns
         energy[:,0] = Te[:,0] # For electrons
-        energy[:,1] = Te[:,0] # For ions
+        energy[:,1] = EN[:,0] # For ions
         for i in range(2,self.Ns):
             energy[:,i] = Tg[:,0]
         energy[:,iee] = Te[:,0] # Electron Energy
@@ -876,10 +883,12 @@ class timeDomainCollocationSolver:
         # NOTE(malamast): We now include transport coefficients for the electron energy equation
         mu              = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
+        
+        
         for i in range(0,self.Ns+1):
-            mu[:,i]  = self.params.mobility(i, energy, dens[:,inb])
-            diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,inb],
-                                                       self.EinsteinForm)
+            mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
+            diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,self.Ns-1],
+                                                       self.EinsteinForm, self.EinsteinFormIon)
 
         if self.EinsteinForm:
             mu[:,iee] = (5./3.) * mu[:,0] 
@@ -967,6 +976,7 @@ class timeDomainCollocationSolver:
         SEC  = -self.params.EC * (nT - xp.multiply(dens[:, iele], Tg)) #NOTE(malamast): This was dens[0, iele] and I changed it to dens[:, iele] 
         SEC *= self.elasticCollisionActivationFactor
         
+        
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
         fa = xp.copy(fT)
@@ -979,7 +989,6 @@ class timeDomainCollocationSolver:
 
         # background thermal conductivity contribution
         fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0]) # NOTE(malamast): I don't understand why we add this.
-
 
         fa_x = self.Dp @ fa
 
@@ -1334,12 +1343,24 @@ class timeDomainCollocationSolver:
         if (solve_poisson):
             self.solve_poisson(dens[:,iele],dens[:,iion],time)
 
+        # form flux Jacobians
+        dens_x = self.Dp @ dens
+        nT_x   = self.Dp @ nT
+        phi_x  = self.Dp @ self.phi
+
+        phi_x_ne = self.phi_x_ne
+        phi_x_ni = self.phi_x_ni
+
+        # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
+        EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] # Reduced Electric field  E / N
+
+
         # NOTE(malamast): We now include transport coefficients for the electron energy equation
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         mu     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
-        energy[:,0] = Te[:,0]
-        energy[:,1] = Te[:,0]
+        energy[:,0] = Te[:,0] # For electrons
+        energy[:,1] = EN[:,0] # For ions
         for i in range(2,self.Ns): #NOTE(malamast): We assume the ion mobility is a function of Te
             energy[:,i] = Tg[:,0]
         energy[:,iee] = Te[:,0]
@@ -1348,17 +1369,20 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns+1):
             mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
             diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,self.Ns-1],
-                                                       self.EinsteinForm)
+                                                       self.EinsteinForm, self.EinsteinFormIon)
             
         if self.EinsteinForm:
             mu[:,iee] = (5./3.) * mu[:,0] 
             diffusivity[:,iee] = (5./3.) * diffusivity[:,0] 
 
+
+
             
         energy_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
         energy_U[0,0,:,:] = Te_ne; energy_U[0,self.Ns,:,:] = Te_nT 
         energy_U[iee,0,:,:] = Te_ne; energy_U[iee,self.Ns,:,:] = Te_nT
-        energy_U[1,0,:,:] = Te_ne; energy_U[1,self.Ns,:,:] = Te_nT 
+        energy_U[1,0,:,:] = phi_x_ne; energy_U[1,1,:,:] = phi_x_ni;  #NOTE(malamast): Do I need to devide by nb here for ions?
+        energy_U[1,self.Ns-1,:,:] = -xp.multiply(EN/dens[:,[self.Ns-1]],Imat) 
         for i in range(2,self.Ns): #NOTE(malamast): We assume the ion mobility is a function of Te
             for j in range(1,self.Nv):
                 energy_U[i,j,:,:] = xp.multiply(Imat,Tg_U[:,j]) # NOTE(malamast): This assumes that the diffusion coefficients of species 
@@ -1369,10 +1393,9 @@ class timeDomainCollocationSolver:
         mu_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
         for i in range(0,self.Ns+1):
             for j in range(0,self.Nv):
-                diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j,
-                                                                   energy, energy_U,
+                diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j, energy, energy_U,
                                                                    mu, diffusivity, dens[:,self.Ns-1],
-                                                                   self.EinsteinForm)
+                                                                   self.EinsteinForm, self.EinsteinFormIon)
                 mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, mu, dens[:,self.Ns-1])
 
 
@@ -1382,13 +1405,6 @@ class timeDomainCollocationSolver:
                 diffusivity_U[iee,j,:,:] = (5./3.) * diffusivity_U[0,j,:,:]
             
 
-        # form flux Jacobians
-        dens_x = self.Dp @ dens
-        nT_x   = self.Dp @ nT
-        phi_x  = self.Dp @ self.phi
-
-        phi_x_ne = self.phi_x_ne
-        phi_x_ni = self.phi_x_ni
 
 
         # # must have electron flux for use in Jacobian of Joule heating
@@ -1417,6 +1433,7 @@ class timeDomainCollocationSolver:
         # overwrite endpoints in fi (weakly impose BC)
         fspec[ 0,1] = -self.params.ksion * dens[ 0,iion] + mu[0,1] * dens[ 0,iion] * (-phi_x[ 0])
         fspec[-1,1] = +self.params.ksion * dens[-1,iion] + mu[-1,1] * dens[-1,iion] * (-phi_x[-1])
+
 
         # species equations
         fspec_U = xp.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=xp.float64)
@@ -1590,7 +1607,8 @@ class timeDomainCollocationSolver:
         else:
             omega = self.params.rxnSourceTerm(Te, dens)
             omega_V = self.params.rxnSourceTermJac(Te, dens)
-
+            Qrad_V = xp.zeros((self.Ns+1,self.Np),dtype=xp.float64) 
+            
         # chain rule to get derivatives wrt ne, ni, ..., nT 
         omega_U = xp.zeros_like(omega_V)
         for i in range(0,self.Ns+1):
@@ -2022,8 +2040,8 @@ class timeDomainCollocationSolver:
 
         normr = normr0 = xp.linalg.norm(r)
 
-        if xp == cp:
-          cp.cuda.runtime.deviceSynchronize()
+        # if xp == cp:
+        #   cp.cuda.runtime.deviceSynchronize()
 
         count = 0
         converged = ((normr/normr0 < rtol) or (normr < atol))
@@ -2193,7 +2211,7 @@ class timeDomainCollocationSolver:
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
 
         for istep in range(1, Nstep):
-            start_time = cpu_time.time()
+            # start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
@@ -2221,7 +2239,7 @@ class timeDomainCollocationSolver:
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
-            print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
         if(savedata!=None):
             xp.save(savedata,Usave)
@@ -2232,7 +2250,6 @@ class timeDomainCollocationSolver:
 
     def solveLCN(self, time0, dt, Nstep, savedata=None, verbose=False,
                  computeSensitivity=False, weak_bc=False):
-
 
         if self.args.use_gpu==1:
             self.copy_operators_H2D(self.args.gpu_device_id)
@@ -2392,7 +2409,9 @@ if __name__ == "__main__":
     parser.add_argument('--backgroundSpecieActivation', default=False,
                         action='store_true', help="Activate the background specie density equation.")
     parser.add_argument('--EinsteinForm', default=False,
-                        action='store_true', help="Activate Einstein's form for diffusion coefficient.")
+                        action='store_true', help="Activate Einstein's form for diffusion coefficient for electrons.")
+    parser.add_argument('--EinsteinFormIon', default=False,
+                        action='store_true', help="Activate Einstein's form for diffusion coefficient for ions.")
     parser.add_argument('--iSample', metavar='iSample', default=0,
                         type=int, help='Sample index, if BOLSIG chemistry is used.')
     parser.add_argument('--gam', metavar='gam', default=0.01, type=float, help='Secondary Electron Emission Coefficient')
@@ -2501,11 +2520,16 @@ if __name__ == "__main__":
 
     EinsteinForm = True
     if(args.EinsteinForm==True):
-        print("#   The Einstein's form for diffusion coefficient is used.")
+        print("#   The Einstein's form for diffusion coefficient is used for electrons.")
         EinsteinForm = True
     else:
-        print("#   The Einstein's form for diffusion coefficient is not used.")
+        print("#   The Einstein's form for diffusion coefficient is not used for electrons.")
         EinsteinForm = False
+
+    if(args.EinsteinFormIon==True):
+        print("#   The Einstein's form for diffusion coefficient is used for ions.")
+    else:
+        print("#   The Einstein's form for diffusion coefficient is not used for ions.")
 
     if(args.savedata!=None):
         print("#")
@@ -2546,8 +2570,8 @@ if __name__ == "__main__":
         gpu_device = cp.cuda.Device(args.gpu_device_id)
         gpu_device.use()
 
-    profile = cProfile.Profile()
-    profile.enable()
+    # profile = cProfile.Profile()
+    # profile.enable()
     tic = cpu_time.time()
 
     # Run for desired number of time steps
@@ -2562,8 +2586,8 @@ if __name__ == "__main__":
         tds.solve(args.t0, args.dt, args.Nt,
                   args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
 
-    profile.disable()
-    profile.print_stats(sort='tottime')
+    # profile.disable()
+    # profile.print_stats(sort='tottime')
     # profile.print_stats(sort='cumulative')
     # profile.print_stats(sort='line')
     # profile.print_stats(sort='nfl')

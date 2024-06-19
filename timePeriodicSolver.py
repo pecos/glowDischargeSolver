@@ -159,7 +159,9 @@ if __name__ == "__main__":
     parser.add_argument('--backgroundSpecieActivation', default=False,
                         action='store_true', help="Activate the background specie density equation.")
     parser.add_argument('--EinsteinForm', default=False,
-                        action='store_true', help="Activate Einstein's form for diffusion coefficient.")
+                        action='store_true', help="Activate Einstein's form for diffusion coefficient for electrons.")
+    parser.add_argument('--EinsteinFormIon', default=False,
+                        action='store_true', help="Activate Einstein's form for diffusion coefficient for ions.")
     parser.add_argument('--alpha0', metavar='alpha0', default=1.0,
                         type=float, help='Newton step under-relaxation factor')
     parser.add_argument('--increaseFac', metavar='increaseFac', default=1.0,
@@ -292,13 +294,16 @@ if __name__ == "__main__":
 
     EinsteinForm = True
     if(args.EinsteinForm==True):
-        print("#   The Einstein's form for diffusion coefficient is used.")
+        print("#   The Einstein's form for diffusion coefficient is used for electrons.")
         EinsteinForm = True
     else:
-        print("#   The Einstein's form for diffusion coefficient is not used.")
+        print("#   The Einstein's form for diffusion coefficient is not used for electrons.")
         EinsteinForm = False
-        
-    
+
+    if(args.EinsteinFormIon==True):
+        print("#   The Einstein's form for diffusion coefficient is used for ions.")
+    else:
+        print("#   The Einstein's form for diffusion coefficient is not used for ions.")
 
     tps = timePeriodicSolver(args, Ns, 1, args.Np, elasticCollisionActivationFactor,
                              backgroundSpecieActivationFactor,

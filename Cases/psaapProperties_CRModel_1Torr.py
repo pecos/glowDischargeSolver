@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import h5py as h5
 from scipy.ndimage import uniform_filter1d
 
-
 import logging
 
 def smooth_clip(Te, threshold=1.5, width=0.2):
@@ -22,9 +21,6 @@ def smooth_clip(Te, threshold=1.5, width=0.2):
     """
     
     return 1 / (1 + np.exp(-(Te - threshold) / width))
-
-
-
 
 
 class Reaction(object):
@@ -110,6 +106,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     nmur = 0.0
     nmu4p = 0.0
     nmui = 8.0e19
+    # nmui = 4.65e19   # Transport coefficients from Lymberopoulos & Economou, 1993
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18   # argon number density times AR(m) diffusivity [1/(cm*s)]
@@ -130,18 +127,16 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
 
     # BC parameters
     # ks = 1.19e7  # electron recombination rate [cm/s]
-    ks = 1.366109824889323e7 # electron recombination rate [cm/s/eV] #NOTE(malamast): How did we estimate that?
-    # 1/4 * (2/3 e 8/pi/me)**0.5  * 100  
-    # 1/4 * np.sqrt(2/3*spc.e * 8/np.pi/spc.m_e) * 100.0
-
+    ks = 1.366109824889323e7 # electron recombination rate [cm/s/eV] 
+    # ks = 1/4 * np.sqrt(2/3*spc.e * 8/np.pi/spc.m_e) * 100.0 # electron recombination rate [cm/s/eV] 
 
     Mr_Ar = 39.948/1000.0       # [kg/mol]
     M_Ar = Mr_Ar/spc.N_A        # [kg] mass of argon atom (6.63352088e-26 kg)
     M_ArIon = M_Ar - spc.m_e    # [kg] mass of argon ion 
     
-    ksion = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_ArIon) * 100.0 # electron rate [cm/s] 
+    ksion = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_ArIon) * 100.0 # ion rate [cm/s] 
 
-    ksa = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_Ar) * 100.0 # electron rate [cm/s] 
+    ksa = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_Ar) * 100.0 # atom rate [cm/s] 
 
     ###################################################################
     # Constants of nature (probably shouldn't change unless you have
@@ -152,8 +147,6 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     kB   = spc.k #1.380649e-23      # Boltzmann constant [J/K]
     # kB   = 8.62e-5 # Boltzmann constant [eV/K]
     eV = qe/kB
-
-
 
     ###################################################################
     # Calculate non-dimensional parameters
@@ -277,12 +270,14 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     muList = []
 
     transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_3.h5", 'r')
+    # transport = h5.File("./BOLSIGChemistry_Transport/transport_Biagi_BSR_GlowDischarge.h5", 'r')
+
 
     ElectricFieldData = transport["reduced_electric_field"] 
     EN = ElectricFieldData[:,1]
     Te_trans = ElectricFieldData[:,0]
     Te_trans /= eV
-    threshold_Te0 = 3.0    
+    threshold_Te0 = 1.5    
     indices_Te0 = np.searchsorted(Te_trans, threshold_Te0)
 
     # threshold_Te0_2 = 2.5    
@@ -302,10 +297,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # exit(-1)
 
 
-
-
     #  Electron Mobility 
-    muList = []
     mobilityData = transport["mobility"] 
     Nmue_v_Te = mobilityData[:,1]
     Nmue_v_Te[0:indices_Te0] = Nmue_v_Te[indices_Te0]
@@ -316,8 +308,10 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     mue_Te_spline = CubicSpline.derivative(mue_spline)
     # mue_spline_2 = CubicSpline(Te_trans, mue_interp_2)
     # mue_Te_spline_2 = CubicSpline.derivative(mue_spline_2)
-    mobility = Mobility(interpolate = False, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
     muList.append(mobility)
+
+
     
     # fig, ax = plt.subplots()
     # ax.set_title('Mobility Coef.')
@@ -331,28 +325,31 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # plt.axhline(y=params.mu[0], color='k', linestyle='--')
     # ax.legend()
 
-
-
     #  Ion Mobility 
-    Nmui_v_Te = 4 * 1e21 / (1 + (22.1 * 1e29 * EN *1e-21 ))**0.33
+    EN_Td = np.logspace(np.log10(1e-2),np.log10(5000),3000,dtype=np.float64) #  Electric field / N [Td]         
+    Nmui_v_Te = 4 * 1e21 / (1 + (22.1 * 1e29 * EN_Td *1e-21 ))**0.33
     # Nmui_v_Te[0:indices_Te0] = Nmui_v_Te[indices_Te0]
-    mui_interp = (Nmui_v_Te[:]/nAr)*V0*tau/(L*L)    
-    # mui_interp = uniform_filter1d(mui_interp, size=1)
-    mui_spline = CubicSpline(Te_trans, mui_interp)
-    mui_Te_spline = CubicSpline.derivative(mui_spline)
-    mobility = Mobility(interpolate = False, mu_expression = mui_spline, mu_T_expression = mui_Te_spline)
+    mui_interp = (Nmui_v_Te[:]/nAr)*V0*tau/(L*L)  + params.mu[1]*1e-2   
+    # mui_interp = uniform_filter1d(mui_interp, size=3)
+    EN_interp = EN_Td / (1e21 * params.V0L/params.nAr) * 2/3 # We multiply with 2/3 here to make it compatible with  mobility_U function.
+    mui_spline = CubicSpline(EN_interp, mui_interp)
+    mui_EN_spline = CubicSpline.derivative(mui_spline)
+    mobility = Mobility(interpolate = False, mu_expression = mui_spline, mu_T_expression = mui_EN_spline)
     muList.append(mobility)
+
 
     # fig, ax = plt.subplots()
     # ax.set_title('Ion Mobility Coef.')
-    # ax.set_xlabel('Te [eV]')
+    # ax.set_xlabel('E/nAr [Td]')
     # ax.set_ylabel(r"$\mu_i \, $ [$ \, m^{2}/V/s$]")
-    # ax.plot(Te_trans, mui_interp, marker = 'o', label = 'raw')
-    # ax.plot(Te_trans, mui_Te_spline(Te_trans), marker = '*', label = 'Grad')
+    # ax.plot(EN_Td, mui_interp, marker = 'o', label = 'raw')
+    # # ax.plot(EN_Td, mui_EN_spline(EN_interp), marker = '*', label = 'Grad')
     # plt.axhline(y=params.mu[1], color='k', linestyle='--')
     # ax.legend()
 
 
+    # plt.show()
+    # exit(-1)
 
 
     for i in range(2, Ns):
@@ -416,14 +413,15 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
 
 
     #  Ion Diffusion Coef.  
-    NDi_v_Te = np.multiply(Te_trans, mui_interp) / qStar  # Einstein relation
-    # NDi_v_Te[0:indices_Te0] = NDi_v_Te[indices_Te0]
-    Di_interp = NDi_v_Te # It's already nondimenionilized.
-    Di_interp = uniform_filter1d(Di_interp, size=10)
-    Di_spline = CubicSpline(Te_trans, Di_interp)
-    Di_Te_spline = CubicSpline.derivative(Di_spline)
-    diffusivity = Diffusivity(interpolate = False, D_expression = Di_spline, D_T_expression = Di_Te_spline)
-    diffList.append(diffusivity)
+    # NDi_v_Te = np.multiply(Te_trans, mui_interp) / qStar  # Einstein relation
+    # # NDi_v_Te[0:indices_Te0] = NDi_v_Te[indices_Te0]
+    # Di_interp = NDi_v_Te # It's already nondimenionilized.
+    # Di_interp = uniform_filter1d(Di_interp, size=10)
+    # Di_spline = CubicSpline(Te_trans, Di_interp)
+    # Di_Te_spline = CubicSpline.derivative(Di_spline)
+    # diffusivity = Diffusivity(interpolate = False, D_expression = Di_spline, D_T_expression = Di_Te_spline)
+    # diffList.append(diffusivity)
+    diffList.append(Diffusivity(interpolate = False))
 
     # fig,ax = plt.subplots()
     # ax.set_title('Diffusion Coef.')
