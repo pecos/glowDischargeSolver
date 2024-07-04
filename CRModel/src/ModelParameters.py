@@ -469,6 +469,8 @@ class modelParameters:
         # crsFileName = './CRModel/Data/LXCat-Data/BSR/Excitation/Download/Cross section.txt'
         crsFileName = './CRModel/Data/LXCat-Data/Case1_BSR/Cross section.txt'
         # crsFileName = './CRModel/Data/LXCat-Data/Case2_Biagi+BSR/Cross section.txt'
+        # crsFileName = './CRModel/Data/LXCat-Data/Case3_NGFSRDW/Cross section.txt'
+        # crsFileName = './CRModel/Data/LXCat-Data/Case4_IST+BSR/Cross section.txt'
 
         CrossSections = multipleCrossSections(crsFileName)
         # self.collDict, self.Nlvl_InExcDat, self.NTrans_InExcDat 
@@ -476,16 +478,23 @@ class modelParameters:
         self.collDict_list = {}
         self.CollTransitions_LXCat = []
         icount = 0
+        icoll = 0
         for c in CrossSections.crs:
             if typeDictI2S[c.colType] == "EXCITATION":
 
                 lower_lvl = c.colName.split(" ")[0]
                 upper_lvl = c.colName.split(" ")[2]
                 # if (upper_lvl != 'Ar(Rydberg)' and  upper_lvl != 'Ar(HIGH)'):
-                    
+                
+
+                # icoll += 1              
+                # print(icoll, " ",lower_lvl, " -> ", upper_lvl) 
+                  
                 if (lower_lvl in self.DictRacah_lvl.keys()) and  \
                     (upper_lvl in self.DictRacah_lvl.keys()):
-                
+                 
+                    # icoll += 1              
+                    # print(icoll, " ",lower_lvl, " -> ", upper_lvl) 
 
                     icount += 1
                     i = self.DictRacah_lvl[lower_lvl]
@@ -498,6 +507,9 @@ class modelParameters:
                         iCollTrans = self.CollTransition_Dict[i,j]
                         self.CollTransitions_LXCat.append(iCollTrans)
                         self.collDict_list[iCollTrans] = c.data
+
+                    # if i==0:
+                    #     print(i,j,max(self.collDict_list[iCollTrans][:,1]))
 
             if typeDictI2S[c.colType] == "IONIZATION": # NOTE(malamast): LXCat data includes cs only for ground state.
                 self.IonizationGround = c.data
@@ -541,6 +553,7 @@ class modelParameters:
             
                         
         # sigma_ij[np.where(sigma_ij == 0.0)] = 'nan'
+        # from matplotlib.colors import LogNorm
 
         # # creating a plot
         # pixel_plot = plt.figure(dpi=140)
@@ -549,7 +562,7 @@ class modelParameters:
         # # customizing plot
         # plt.title("Max $\sigma$ for all possible transitions")
         # # pixel_plot = plt.imshow(sigma_ij, cmap='jet', interpolation='nearest', origin='lower')
-        # pixel_plot = plt.imshow(sigma_ij, cmap='jet',origin='lower')
+        # pixel_plot = plt.imshow(sigma_ij, cmap='jet',origin='lower', norm=LogNorm())
         # plt.xlabel('upper level index')
         # plt.ylabel('lower level index')    
         # plt.colorbar(pixel_plot)
@@ -566,6 +579,40 @@ class modelParameters:
         # # plt.title('Energy levels')
         # # plt.grid(True)
         # # # plt.legend()
+
+
+        # # # BSR
+        # # 0 1 3.55459e-22
+        # # 0 2 5.22631e-22
+        # # 0 3 9.12048e-23
+        # # 0 4 2.13143e-21
+        # # 0 5 2.09412e-22
+        # # 0 6 1.44821e-22
+        # # 0 7 1.6845e-22
+        # # 0 8 6.80299e-23
+        # # 0 9 1.55133e-22
+        # # 0 10 6.01045e-23
+        # # 0 11 6.72448e-23
+        # # 0 12 9.80869e-23
+        # # 0 13 7.74843e-23
+        # # 0 14 2.27167e-22
+
+        # # # IST
+        # # 0 1 8.465143e-22
+        # # 0 2 4.276331e-22
+        # # 0 3 1.542259e-22
+        # # 0 4 1.034436e-21
+        # # 0 5 5.316713e-22
+        # # 0 6 5.200199e-22
+        # # 0 7 5.419829e-22
+        # # 0 8 2.737786e-22
+        # # 0 9 3.639379e-22
+        # # 0 10 1.770719e-22
+        # # 0 11 2.880844e-22
+        # # 0 12 3.216043e-22
+        # # 0 13 1.560001e-22
+        # # 0 14 5.059534e-22
+
 
         # plt.show()
         # exit(-1)

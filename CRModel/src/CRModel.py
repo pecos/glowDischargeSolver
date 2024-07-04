@@ -91,6 +91,9 @@ class CollisionalRadiativeModel:
 
         self.args       = args
         self.xp_module  = np
+
+        self.epsilon=np.sqrt(np.finfo(float).eps)
+
         
         # Input parameters
         self.p_0 = Pressure; self.T_g0 = GasTemperature
@@ -229,9 +232,16 @@ class CollisionalRadiativeModel:
         #----------------------------------------------------------------------------------
 
 
-        filename = "./CRModel/Data/EEDF/EEDF_BSR_2.h5"
+        # filename = "./CRModel/Data/EEDF/EEDF_BSR_2.h5"
         # filename = "./CRModel/Data/EEDF/EEDF_Biagi_BSR_GlowDischarge.h5"
+        # filename = "./CRModel/Data/EEDF/EEDF_BSR_2.5Torr.h5"
+        # filename = "./CRModel/Data/EEDF/EEDF_BSR_5Torr.h5"
+        # filename = "./CRModel/Data/EEDF/EEDF_BSR_0.1Torr.h5"
+        # filename = "./CRModel/Data/EEDF/EEDF_BSR_1Torr_2.h5"
+        filename = "./CRModel/Data/EEDF/EEDF_BSR_1Torr_3.h5"
+
         self.Te_eedf, self.EEDF_list, self.EEDFinterpolator = self.readEEDFFile(filename)
+
 
 
 
@@ -278,7 +288,8 @@ class CollisionalRadiativeModel:
         k0 = lambda_0**3*n_i*g_j*A_ji*Mspecies**0.5/(8*xp.pi*g_i*(2*spc.k*xp.pi*T_g)**0.5) # absorption coefficient at line center, for Doppler absorption
 
         q0 = R
-        Lq = L/(2*q0)      
+        Lq = L/(2*q0)  
+        
         
         # Compute escape factor using vectorized conditions    
         eta = xp.where(((k0 * (L / 2) > 1.0) & (k0 * q0 > 1.0)),
@@ -304,6 +315,10 @@ class CollisionalRadiativeModel:
         # self.U2             = cp.asarray(self.U2)
         # self.U1             = cp.asarray(self.U1)
         # self.U0             = cp.asarray(self.U0)
+
+        self.epsilon         = cp.asarray(self.epsilon)
+
+        self.eRange         = cp.asarray(self.eRange)
 
         self.eRange         = cp.asarray(self.eRange)
         self.eRange_diff    = cp.asarray(self.eRange_diff)
@@ -421,7 +436,8 @@ class CollisionalRadiativeModel:
         """
         xp = self.xp_module
 
-        epsilon=xp.sqrt(xp.finfo(float).eps)
+        # epsilon=xp.sqrt(xp.finfo(float).eps)
+        epsilon = self.epsilon
 
 
         # user specifies an absolute step
@@ -506,6 +522,7 @@ class CollisionalRadiativeModel:
 
         xp = self.xp_module
 
+        epsilon = self.epsilon
 
         # if xp == cp:
         #   cp.cuda.runtime.deviceSynchronize()
@@ -700,7 +717,7 @@ class CollisionalRadiativeModel:
         # # ken = xp.sum(self.wi * sigma_el_e1 *self.electronImpactIonRateIntegrand(T_e) * T_e)
 
         MeanThermalVelocity_e = xp.sqrt(8.0*spc.k*T_e/K_eV/xp.pi/spc.m_e)
-        Lambda_ei = 1.24e7 * xp.sqrt((T_e/K_eV)**3/ne) # Check the units !!!?????
+        Lambda_ei = 1.24e7 * xp.sqrt( (T_e/K_eV)**3 / (ne + epsilon) ) # Check the units !!!?????
         MeanSigma_ei = 5.85e-10 * xp.log(Lambda_ei)/(T_e/K_eV)**2 # Check the units !!!?????
         kei = MeanThermalVelocity_e * MeanSigma_ei
         
@@ -776,37 +793,6 @@ class CollisionalRadiativeModel:
         T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion)   # [K]
  
         
-
-        """
-        Compute Electron Energy Distribution Function (EEDF) based on a Maxwellian distribution:
-        """
-        # EEDF= self.MaxwellianDistribution_vec(self.eRange,T_e)
-        # AEDF= self.MaxwellianDistribution_vec(self.eRange,T_g*K_eV)
-        # EEDFnorm = self.trapz(EEDF,self.eRange, axis=0 )
-        # AEDFnorm = self.trapz(AEDF,self.eRange, axis=0 )
-        # # EEDF /= EEDFnorm
-        # # AEDF /= AEDFnorm        
-
-        # eVelTimesEEDF =  self.eVel*EEDF/EEDFnorm
-        # aVelTimesAEDF =  self.aVel*AEDF/AEDFnorm
-
-
-        # tic = cpu_time.time()
-        # for i in range(100):
-        #     a = xp.trapz(AEDF,self.eRange, axis=0 )
-        # print(f"CPU Time / timestep is {cpu_time.time() - tic} seconds.")
-
-        # tic = cpu_time.time()
-        # for i in range(100):
-        #     b = self.trapz(AEDF,self.eRange, axis=0 )
-        # print(f"CPU Time / timestep is {cpu_time.time() - tic} seconds.")
-        
-        # # print(xp.shape(a),xp.shape(b))
-        # # print(xp.array_equal(a,b) )    
-        # print(xp.allclose(a, b, atol=1e-100))
-
-        # exit(-1) 
-
                         
         ################## Elecrton impact Ionization ##################
         # Ar(i) + e- <-> Ar+ + e- + e-
@@ -862,6 +848,7 @@ class CollisionalRadiativeModel:
                                           self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L) 
             # else:
                 # eta=1.0
+                
 
             # if np.min(eta) < 1.0:
             #     lambda_0 = spc.h*spc.c/((self.p.E_j[itrans]-self.p.E_i[itrans])*cm_eV*spc.e)*1e9 # wavelength of transition
@@ -898,79 +885,78 @@ class CollisionalRadiativeModel:
             # dEhdt += + deltaIon * (Rwm - Rvm)
 
 
-
         
-        # ################## Ionization due to heavy particle collisions ##################
-        # # Ar* + Ar* -> Ar+ + Ar + e  
-        # # !< To Do: How do we include the inverse processes here???
+        ################## Ionization due to heavy particle collisions ##################
+        # Ar* + Ar* -> Ar+ + Ar + e  
+        # !< To Do: How do we include the inverse processes here???
 
-        # S_r  = self.S_r       # resonance-resonance collisions
-        # S_mr = self.S_mr      # resonance-metastable collisions 
-        # S_m  = self.S_m       # metastable-metastable collisions
+        S_r  = self.S_r       # resonance-resonance collisions
+        S_mr = self.S_mr      # resonance-metastable collisions 
+        S_m  = self.S_m       # metastable-metastable collisions
 
-        # iN1s5 = self.iN1s5  # metastable           
-        # iN1s4 = self.iN1s4  # resonance
-        # iN1s3 = self.iN1s3  # metastable   
-        # iN1s2 = self.iN1s2  # resonance
+        iN1s5 = self.iN1s5  # metastable           
+        iN1s4 = self.iN1s4  # resonance
+        iN1s3 = self.iN1s3  # metastable   
+        iN1s2 = self.iN1s2  # resonance
                 
-        # # resonance-resonance  2 Ar(r) -> Ar+ + Ar + e  
-        # Rkii_I = npop[:,iN1s4]*npop[:,iN1s4]*S_r              
-        # dydt[:,iN1s4] += - 2.0 * Rkii_I 
-        # dydt[:,iNe] += Rkii_I 
-        # dydt[:,iNg] += Rkii_I         
+        # resonance-resonance  2 Ar(r) -> Ar+ + Ar + e  
+        Rkii_I = npop[:,iN1s4]*npop[:,iN1s4]*S_r              
+        dydt[:,iN1s4] += - 2.0 * Rkii_I 
+        dydt[:,iNe] += Rkii_I 
+        dydt[:,iNg] += Rkii_I         
 
-        # Rkii_I = npop[:,iN1s2]*npop[:,iN1s2]*S_r 
-        # dydt[:,iN1s2] += - 2.0 * Rkii_I
-        # dydt[:,iNe] += Rkii_I 
-        # dydt[:,iNg] += Rkii_I 
+        Rkii_I = npop[:,iN1s2]*npop[:,iN1s2]*S_r 
+        dydt[:,iN1s2] += - 2.0 * Rkii_I
+        dydt[:,iNe] += Rkii_I 
+        dydt[:,iNg] += Rkii_I 
 
-        # Rkii_I = npop[:,iN1s4]*npop[:,iN1s2]*S_r
-        # dydt[:,iN1s4] += - Rkii_I     
-        # dydt[:,iN1s2] += - Rkii_I
-        # dydt[:,iNe] += Rkii_I  
-        # dydt[:,iNg] += Rkii_I  
+        Rkii_I = npop[:,iN1s4]*npop[:,iN1s2]*S_r
+        dydt[:,iN1s4] += - Rkii_I     
+        dydt[:,iN1s2] += - Rkii_I
+        dydt[:,iNe] += Rkii_I  
+        dydt[:,iNg] += Rkii_I  
                      
-        # # metastable-resonance  Ar(r) + Ar(m) -> Ar+ + Ar + e      
-        # Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s3]*S_mr
-        # dydt[:,iN1s4] += - Rkii_I_1
-        # dydt[:,iN1s3] += - Rkii_I_1
-        # dydt[:,iNe] += Rkii_I_1 
-        # dydt[:,iNg] += Rkii_I_1 
+        # metastable-resonance  Ar(r) + Ar(m) -> Ar+ + Ar + e      
+        Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s3]*S_mr
+        dydt[:,iN1s4] += - Rkii_I_1
+        dydt[:,iN1s3] += - Rkii_I_1
+        dydt[:,iNe] += Rkii_I_1 
+        dydt[:,iNg] += Rkii_I_1 
 
-        # Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s3]*S_mr
-        # dydt[:,iN1s2] += - Rkii_I_2 
-        # dydt[:,iN1s3] += - Rkii_I_2
-        # dydt[:,iNe] += Rkii_I_2 
-        # dydt[:,iNg] += Rkii_I_2 
+        Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s3]*S_mr
+        dydt[:,iN1s2] += - Rkii_I_2 
+        dydt[:,iN1s3] += - Rkii_I_2
+        dydt[:,iNe] += Rkii_I_2 
+        dydt[:,iNg] += Rkii_I_2 
 
-        # Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s5]*S_mr    
-        # dydt[:,iN1s4] += - Rkii_I_1  
-        # dydt[:,iN1s5] += - Rkii_I_1
-        # dydt[:,iNe] += Rkii_I_1 
-        # dydt[:,iNg] += Rkii_I_1 
+        Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s5]*S_mr    
+        dydt[:,iN1s4] += - Rkii_I_1  
+        dydt[:,iN1s5] += - Rkii_I_1
+        dydt[:,iNe] += Rkii_I_1 
+        dydt[:,iNg] += Rkii_I_1 
                 
-        # Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s5]*S_mr
-        # dydt[:,iN1s2] += - Rkii_I_2
-        # dydt[:,iN1s5] += - Rkii_I_2
-        # dydt[:,iNe] += Rkii_I_2
-        # dydt[:,iNg] += Rkii_I_2
+        Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s5]*S_mr
+        dydt[:,iN1s2] += - Rkii_I_2
+        dydt[:,iN1s5] += - Rkii_I_2
+        dydt[:,iNe] += Rkii_I_2
+        dydt[:,iNg] += Rkii_I_2
 
-        # # metastable-metastable  Ar(m) + Ar(m) -> Ar+ + Ar + e         
-        # Rkii_I = npop[:,iN1s5]*npop[:,iN1s5]*S_m 
-        # dydt[:,iN1s5] += - 2*Rkii_I           
-        # dydt[:,iNe] += Rkii_I 
-        # dydt[:,iNg] += Rkii_I 
+        # metastable-metastable  Ar(m) + Ar(m) -> Ar+ + Ar + e         
+        Rkii_I = npop[:,iN1s5]*npop[:,iN1s5]*S_m 
+        dydt[:,iN1s5] += - 2*Rkii_I           
+        dydt[:,iNe] += Rkii_I 
+        dydt[:,iNg] += Rkii_I 
         
-        # Rkii_I = npop[:,iN1s3]*npop[:,iN1s3]*S_m
-        # dydt[:,iN1s3] += - 2 * Rkii_I
-        # dydt[:,iNe] += Rkii_I 
-        # dydt[:,iNg] += Rkii_I 
+        Rkii_I = npop[:,iN1s3]*npop[:,iN1s3]*S_m
+        dydt[:,iN1s3] += - 2 * Rkii_I
+        dydt[:,iNe] += Rkii_I 
+        dydt[:,iNg] += Rkii_I 
 
-        # Rkii_I = npop[:,iN1s5]*npop[:,iN1s3]*S_m
-        # dydt[:,iN1s5] += - Rkii_I    
-        # dydt[:,iN1s3] += - Rkii_I                        
-        # dydt[:,iNe] += Rkii_I 
-        # dydt[:,iNg] += Rkii_I     
+        Rkii_I = npop[:,iN1s5]*npop[:,iN1s3]*S_m
+        dydt[:,iN1s5] += - Rkii_I    
+        dydt[:,iN1s3] += - Rkii_I                        
+        dydt[:,iNe] += Rkii_I 
+        dydt[:,iNg] += Rkii_I     
         
             
         ################## Atom impact de/excitation ##################

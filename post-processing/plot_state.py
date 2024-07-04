@@ -16,12 +16,12 @@ isPlot = True
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
-# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 2; c = True; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 4; c = False; f = '../discard.npy'; cl = 'b-'; lb = "discard"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 5; c = False; f = '../exception_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
@@ -39,10 +39,10 @@ ic = 9; c = False; f = '../Results/CR/1Torr75V/Ns17_EnergyTransport_BSR/2/noncon
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-ic = 9; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 10; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 9; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 10; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 11; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/2/nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
@@ -190,6 +190,8 @@ for ic in case:
 
       Tg[ic] = (p_0/spc.k - ne[ic] * Te[ic]/K_eV) / (np.sum(npop[ic], axis=1) + ni[ic])   # [K]
 
+      nee[ic] *= spc.e
+
       if model[ic] == "CR":
          dEps[ic] = dEps_CR[FromGlowDischargeToCRIndexing[ic]]
          g[ic] = g_CR[FromGlowDischargeToCRIndexing[ic]]
@@ -210,7 +212,22 @@ for ic in case:
 
 if (isPlot):
    print("Plotting means...")
-   
+
+
+   # nee
+   fig,ax = plt.subplots(dpi=160)
+   for ic in case: 
+      if case[ic]: 
+         ax.semilogy(xr, nee[ic], clr[ic], lw=2, label=label[ic])
+   ax.legend(fontsize=12)
+   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$E_e$ [J]", fontsize=18)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/ne_mean.png')
+
+
    # ne
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 

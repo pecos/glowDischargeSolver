@@ -108,10 +108,11 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     nmui = 8.0e19
     # nmui = 4.65e19   # Transport coefficients from Lymberopoulos & Economou, 1993
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
-    nDi  = 2.07e18   # argon number density times ion diffusivity [1/(cm*s)]
-    nDm  = 2.42e18   # argon number density times AR(m) diffusivity [1/(cm*s)]
+    nDi  =  nmui * spc.k * GasTemperature / spc.e   # 2.07e18 # argon number density times ion diffusivity [1/(cm*s)]
+    nDm  = 2.42e18 #2.42e18 #4.3763e18   # argon number density times AR(m) diffusivity [1/(cm*s)]
     nDr  = 2.42e18
     nD4p = 2.42e18
+
 
     # reaction parameters (NB: k_i = Ck*Ee^B*exp(-A/Ee))
     #                          Ee = 3/2*Te (Te in eV)
@@ -137,6 +138,7 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     ksion = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_ArIon) * 100.0 # ion rate [cm/s] 
 
     ksa = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_Ar) * 100.0 # atom rate [cm/s] 
+
 
     ###################################################################
     # Constants of nature (probably shouldn't change unless you have
@@ -172,6 +174,36 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     Dr  = nDr/nAr
     D4p = nD4p/nAr
 
+
+
+
+    # m1 = Mr_Ar*1000
+    # m2 = Mr_Ar*1000
+    # mkl = 1/m1 + 1/m2
+    
+    # Sigma_klvi_g = 16.1
+    # Sigma_klvi_m = 183.2
+    
+
+    # Dkl = 1e-4 * 1e-3 * GasTemperature**1.75 / (Pressure/101325.0) * np.sqrt(mkl) / (Sigma_klvi_g**(1/3) + Sigma_klvi_m**(1/3))**2 
+
+    # D0 = 0.156
+    # n0 = 1.92
+    # P0 = 760 * spc.torr
+    # Dargon = 1e-4*D0 * (P0 / Pressure) / (300/273.15)**n0 
+
+    # # R. Byron Bird, Warren E. Stewart, Edwin N. Lightfoot - Transport Phenomena.-Wiley (2001)
+    # sigma = 3.432; epsilonOverKappa = 122.4 # Lennard-Jones parameters
+    # Tstar = GasTemperature / epsilonOverKappa
+    # Omega_d = 1.06036 / Tstar**0.15610 + 0.19300 / np.exp(0.47635 * Tstar) + 1.03587 / np.exp(1.52996 * Tstar) + 1.76474 / np.exp(3.89411 * Tstar)  
+    # Dab = 1e-4 * 0.0018583 * GasTemperature**1.5 / (Pressure/101325.0) * np.sqrt(mkl) / sigma**2 / Omega_d
+
+    # # print(Dab*nAr/100)
+    # # print(Dkl, Dm, Dargon, Dab)
+    # # exit(-1)
+
+
+
     mue = nmue/nAr
     mui = nmui/nAr
     mum = nmum/nAr
@@ -198,13 +230,25 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     ksa      = ksa*tau/L
     p0       = p/qe/np0
 
-    ThermalConductivity = 17.7e-3 # [W/m/K] at 300K
+
+
+
+    ThermalConductivity = 17.7e-3 # [W/m/K] at 300K at atmospheric pressure. 
+                                  # Thermal conductivity of monatomic gases is idependent of pressure. 
+
+    # # R. Byron Bird, Warren E. Stewart, Edwin N. Lightfoot - Transport Phenomena.-Wiley (2001)
+    # sigma = 3.432; epsilonOverKappa = 122.4 # Lennard-Jones parameters for Ar
+    # Tstar = GasTemperature / epsilonOverKappa
+    # Omega_k = 1.16145 / Tstar**0.14874 + 0.52487 / np.exp(0.77320 * Tstar) + 2.16178 / np.exp(2.43787 * Tstar)  
+    # ThermalConductivity_2 = 1.9891e-4 * np.sqrt(GasTemperature / (Mr_Ar*1000)) / sigma**2 / Omega_k  # [cal/cm/K/s]
+    # ThermalConductivity_2 *= 4.184 * 1e2 # [W/m/K]
     
     kappaB   = (2/3)*tau/L**2*ThermalConductivity/np0/kB
     
     # kappaB   = 4.878171165833662*1.6129 # non-dimensional thermal conductivity of background specie
     #                             # (2/3)*tau/L**2*Kb/np0/kB,
     #                             # where Kb is the thermal conductivity of background specie
+
 
 
     # 4) Set values in params class
@@ -269,8 +313,12 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     diffList = []
     muList = []
 
-    transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_3.h5", 'r')
+    # transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_3.h5", 'r')
     # transport = h5.File("./BOLSIGChemistry_Transport/transport_Biagi_BSR_GlowDischarge.h5", 'r')
+    # transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_2.5Torr.h5", 'r')
+    # transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_5Torr.h5", 'r')
+    # transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_1Torr_2.h5", 'r')
+    transport = h5.File("./BOLSIGChemistry_Transport/transport_BSR_1Torr_3.h5", 'r')
 
 
     ElectricFieldData = transport["reduced_electric_field"] 
@@ -325,16 +373,24 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # plt.axhline(y=params.mu[0], color='k', linestyle='--')
     # ax.legend()
 
+
+
     #  Ion Mobility 
     EN_Td = np.logspace(np.log10(1e-2),np.log10(5000),3000,dtype=np.float64) #  Electric field / N [Td]         
-    Nmui_v_Te = 4 * 1e21 / (1 + (22.1 * 1e29 * EN_Td *1e-21 ))**0.33
+
+    # Nmui_v_Te = 4 * 1e21 / (1 + (22.1 * 1e29 * EN_Td *1e-21))**0.33    # [1/(V*m*s)]
+
+    Efield = EN_Td *1e-21 * nAr
+    DriftVelocity_Ion = 4 * EN_Td / (1 + (0.007 * EN_Td  )**1.5)**0.33 # [m/s]
+    Nmui_v_Te = DriftVelocity_Ion * nAr / Efield
+        
     # Nmui_v_Te[0:indices_Te0] = Nmui_v_Te[indices_Te0]
-    mui_interp = (Nmui_v_Te[:]/nAr)*V0*tau/(L*L)  + params.mu[1]*1e-2   
+    mui_interp = (Nmui_v_Te[:]/nAr)*V0*tau/(L*L)  # + params.mu[1]*1e-2   
     # mui_interp = uniform_filter1d(mui_interp, size=3)
     EN_interp = EN_Td / (1e21 * params.V0L/params.nAr) * 2/3 # We multiply with 2/3 here to make it compatible with  mobility_U function.
     mui_spline = CubicSpline(EN_interp, mui_interp)
     mui_EN_spline = CubicSpline.derivative(mui_spline)
-    mobility = Mobility(interpolate = False, mu_expression = mui_spline, mu_T_expression = mui_EN_spline)
+    mobility = Mobility(interpolate = True, mu_expression = mui_spline, mu_T_expression = mui_EN_spline)
     muList.append(mobility)
 
 
@@ -342,14 +398,27 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # ax.set_title('Ion Mobility Coef.')
     # ax.set_xlabel('E/nAr [Td]')
     # ax.set_ylabel(r"$\mu_i \, $ [$ \, m^{2}/V/s$]")
-    # ax.plot(EN_Td, mui_interp, marker = 'o', label = 'raw')
+    # ax.plot(EN_Td, mui_interp/params.mu[1], marker = 'o', label = 'raw')
     # # ax.plot(EN_Td, mui_EN_spline(EN_interp), marker = '*', label = 'Grad')
-    # plt.axhline(y=params.mu[1], color='k', linestyle='--')
+    # # plt.axhline(y=params.mu[1], color='k', linestyle='--')
     # ax.legend()
+    # # ax.semilogy()
+    # # ax.loglog()
 
+
+    # fig, ax = plt.subplots()
+    # ax.set_title('Ion Drift Velocity.')
+    # ax.set_xlabel('E/nAr [Td]')
+    # ax.set_ylabel(r"$W_i \, $ [$ \, m/s$]")
+    # ax.plot(EN_Td, DriftVelocity_Ion, marker = 'o', label = 'raw')
+    # # ax.plot(EN_Td, mui_EN_spline(EN_interp), marker = '*', label = 'Grad')
+    # # plt.axhline(y=params.mu[1], color='k', linestyle='--')
+    # ax.legend()
+    # ax.loglog()
 
     # plt.show()
     # exit(-1)
+
 
 
     for i in range(2, Ns):

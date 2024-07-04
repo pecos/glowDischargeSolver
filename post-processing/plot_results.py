@@ -152,7 +152,7 @@ def ReadOESAr4pData():
    #    if ic != "Ei" and ic != "gi":
    #       # if ic == "0.5Torr-100V" or ic == "1.0Torr-100V" or ic == "5.0Torr-100V" :
    #       # if ic == "0.1Torr-150V" or ic == "0.5Torr-150V" or ic == "1.0Torr-150V" or ic == "5.0Torr-150V" or ic == "10.0Torr-150V" :
-   #       if ic == "0.1Torr-300V" or ic == "0.5Torr-300V" or ic == "1.0Torr-300V" or ic == "5.0Torr-300V" or ic == "10.0Torr-300V":
+   #       # if ic == "0.1Torr-300V" or ic == "0.5Torr-300V" or ic == "1.0Torr-300V" or ic == "5.0Torr-300V" or ic == "10.0Torr-300V":
    #       # if ic == "0.1Torr-500V" or ic == "0.5Torr-500V" :
    #       # if ic == "0.1Torr-750V" or ic == "0.5Torr-750V" :
    #       # if ic == "0.1Torr-150V" or ic == "0.1Torr-300V" or ic == "0.1Torr-500V" or ic == "0.1Torr-750V" or ic == "0.1Torr-1000V" :
@@ -160,6 +160,7 @@ def ReadOESAr4pData():
    #       # if ic == "1.0Torr-100V" or ic == "1.0Torr-150V" or ic == "1.0Torr-300V" or ic == "1.0Torr-400V" :
    #       # if ic == "5.0Torr-100V" or ic == "5.0Torr-150V" or ic == "5.0Torr-300V" :
    #       # if ic == "10.0Torr-150V" or ic == "10.0Torr-300V" :
+   #       if ic == "5.0Torr-300V" or ic == "1.0Torr-300V" :
    #          Ar_Exp_ni = Ar_Exp[ic]         
    #          ls = ':'
    #          uplims =  Ar_Exp_ni[:,1]/Ar_Exp_gi
@@ -177,7 +178,6 @@ def ReadOESAr4pData():
    # # ax.set_ylim((0,5.5))
    # ax.set_ylabel(r"$n_i / g_i$ [m$^{-3}$]", fontsize=16)
    # plt.setp(ax.get_yticklabels(), fontsize=12)
-
    # plt.show()
    # exit(-1)
 
@@ -224,7 +224,7 @@ def ReadLASAr4sData():
    # num_columns = Exp_Data_m.shape[1]
    # num_rows = Exp_Data_m.shape[0]
    # OpCond = GetOpCondName(Exp_Data_m.iloc[ExpID,0], Exp_Data_m.iloc[ExpID,4])
-   OpCond = "1.0Torr-150V"
+   OpCond = "1.0Torr-150V" # Do not change!
 
    Ar4s_Exp = Exp_Data_m.iloc[0:4,2].to_numpy('float64') ; Ar4s_Exp = Ar4s_Exp[::-1]
 
@@ -283,7 +283,7 @@ Ar_LAS_Exp = ReadLASAr4sData()
 Ar_Lumped4p_Exp  = ReadLumpedAr4pData()
 
 
-ExpCase = "5.0Torr-300V"
+ExpCase = "1.0Torr-150V"
 
 Ar_OES_Exp_Ei = Ar_OES_Exp["Ei"]; Ar_OES_Exp_gi = Ar_OES_Exp["gi"];
 if ExpCase in Ar_OES_Exp.keys():
@@ -363,8 +363,8 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # ic = 3; c = True; f = '../Results/CR/1Torr75V/Ns17_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "const De"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 4; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 4; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 5; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_Biagi/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Biagi"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -378,8 +378,6 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 8; c = True; f = '../Results/CR/500mTorr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "500mTorr-150V"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 7; c = True; f = '../Results/CR/100mTorr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ein"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 8; c = True; f = '../Results/CR/100mTorr150V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "MaxEEDF - ConstDiff"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -409,7 +407,7 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 16; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_NoAAReactions/newton_6sp_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - no aa reac."; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 17; c = True; f = '../Results/CR/5Torr150V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V"; m = "CR"
+# ic = 17; c = True; f = '../Results/CR/5Torr150V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V - Max"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 18; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_No1stReaction/newton_6sp_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - no 1st reac."; m = "6sp"
@@ -421,12 +419,67 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 20; c = True; f = '../Results/CR/2.5Torr75V/Ns17_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "2.5Torr-75V"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-
 # ic = 21; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_AAReactions/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "with aa react"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 22; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_WallLosses/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Wall Losses"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+# ic = 23; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_MaxEEDF_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - MaxEEDF"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 24; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_2/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 25; c = True; f = '../Results/CR/100mTorr150V/Ns17_MaxEEDF_ConstDiff_BSR_gam0.3/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "MaxEEDF - ConstDiff - gam0.3"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 26; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_3/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - 3"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 27; c = True; f = '../Results/CR/5Torr150V/Ns33_MaxEEDF_ConstDiff_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V - Ns33"; m = "CR2"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 28; c = True; f = '../Results/CR/100mTorr150V/Ns17_Ein_BSR_2/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "100mTorr-150V - 2"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 29; c = True; f = '../Results/CR/500mTorr150V/Ns33_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "500mTorr-150V - Ns=33"; m = "CR2"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 30; c = True; f = '../Results/CR/5Torr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-150V"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 31; c = True; f = '../Results/CR/2.5Torr150V/Ns17_MaxEEDF_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "2.5Torr-150V - MaxEEDF"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 32; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_33/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - 3"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 33; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_44/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - 4"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 34; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Final/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$nD_m = 2.42 \cdot 10^{18}$"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 35; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Ion/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$\mu_i = 8e18$"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 36; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_IST/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - IST"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 37; c = True; f = '../Results/CR/1Torr75V/Ns17_ConstDiff_BSR_2/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Const - Diff"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 38; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$nD_m = 4.38 \cdot 10^{18}$"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 # these values are required to "redimensionalize" the results
@@ -573,6 +626,7 @@ for ic in case:
 
       Tg[ic] = (p_0/spc.k - ne[ic] * Te[ic]/K_eV) / (np.sum(npop[ic], axis=1) + ni[ic])   # [K]
 
+      nee[ic] *= spc.e
 
       if model[ic] == "CR":
          dEps[ic] = dEps_CR[FromGlowDischargeToCRIndexing[ic]]
@@ -735,40 +789,60 @@ if (isPlotLines):
 if (isPlotMeans):
    print("Plotting means...")
 
-   # ic1 = 1; ic2 = 2 
+   # ic1 = 8; ic2 = 29 
    # print("Realative differences [%]:")
-   # x1 = (np.mean(ne[ic1],axis=1))[i_mid]
-   # x2 = (np.mean(ne[ic2],axis=1))[i_mid]
+   # x1 = (np.mean(ne[ic1],axis=1))[i_mid[ic1]]
+   # x2 = (np.mean(ne[ic2],axis=1))[i_mid[ic2]]
    # print("ne = ",np.abs(x1-x2)/x1*100) 
    
-
-   # x1 = (np.mean(nm[ic1],axis=1))[i_mid]
-   # x2 = (np.mean(nm[ic2],axis=1))[i_mid]
+   # x1 = (np.mean(nm[ic1],axis=1))[i_mid[ic1]]
+   # x2 = (np.mean(nm[ic2],axis=1))[i_mid[ic2]]
    # print("nm = ",np.abs(x1-x2)/x1*100) 
    
-   # x1 = (np.mean(nr[ic1],axis=1))[i_mid]
-   # x2 = (np.mean(nr[ic2],axis=1))[i_mid]
+   # x1 = (np.mean(nr[ic1],axis=1))[i_mid[ic1]]
+   # x2 = (np.mean(nr[ic2],axis=1))[i_mid[ic2]]
    # print("nr = ",np.abs(x1-x2)/x1*100) 
    
-   # x1 = (np.mean(n4p[ic1],axis=1))[i_mid]
-   # x2 = (np.mean(n4p[ic2],axis=1))[i_mid]
+   # x1 = (np.mean(n4p[ic1],axis=1))[i_mid[ic1]]
+   # x2 = (np.mean(n4p[ic2],axis=1))[i_mid[ic2]]
    # print("n4p = ",np.abs(x1-x2)/x1*100) 
 
-   # x1 = (np.mean(nb[ic1],axis=1))[i_mid]
-   # x2 = (np.mean(nb[ic2],axis=1))[i_mid]
+   # x1 = (np.mean(nb[ic1],axis=1))[i_mid[ic1]]
+   # x2 = (np.mean(nb[ic2],axis=1))[i_mid[ic2]]
    # print("nb = ",np.abs(x1-x2)/x1*100) 
    
-   # x1 = (np.mean(Tg[ic1],axis=1))[i_mid]
-   # x2 = (np.mean(Tg[ic2],axis=1))[i_mid]
+   # x1 = (np.mean(Tg[ic1],axis=1))[i_mid[ic1]]
+   # x2 = (np.mean(Tg[ic2],axis=1))[i_mid[ic2]]
    # print("Tg = ",np.abs(x1-x2)/x1*100) 
    
-   # x1 = (np.mean(Te[ic1],axis=1))[i_mid]
-   # x2 = (np.mean(Te[ic2],axis=1))[i_mid]
+   # x1 = (np.mean(Te[ic1],axis=1))[i_mid[ic1]]
+   # x2 = (np.mean(Te[ic2],axis=1))[i_mid[ic2]]
    # print("Te = ",np.abs(x1-x2)/x1*100) 
    
-
-   
    # exit(-1)
+
+   # nee
+   fig,ax = plt.subplots(dpi=160)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr[ic], np.mean(nee[ic],axis=1),lw=2, label=label[ic])
+   ax.legend(fontsize=12,loc=2)
+   ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   ax.set_xlabel(r"$x$ [cm]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylim((0,8.0))
+   ax.set_ylabel(r"$E_e$ [J]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   #
+   #ax2 = ax.twinx()
+   #ax2.plot(xr[ic], V0*np.mean(phi,axis=1), 'r--', lw=2, label=r"$\phi$")
+   #ax2.legend(fontsize=12,loc=1)
+   ##ax2.set_ylim((0,70))
+   #ax2.set_ylabel(r"$\phi$ [V]", fontsize=18)
+   #plt.setp(ax2.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/Ee_mean.png')
+
+
   
    # ne
    fig,ax = plt.subplots(dpi=160)
@@ -982,8 +1056,8 @@ if (isPlotMeans):
                yerr=(lolims, uplims), c='k', marker='+' ,linestyle=ls, lw=1.0, label="Exp (OES)")
 
    ax.legend(fontsize=12,loc=2)
-   ax.loglog()
-   # ax.semilogy()
+   # ax.loglog()
+   ax.semilogy()
    # ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$E$ [eV]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
@@ -993,6 +1067,29 @@ if (isPlotMeans):
    plt.savefig('./png/Distribution_lumped_mean.png')
 
 
+
+
+
+   # Distribution of population
+   fig,ax = plt.subplots(dpi=160)
+   plt.title(ExpCase)
+   for ic in case: 
+      if case[ic]: 
+         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid[ic],:,:],axis=1), marker='.', lw=1.5, label=label[ic])
+  
+   ax.legend(fontsize=12,loc=2)
+   # ax.loglog()
+   ax.semilogy()
+   # ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   ax.set_xlabel(r"$E$ [eV]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylim((0,5.5))
+   ax.set_ylabel(r"$n_i $ [m$^{-3}$]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+
+
+
+   # print(np.mean(npop[ic][i_mid[ic],:,:],axis=1))
 
 
 plt.show()
