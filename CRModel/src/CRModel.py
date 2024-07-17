@@ -215,6 +215,7 @@ class CollisionalRadiativeModel:
 
         self.AtomImpactExcitationGrRate = np.zeros((len(self.p.itrans_Atom_ExcFromGround),self.Np,2), dtype=np.float64)
         self.AtomImpactExcitationRate = np.zeros((len(self.p.itrans_Atom_Exc),self.Np,2), dtype=np.float64)
+        self.AtomImpactExcitationRate_2 = np.zeros((len(self.p.itrans_Atom_Exc_2),self.Np,2), dtype=np.float64)
       
         nTrans = 5
         self.PhotorecombinationRate = np.zeros((nTrans,self.Np,2), dtype=np.float64) 
@@ -386,6 +387,7 @@ class CollisionalRadiativeModel:
         self.AtomImpactIonizationRate           = cp.asarray(self.AtomImpactIonizationRate) 
         self.AtomImpactExcitationGrRate         = cp.asarray(self.AtomImpactExcitationGrRate) 
         self.AtomImpactExcitationRate           = cp.asarray(self.AtomImpactExcitationRate) 
+        self.AtomImpactExcitationRate_2           = cp.asarray(self.AtomImpactExcitationRate_2) 
 
         self.PhotorecombinationRate             = cp.asarray(self.PhotorecombinationRate) 
 
@@ -578,28 +580,26 @@ class CollisionalRadiativeModel:
             points = xp.column_stack((self.ones_eRange * T_e[ip], self.eRange[:,0]))
             EEDF[:,ip] = self.EEDFinterpolator(points)
         EEDF[EEDF<0.0] = 0.0
-        eVelTimesEEDF =  self.eVel*EEDF # nx.shape(eVelTimesEEDF) -> (1000, 150)
+        eVelTimesEEDF =  self.eVel*EEDF # xp.shape(eVelTimesEEDF) -> (1000, 150)
   
         AEDF= self.MaxwellianDistribution_vec(self.eRange,T_g*K_eV)
         AEDFnorm = self.trapz(AEDF, axis=0 )
         aVelTimesAEDF =  self.aVel*AEDF/AEDFnorm
-
-          
-     
+               
               
         ################## Elecrton impact Ionization ##################
         # Ar(i) + e- <-> Ar+ + e- + e-
-        Qi_factor = 1.0/2.0/g_ion*(parameters.lambda_factor/T_e)**(1.5)
+        Qi_factor = 1.0 / 2.0 * (parameters.lambda_factor/T_e)**(1.5)
         for i in range(self.N_lvl):                           
             deltaIon = self.p.deltaIon[i]
             
             Si = self.trapz(self.p.sigma_ij_Ion[i]*eVelTimesEEDF, axis=0 )                                                       
-            Qi = self.p.g_lvl[i]*Qi_factor*xp.exp(deltaIon/T_e)*Si # I need to check again this one.            
+            Qi = ( self.p.g_lvl[i] / g_ion * Qi_factor * xp.exp(deltaIon/T_e)) * Si # I need to check again this one.            
 
             self.ElecrtonImpactIonizationRate[i,:,0] = Si
             self.ElecrtonImpactIonizationRate[i,:,1] = Qi
             
-
+                  
         ################## Elecrton impact de/excitation ##################
         # Ar(i) + e- <-> Ar(j) + e- 
         for iCollTrans in range(self.p.NCollTrans): 
@@ -641,58 +641,71 @@ class CollisionalRadiativeModel:
 
         #     self.Aeff_ji[itrans,:] = self.p.A_ji[itrans]*eta 
 
-
-
                 
         ################## Atom impact Ionization ##################
         # Ar(i) + Ar(1) <-> Ar+ + e- + Ar(1)
-        Wm_factor = 1.0/2.0/g_ion*(parameters.lambda_factor/T_e)**(1.5)
+        Wm_factor = 1.0/2.0*(parameters.lambda_factor/T_e)**(1.5)
         for i in range(self.N_lvl):
             # Ionization due to atom impact from any level
             deltaIon = self.p.deltaIon[i]
                                  
             Vm = self.trapz(self.p.sigma_ia_ion[i]*aVelTimesAEDF, axis=0 )   
-            Wm = self.p.g_lvl[i]*Wm_factor*xp.exp(deltaIon/(T_g*K_eV))*Vm # Check that I use T_g in the exponent
-                
+            Wm = self.p.g_lvl[i]/g_ion * Wm_factor * xp.exp(deltaIon/(T_g*K_eV)) * Vm # Check that I use T_g in the exponent
+                            
             self.AtomImpactIonizationRate[i,:,0] = Vm
             self.AtomImpactIonizationRate[i,:,1] = Wm
+                        
 
         
         ################## Ionization due to heavy particle collisions ##################
         # !< To Do: How do we include the inverse processes here???
-        self.S_r = 1.14e-20*xp.sqrt(16.0*spc.k*T_g/(xp.pi*M_Ar))    # resonance-resonance collisions
+        self.S_r = 1.14e-20*xp.sqrt(16.0*spc.k*T_g/(xp.pi*M_Ar))    # resonance-resonance collisions 6.47697019779516e-18
         self.S_mr = 2.1e-15                                         # resonance-metastable collisions 
         self.S_m = 1.2e-15                                          # metastable-metastable collisions
         # self.S_m = 6.4e-16  # Juan uses this value                                        
         
-            
+
         ################## Atom impact de/excitation ##################
-        # Ar(1) + Ar(1) <-> Ar(j) + Ar(1)
-        i = self.iNg
-        for itrans in self.p.itrans_Atom_ExcFromGround:
-            j = self.p.j_Atom_ExcFromGround[itrans]
+        # # Ar(1) + Ar(1) <-> Ar(j) + Ar(1)
+        # i = self.iNg
+        # for itrans in self.p.itrans_Atom_ExcFromGround:
+        #     j = self.p.j_Atom_ExcFromGround[itrans]
 
-            eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
+        #     eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
 
-            Kij = self.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans]*aVelTimesAEDF, axis=0 )            
-            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
+        #     Kij = self.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans] * aVelTimesAEDF, axis=0 )            
+        #     Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV)) * Kij # Check that I use T_g in the exponent
 
-            self.AtomImpactExcitationGrRate[itrans,:,0] = Kij
-            self.AtomImpactExcitationGrRate[itrans,:,1] = Lji
+        #     self.AtomImpactExcitationGrRate[itrans,:,0] = Kij
+        #     self.AtomImpactExcitationGrRate[itrans,:,1] = Lji
+
+
+        # # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
+        # for itrans in self.p.itrans_Atom_Exc:
+        #     i = self.p.i_Atom_Exc[itrans]
+        #     j = self.p.j_Atom_Exc[itrans] 
+            
+        #     eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
+            
+        #     Kij = self.trapz(self.p.sigma_ij_Atom_Exc[itrans] * aVelTimesAEDF, axis=0 )             
+        #     Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV)) * Kij # Check that I use T_g in the exponent
+
+        #     self.AtomImpactExcitationRate[itrans,:,0] = Kij
+        #     self.AtomImpactExcitationRate[itrans,:,1] = Lji
 
         # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
-        for itrans in self.p.itrans_Atom_Exc:
-            i = self.p.i_Atom_Exc[itrans]
-            j = self.p.j_Atom_Exc[itrans] 
+        for itrans in self.p.itrans_Atom_Exc_2:
+            i = self.p.i_Atom_Exc_2[itrans]
+            j = self.p.j_Atom_Exc_2[itrans] 
             
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             
-            Kij = self.trapz(self.p.sigma_ij_Atom_Exc[itrans]*aVelTimesAEDF, axis=0 )             
-            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV))*Kij # Check that I use T_g in the exponent
+            Kij = self.trapz(self.p.sigma_ij_Atom_Exc_2[itrans] * aVelTimesAEDF, axis=0 )             
+            Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV)) * Kij # Check that I use T_g in the exponent
 
-            self.AtomImpactExcitationRate[itrans,:,0] = Kij
-            self.AtomImpactExcitationRate[itrans,:,1] = Lji
-            
+            self.AtomImpactExcitationRate_2[itrans,:,0] = Kij
+            self.AtomImpactExcitationRate_2[itrans,:,1] = Lji
+
 
         ################# Photorecombination/photoionization ##################
         nTrans = 5
@@ -793,7 +806,6 @@ class CollisionalRadiativeModel:
         T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion)   # [K]
  
         
-                        
         ################## Elecrton impact Ionization ##################
         # Ar(i) + e- <-> Ar+ + e- + e-
         for i in range(self.N_lvl):                           
@@ -808,6 +820,7 @@ class CollisionalRadiativeModel:
             dydt[:,i] += - Rsi + Rqi 
             dydt[:,iNe] += + Rsi - Rqi # rate of change of ion number density
             dydt[:,iEe] += deltaIon * (Rqi - Rsi) # rate of change of eletron energy
+                         
 
         ################## Elecrton impact de/excitation ##################
         # Ar(i) + e- <-> Ar(j) + e- 
@@ -826,7 +839,7 @@ class CollisionalRadiativeModel:
             dydt[:,j] += + Rcij - Rfji 
             dydt[:,iEe] +=  eij * (Rfji - Rcij) # rate of change of eletron energy
         
-        
+                
         ################# Radiation processes ##################
         # Ar(j) -> Ar(i) + h vij 
         for itrans in self.p.EmissionTransitions: 
@@ -854,7 +867,7 @@ class CollisionalRadiativeModel:
             #     lambda_0 = spc.h*spc.c/((self.p.E_j[itrans]-self.p.E_i[itrans])*cm_eV*spc.e)*1e9 # wavelength of transition
             #     print(self.p.Racah_lvl[j], " (", round(self.p.E_j[itrans]*cm_eV,3) ,"eV) ", 
             #           " -> ", self.p.Racah_lvl[i], " (", round(self.p.E_i[itrans]*cm_eV,2) ,"eV) ",
-            #           " wavelength = ", round(lambda_0,3), "min ef = ", round(np.min(eta),3))
+            #           " wavelength = ", round(lambda_0,3), "min ef = ", eta[75])
 
             # np.argmin(eta)
             
@@ -883,7 +896,6 @@ class CollisionalRadiativeModel:
             dydt[:,iNe] += + Rvm - Rwm # change number of ions 
             # dydt[:,iEh] += + deltaIon * (Rwm - Rvm) # rate of change of eletron energy
             # dEhdt += + deltaIon * (Rwm - Rvm)
-
 
         
         ################## Ionization due to heavy particle collisions ##################
@@ -960,38 +972,56 @@ class CollisionalRadiativeModel:
         
             
         ################## Atom impact de/excitation ##################
-        # Ar(1) + Ar(1) <-> Ar(j) + Ar(1)
-        i = self.p.i_Atom_ExcFromGround 
-        for itrans in self.p.itrans_Atom_ExcFromGround:
-            j = self.p.j_Atom_ExcFromGround[itrans]
-            # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
+        # # Ar(1) + Ar(1) <-> Ar(j) + Ar(1)
+        # i = self.p.i_Atom_ExcFromGround 
+        # for itrans in self.p.itrans_Atom_ExcFromGround:
+        #     j = self.p.j_Atom_ExcFromGround[itrans]
+        #     # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             
-            Kij = self.AtomImpactExcitationGrRate[itrans,:,0] 
-            Lji = self.AtomImpactExcitationGrRate[itrans,:,1] 
+        #     Kij = self.AtomImpactExcitationGrRate[itrans,:,0] 
+        #     Lji = self.AtomImpactExcitationGrRate[itrans,:,1] 
 
-            Rkij = npop[:,i] * n_g * Kij
-            Rlji = npop[:,j] * n_g * Lji  
-            dydt[:,i] += - Rkij + Rlji 
-            dydt[:,j] += + Rkij - Rlji
-            # dydt[iEh] += eij * (Rlji - Rkij)
-            # dEhdt += eij * (Rlji - Rkij)
+        #     Rkij = npop[:,i] * n_g * Kij
+        #     Rlji = npop[:,j] * n_g * Lji  
+        #     dydt[:,i] += - Rkij + Rlji 
+        #     dydt[:,j] += + Rkij - Rlji
+        #     # dydt[iEh] += eij * (Rlji - Rkij)
+        #     # dEhdt += eij * (Rlji - Rkij)
  
-        # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
-        for itrans in self.p.itrans_Atom_Exc:
-            i = self.p.i_Atom_Exc[itrans]
-            j = self.p.j_Atom_Exc[itrans]  
-            # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
+        # # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
+        # for itrans in self.p.itrans_Atom_Exc:
+        #     i = self.p.i_Atom_Exc[itrans]
+        #     j = self.p.j_Atom_Exc[itrans]  
+        #     # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
 
-            Kij = self.AtomImpactExcitationRate[itrans,:,0] = Kij
-            Lji = self.AtomImpactExcitationRate[itrans,:,1] = Lji
+        #     Kij = self.AtomImpactExcitationRate[itrans,:,0]
+        #     Lji = self.AtomImpactExcitationRate[itrans,:,1] 
             
+        #     Rkij = npop[:,i] * n_g * Kij
+        #     Rlji = npop[:,j] * n_g * Lji  
+        #     dydt[:,i] +=  - Rkij + Rlji 
+        #     dydt[:,j] +=  + Rkij - Rlji
+        #     # dydt[:,iEh] += eij * (Rlji - Rkij)                
+        #     # dEhdt += eij * (Rlji - Rkij)
+    
+
+        # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
+        for itrans in self.p.itrans_Atom_Exc_2:
+            i = self.p.i_Atom_Exc_2[itrans]
+            j = self.p.j_Atom_Exc_2[itrans] 
+            # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
+            
+            Kij = self.AtomImpactExcitationRate_2[itrans,:,0] 
+            Lji = self.AtomImpactExcitationRate_2[itrans,:,1] 
+                        
             Rkij = npop[:,i] * n_g * Kij
             Rlji = npop[:,j] * n_g * Lji  
             dydt[:,i] +=  - Rkij + Rlji 
             dydt[:,j] +=  + Rkij - Rlji
             # dydt[:,iEh] += eij * (Rlji - Rkij)                
             # dEhdt += eij * (Rlji - Rkij)
-    
+
+
 
         # ################## Wall losses ##################
         # D_sc = 2.07e20 # [1/m*s]                           

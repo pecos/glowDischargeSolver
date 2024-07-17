@@ -467,8 +467,8 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # ic = 34; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Final/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$nD_m = 2.42 \cdot 10^{18}$"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 35; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Ion/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$\mu_i = 8e18$"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 35; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Ion/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$\mu_i = 8e18$"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 36; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_IST/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR - IST"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -480,6 +480,14 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 38; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$nD_m = 4.38 \cdot 10^{18}$"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
+ic = 39; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "VarIon"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 40; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon_NAtoms/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "NAtoms"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 41; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon_Ionization/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ionization"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # these values are required to "redimensionalize" the results

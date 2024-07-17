@@ -198,9 +198,10 @@ def setPsaapProperties_CRModel_1Torr(gam, inputV0, inputVDC, params, Ns):
     # Omega_d = 1.06036 / Tstar**0.15610 + 0.19300 / np.exp(0.47635 * Tstar) + 1.03587 / np.exp(1.52996 * Tstar) + 1.76474 / np.exp(3.89411 * Tstar)  
     # Dab = 1e-4 * 0.0018583 * GasTemperature**1.5 / (Pressure/101325.0) * np.sqrt(mkl) / sigma**2 / Omega_d
 
-    # # print(Dab*nAr/100)
     # # print(Dkl, Dm, Dargon, Dab)
-    # # exit(-1)
+    # print(Dkl*nAr/100, Dm*nAr/100, Dargon*nAr/100, Dab*nAr/100)
+
+    # exit(-1)
 
 
 

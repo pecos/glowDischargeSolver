@@ -1493,22 +1493,17 @@ class timeDomainCollocationSolver:
             fspec_U[1,i,0,:] = 0
             fspec_U[1,i,-1,:] = 0
 
+
         fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
         fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
-
-
         for i in range(0,self.Nv):
-            fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])
-            
-           
+            fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])                       
         fspec_U[1,1,0,0] += -self.params.ksion + mu[0,1] * (-phi_x[0,0])
 
         fspec_U[1,0,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
         fspec_U[1,1,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
-
         for i in range(0,self.Nv):
             fspec_U[1,i,-1,:] += mu_U[1,i,-1,:] * dens[-1,1] * (-phi_x[-1,0])
-
         fspec_U[1,1,-1,-1] += self.params.ksion + mu[-1,1] * (-phi_x[-1,0])
 
         rstrg_U = xp.zeros((2,self.Nv*self.Np))
@@ -1516,36 +1511,28 @@ class timeDomainCollocationSolver:
             fspec_U[0,0,0,:] = (- self.params.gam*fspec_U[ 1,0,0,:])
             fspec_U[0,1,0,:] = (- self.params.gam*fspec_U[ 1,1,0,:])
             fspec_U[0,self.Ns-1,0,:] = (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
-            fspec_U[0,0,0,0] -= self.params.ks \
-                * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
-            fspec_U[0,self.Ns,0,0] -= self.params.ks \
-                * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
+            fspec_U[0,0,0,0] -= self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
+            fspec_U[0,self.Ns,0,0] -= self.params.ks * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
 
             fspec_U[0,0,-1,:] = (- self.params.gam*fspec_U[1,0,-1,:])
             fspec_U[0,1,-1,:] = (- self.params.gam*fspec_U[1,1,-1,:])
             fspec_U[0,self.Ns,-1,:] = (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
-            fspec_U[0,0,-1,-1] += self.params.ks \
-                * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
-            fspec_U[0,self.Ns,-1,-1] += self.params.ks \
-                * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
+            fspec_U[0,0,-1,-1] += self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
+            fspec_U[0,self.Ns,-1,-1] += self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
         else:
             rstrg_U[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
             rstrg_U[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
             rstrg_U[0,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
             rstrg_U[0,self.Ns*self.Np:] = fspec_U[0,self.Ns,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns,0,:])
-            rstrg_U[0,0] += self.params.ks \
-                * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
-            rstrg_U[0,self.Ns*self.Np] += self.params.ks \
-                * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
+            rstrg_U[0,0] += self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
+            rstrg_U[0,self.Ns*self.Np] += self.params.ks * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
 
             rstrg_U[1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
             rstrg_U[1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
             rstrg_U[1,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,-1,:])
             rstrg_U[1,self.Ns*self.Np:] = fspec_U[0,self.Ns,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
-            rstrg_U[1,self.Np-1] -= self.params.ks \
-                * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
-            rstrg_U[1,self.Nv*self.Np-1] -= self.params.ks \
-                * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
+            rstrg_U[1,self.Np-1] -= self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
+            rstrg_U[1,self.Nv*self.Np-1] -= self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
 
         # form Jacobians of derivatives of fluxes at collocation points
         fspec_x_U = xp.zeros((self.Ns, self.Ns+1, self.Np, self.Np),dtype=xp.float64)

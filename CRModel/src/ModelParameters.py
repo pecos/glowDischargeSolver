@@ -811,7 +811,7 @@ class modelParameters:
                 (eRange/deltaIon - 1) / (1.0 + mass_factor * (eRange/deltaIon - 1) )**2  
             sigma_ia_ion[np.where(eRange < deltaIon)] = 0.0
             self.sigma_ia_ion[i] = sigma_ia_ion
-
+              
 
         # Atom impact de/excitation from ground
         self.sigma_ij_Atom_ExcFromGround = {}
@@ -834,10 +834,11 @@ class modelParameters:
                 self.sigma_ij_Atom_ExcFromGround[itrans] = sigma_ij_a
                 self.j_Atom_ExcFromGround[itrans] = j 
                 self.itrans_Atom_ExcFromGround.append(itrans)
+                
 
         # Make a test to see of itrans_Atom_ExcFromGround is ordered.
         if not all(self.itrans_Atom_ExcFromGround[i] == i for i in range(len(self.itrans_Atom_ExcFromGround))):
-            print("self.itrans_Atom_ExcFromGround ins not ordered. Program will stop.")
+            print("self.itrans_Atom_ExcFromGround is not ordered. Program will stop.")
             exit(-1)
                         
         
@@ -865,11 +866,77 @@ class modelParameters:
                 self.j_Atom_Exc[itrans] = j 
                 self.itrans_Atom_Exc.append(itrans)
                 
+          
 
         # Make a test to see of itrans_Atom_ExcFromGround is ordered.
         if not all(self.itrans_Atom_Exc[i] == i for i in range(len(self.itrans_Atom_Exc))):
             print("self.itrans_Atom_Exc ins not ordered. Program will stop.")
             exit(-1)
+
+
+
+
+
+        # Atom impact de/excitation rest
+        self.sigma_ij_Atom_Exc_2 = {}
+        self.i_Atom_Exc_2= {}
+        self.j_Atom_Exc_2= {}
+        self.itrans_Atom_Exc_2 = []
+
+        self.itrans_Atom_Exc_2 = self.EmissionTransitions
+
+        for itrans in self.itrans_Atom_Exc_2: 
+
+            i = self.index_i_lvl[itrans]
+            j = self.index_j_lvl[itrans]            
+            
+            self.i_Atom_Exc_2[itrans] = i 
+            self.j_Atom_Exc_2[itrans] = j 
+            
+            eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV
+                    
+            sigma_ij_a = self.f_ji[itrans] * sigma_factor_AtomExc / eij**2 * mass_factor  * \
+                        (eRange/eij - 1) / ( 1.0 + mass_factor * (eRange/eij - 1) )**2
+
+            sigma_ij_a[np.where(eRange < eij)] = 0.0
+
+            self.sigma_ij_Atom_Exc_2[itrans] = sigma_ij_a
+            
+
+        for itrans in self.itrans_Atom_Exc_2:  
+            i = self.i_Atom_Exc_2[itrans]  
+            j = self.j_Atom_Exc_2[itrans]
+            nTrans = len(atomImpactExcitationTransitions_j)
+            for itrans_a in range(nTrans):
+                if self.Racah_lvl[j] == atomImpactExcitationTransitions_i[itrans_a] and \
+                   self.Racah_lvl[j] == atomImpactExcitationTransitions_j[itrans_a]:
+                    print("Multiple atom-atom transitions have been added. Program will stop. ")
+                    print(i,j)
+                    exit(-1)
+
+
+        nTrans = len(atomImpactExcitationTransitions_j)
+        self.itrans_Atom_Exc_2 = range(len(self.EmissionTransitions)+nTrans)
+        for itrans in range(nTrans):
+            if  (atomImpactExcitationTransitions_i[itrans] in self.DictRacah_lvl.keys() and \
+                atomImpactExcitationTransitions_j[itrans] in self.DictRacah_lvl.keys()):
+
+                i = self.DictRacah_lvl[atomImpactExcitationTransitions_i[itrans]]         
+                j = self.DictRacah_lvl[atomImpactExcitationTransitions_j[itrans]] 
+
+                eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV
+
+                sigma_ij_a = beta_ij[itrans] * (eRange - eij) / eij**2.26 
+                sigma_ij_a[np.where(eRange < eij)] = 0.0
+
+                itrans_a = len(self.EmissionTransitions) + itrans
+
+                self.i_Atom_Exc_2[itrans_a] = i 
+                self.j_Atom_Exc_2[itrans_a] = j 
+                self.sigma_ij_Atom_Exc_2[itrans_a] = sigma_ij_a
+
+
+
 
 
         # Photorecombination/photoionization 
@@ -929,7 +996,11 @@ class modelParameters:
         self.sigma_ij_Atom_Exc = np.array(list(self.sigma_ij_Atom_Exc.values()))
         self.j_Atom_Exc = np.array(list(self.j_Atom_Exc.values()))
         self.i_Atom_Exc = np.array(list(self.i_Atom_Exc.values()))
-
+        
+        
+        self.sigma_ij_Atom_Exc_2 = np.array(list(self.sigma_ij_Atom_Exc_2.values()))
+        self.j_Atom_Exc_2 = np.array(list(self.j_Atom_Exc_2.values()))
+        self.i_Atom_Exc_2 = np.array(list(self.i_Atom_Exc_2.values()))
 
 
     
