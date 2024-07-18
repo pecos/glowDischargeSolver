@@ -25,7 +25,7 @@ diffCmd="python3 ./diffSolns.py --reference reference_solns/scenario0_Np100_solu
 screenOut="runBase.out"
 rm -f $screenOut
 
-$newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart reference_solns/scenario0_Np100_restart.npy \
+$newtCmd --weakbc --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart reference_solns/scenario0_Np100_restart.npy \
          --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
 $diffCmd --solution $newtFile >> $screenOut || error_exit "Solution differs from reference"

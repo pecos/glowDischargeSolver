@@ -16,13 +16,13 @@ sys.path.append(crmodel_dir)
 #sys.path.append('./CRModel/src/')  # Add the path to the folder containing my_module.py
 
 
-# from os import environ
-# N_THREADS = '8'
-# environ['OMP_NUM_THREADS'] = N_THREADS
-# environ['OPENBLAS_NUM_THREADS'] = N_THREADS
-# environ['MKL_NUM_THREADS'] = N_THREADS
-# environ['VECLIB_MAXIMUM_THREADS'] = N_THREADS
-# environ['NUMEXPR_NUM_THREADS'] = N_THREADS
+from os import environ
+N_THREADS = '8'
+environ['OMP_NUM_THREADS'] = N_THREADS
+environ['OPENBLAS_NUM_THREADS'] = N_THREADS
+environ['MKL_NUM_THREADS'] = N_THREADS
+environ['VECLIB_MAXIMUM_THREADS'] = N_THREADS
+environ['NUMEXPR_NUM_THREADS'] = N_THREADS
 
 import matplotlib.pyplot as plt
 
@@ -899,28 +899,19 @@ class timeDomainCollocationSolver:
             fspec[:,i] -= xp.multiply(diffusivity[:,i],dens_x[:,i])  
 
 
-        # overwrite endpoints in fi (weakly impose BC)  
-        fspec[ 0,1] = -self.params.ksion*dens[ 0,iion[0]] + mu[0,iion[0]]*dens[ 0,iion[0]]*(-phi_x[0,0])
-        fspec[-1,1] =  self.params.ksion*dens[-1,iion[0]] + mu[-1,iion[0]]*dens[-1,iion[0]]*(-phi_x[-1,0])
-                
-
-
-        # overwrite endpoints in fe (weakly impose BC)
-        rstrg = xp.zeros(2)
+        # overwrite endpoints in ion flux (weakly impose BC)
         if (weak_bc):
-            fspec[ 0,0] = (- self.params.ks*dens[ 0,iele[0]] * Te[0,0]**0.5
-                           - self.params.gam*fspec[ 0,iion[0]])
-            fspec[-1,0] = (+ self.params.ks*dens[-1,iele[0]] * Te[-1,0]**0.5
-                           - self.params.gam*fspec[-1,iion[0]])
-        else:
-            rstrg[0] = fspec[ 0,iele[0]] - (- self.params.ks * dens[ 0,iele[0]] * Te[0,0]**0.5
-                                         - self.params.gam * fspec[ 0,iion[0]])
-            rstrg[1] = fspec[-1,iele[0]] - (+ self.params.ks * dens[-1,iele[0]] * Te[-1,0]**0.5
-                                         - self.params.gam * fspec[-1,iion[0]])
-            
+            fspec[ 0,iion[0]] = -self.params.ksion*dens[ 0,iion[0]] + mu[0,iion[0]]*dens[ 0,iion[0]]*(-phi_x[0,0])
+            fspec[-1,iion[0]] =  self.params.ksion*dens[-1,iion[0]] + mu[-1,iion[0]]*dens[-1,iion[0]]*(-phi_x[-1,0])
 
 
+        # Strong BC equations
+        rstrg = xp.zeros(4)
+        rstrg[0] = fspec[ 0,iele[0]] - (- self.params.ks * dens[ 0,iele[0]] * Te[0,0]**0.5 - self.params.gam * fspec[ 0,iion[0]])
+        rstrg[1] = fspec[-1,iele[0]] - (+ self.params.ks * dens[-1,iele[0]] * Te[-1,0]**0.5 - self.params.gam * fspec[-1,iion[0]])
 
+        rstrg[2] = fspec[ 0,iion[0]] - (- self.params.ksion*dens[ 0,iion[0]] + mu[0,iion[0]]*dens[ 0,iion[0]]*(-phi_x[0,0]))
+        rstrg[3] = fspec[-1,iion[0]] - (+ self.params.ksion*dens[-1,iion[0]] + mu[-1,iion[0]]*dens[-1,iion[0]]*(-phi_x[-1,0]))
 
         #if (self.Ns>2):
         #    fspec[ 0,2:self.Ns] = 0.0
@@ -1119,11 +1110,14 @@ class timeDomainCollocationSolver:
         res += Uin - self.U1
 
         # boundary conditions (strongly enforced)
-
         # electron flux
+        res[0]           = rstrg[0]
+        res[self.Np-1]   = rstrg[1]
+
         if (not weak_bc):
-            res[0]           = rstrg[0] #fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
-            res[self.Np-1]   = rstrg[1] #fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+            # ion flux
+            res[self.Np]     = rstrg[2]
+            res[2*self.Np-1] = rstrg[3]
 
         for i in range(2,self.Ns-1):
             res[i*self.Np  ] = dens[ 0,i] - 0.0
@@ -1178,11 +1172,14 @@ class timeDomainCollocationSolver:
         res += Uin - self.U1
 
         # boundary conditions (strongly enforced)
-
         # electron flux
+        res[0]           = rstrg[0]
+        res[self.Np-1]   = rstrg[1]
+
         if (not weak_bc):
-            res[0]           = rstrg[0] #fspec[ 0,iele]  - (-self.params.ks*dens[ 0,iele] - self.params.gam*fspec[ 0,iion])
-            res[self.Np-1]   = rstrg[1] #fspec[-1,iele]  - ( self.params.ks*dens[-1,iele] - self.params.gam*fspec[-1,iion])
+            # ion flux
+            res[self.Np]     = rstrg[2]
+            res[2*self.Np-1] = rstrg[3]
 
         for i in range(2,self.Ns-1):
             res[i*self.Np  ] = dens[ 0,i] - 0.0
@@ -1428,9 +1425,9 @@ class timeDomainCollocationSolver:
 
 
 
-        # overwrite endpoints in fi (weakly impose BC)
-        fspec[ 0,1] = -self.params.ksion * dens[ 0,iion[0]] + mu[0,1] * dens[ 0,iion[0]] * (-phi_x[ 0,0])
-        fspec[-1,1] = +self.params.ksion * dens[-1,iion[0]] + mu[-1,1] * dens[-1,iion[0]] * (-phi_x[-1,0])
+        # # overwrite endpoints in fi (weakly impose BC)
+        # fspec[ 0,1] = -self.params.ksion * dens[ 0,iion[0]] + mu[0,1] * dens[ 0,iion[0]] * (-phi_x[ 0,0])
+        # fspec[-1,1] = +self.params.ksion * dens[-1,iion[0]] + mu[-1,1] * dens[-1,iion[0]] * (-phi_x[-1,0])
 
 
         # species equations
@@ -1487,52 +1484,49 @@ class timeDomainCollocationSolver:
                               -xp.multiply(diffusivity[:,[iee]], self.Dp)
 
 
-
-        # overwrite endpoints in fi (weakly impose BC)
-        for i in range(0,self.Nv):
-            fspec_U[1,i,0,:] = 0
-            fspec_U[1,i,-1,:] = 0
-
-
-        fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
-        fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
-        for i in range(0,self.Nv):
-            fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])                       
-        fspec_U[1,1,0,0] += -self.params.ksion + mu[0,1] * (-phi_x[0,0])
-
-        fspec_U[1,0,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
-        fspec_U[1,1,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
-        for i in range(0,self.Nv):
-            fspec_U[1,i,-1,:] += mu_U[1,i,-1,:] * dens[-1,1] * (-phi_x[-1,0])
-        fspec_U[1,1,-1,-1] += self.params.ksion + mu[-1,1] * (-phi_x[-1,0])
-
-        rstrg_U = xp.zeros((2,self.Nv*self.Np))
         if (weak_bc):
-            fspec_U[0,0,0,:] = (- self.params.gam*fspec_U[ 1,0,0,:])
-            fspec_U[0,1,0,:] = (- self.params.gam*fspec_U[ 1,1,0,:])
-            fspec_U[0,self.Ns-1,0,:] = (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
-            fspec_U[0,0,0,0] -= self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
-            fspec_U[0,self.Ns,0,0] -= self.params.ks * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
+            # overwrite endpoints in fi (weakly impose BC)
+            for i in range(0,self.Nv):
+                fspec_U[1,i,0,:] = 0
+                fspec_U[1,i,-1,:] = 0
 
-            fspec_U[0,0,-1,:] = (- self.params.gam*fspec_U[1,0,-1,:])
-            fspec_U[0,1,-1,:] = (- self.params.gam*fspec_U[1,1,-1,:])
-            fspec_U[0,self.Ns,-1,:] = (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
-            fspec_U[0,0,-1,-1] += self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
-            fspec_U[0,self.Ns,-1,-1] += self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
-        else:
-            rstrg_U[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
-            rstrg_U[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
-            rstrg_U[0,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
-            rstrg_U[0,self.Ns*self.Np:] = fspec_U[0,self.Ns,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns,0,:])
-            rstrg_U[0,0] += self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
-            rstrg_U[0,self.Ns*self.Np] += self.params.ks * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
+            fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
+            fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
+            for i in range(0,self.Nv):
+                fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])
+            fspec_U[1,1,0,0] += -self.params.ksion + mu[0,1] * (-phi_x[0,0])
 
-            rstrg_U[1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
-            rstrg_U[1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
-            rstrg_U[1,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,-1,:])
-            rstrg_U[1,self.Ns*self.Np:] = fspec_U[0,self.Ns,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
-            rstrg_U[1,self.Np-1] -= self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
-            rstrg_U[1,self.Nv*self.Np-1] -= self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
+            fspec_U[1,0,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
+            fspec_U[1,1,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
+            for i in range(0,self.Nv):
+                fspec_U[1,i,-1,:] += mu_U[1,i,-1,:] * dens[-1,1] * (-phi_x[-1,0])
+            fspec_U[1,1,-1,-1] += self.params.ksion + mu[-1,1] * (-phi_x[-1,0])
+
+        rstrg_U = xp.zeros((4,self.Nv*self.Np))
+        # fe BC
+        for i in range(0,self.Nv):
+            rstrg_U[0,i*self.Np:(i+1)*self.Np] = fspec_U[0,i,0,:] - (- self.params.gam*fspec_U[ 1,i,0,:])
+        rstrg_U[0,0] += self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
+        rstrg_U[0,self.Ns*self.Np] += self.params.ks * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
+
+        for i in range(0,self.Nv):
+            rstrg_U[1,i*self.Np:(i+1)*self.Np] = fspec_U[0,i,-1,:] - (- self.params.gam*fspec_U[1,i,-1,:])
+        rstrg_U[1,self.Np-1] -= self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
+        rstrg_U[1,self.Nv*self.Np-1] -= self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
+
+
+        # fi BC
+        for i in range(0,self.Nv):
+            rstrg_U[2,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,0,:] - mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])
+        rstrg_U[2,0:self.Np]          -= (mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:]))
+        rstrg_U[2,self.Np:2*self.Np]  -= (mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:]))
+        rstrg_U[2,self.Np] -= (-self.params.ksion + mu[0,1] * (-phi_x[0,0]))
+
+        for i in range(0,self.Nv):
+            rstrg_U[3,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,-1,:] - mu_U[1,i,-1,:] * dens[-1,1] * (-phi_x[-1,0])
+        rstrg_U[3,0:self.Np]          -= mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
+        rstrg_U[3,self.Np:2*self.Np]  -= mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
+        rstrg_U[3,2*self.Np-1] -=  (self.params.ksion + mu[-1,1] * (-phi_x[-1,0]))
 
         # form Jacobians of derivatives of fluxes at collocation points
         fspec_x_U = xp.zeros((self.Ns, self.Ns+1, self.Np, self.Np),dtype=xp.float64)
@@ -1780,9 +1774,14 @@ class timeDomainCollocationSolver:
         self.jac += self.I_Ndof
 
         # boundary condition modifications (for strongly enforced BCs)
+        # electron flux
+        self.jac[0          ,:] = rstrg_U[0,:]
+        self.jac[self.Np-1  ,:] = rstrg_U[1,:]
+
         if (not weak_bc):
-            self.jac[0,:] = rstrg_U[0,:]
-            self.jac[self.Np-1,:] = rstrg_U[1,:]
+            # ion flux
+            self.jac[self.Np    ,:] = rstrg_U[2,:]
+            self.jac[2*self.Np-1,:] = rstrg_U[3,:]
 
         for i in range(2,self.Ns-1):
             self.jac[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
@@ -1834,9 +1833,12 @@ class timeDomainCollocationSolver:
         self.jac += self.I_Ndof
 
         # boundary condition modifications (for strongly enforced BCs)
+        self.jac[0          ,:] = rstrg_U[0,:]
+        self.jac[self.Np-1  ,:] = rstrg_U[1,:]
+
         if (not weak_bc):
-            self.jac[0,:] = rstrg_U[0,:]
-            self.jac[self.Np-1,:] = rstrg_U[1,:]
+            self.jac[self.Np    ,:] = rstrg_U[2,:]
+            self.jac[2*self.Np-1,:] = rstrg_U[3,:]
 
         for i in range(2,self.Ns-1):
             self.jac[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
@@ -1942,9 +1944,12 @@ class timeDomainCollocationSolver:
         # boundary condition modifications (for strongly enforced BCs)
         # NB: For BCs that are strongly enforced, corresponding
         # residual has no dependence on previous state
+        self.jac0[0          ,:] = xp.zeros((1,self.Nv*self.Np))
+        self.jac0[self.Np-1  ,:] = xp.zeros((1,self.Nv*self.Np))
+
         if (not weak_bc):
-            self.jac0[0        ,:] = xp.zeros((1,self.Nv*self.Np))
-            self.jac0[self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac0[self.Np    ,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac0[2*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
 
         for i in range(2,self.Ns-1):
             self.jac0[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
@@ -2108,6 +2113,7 @@ class timeDomainCollocationSolver:
         Outputs: None (self.A1 is set to sensitivity at the end of the time step)
         """
         xp = self.xp_module
+        
 
         # do this first b/c it may modify self.jac!
         # TODO: should probably change this design...
@@ -2372,7 +2378,7 @@ if __name__ == "__main__":
     parser.add_argument('--verbose',default=False,
                         action='store_true', help='Be extra chatty')
     parser.add_argument('--weakbc',default=False,
-                        action='store_true', help='Enforce electron flux BC weakly')
+                        action='store_true', help='Enforce ion flux BC weakly')
     parser.add_argument('--plot', default=False,
                         action='store_true', help="Plot the final state for inspection.")
     parser.add_argument('--V0', metavar='V0', default=100.0,
@@ -2407,9 +2413,7 @@ if __name__ == "__main__":
 
     if(args.weakbc):
         print("#")
-        print("#   Imposing electron flux BC weakly.")
-        print("# ***** WARNING: This is an experimental feature that may not work *****")
-        print("# *****          and is not fully supported.  Please beware.       *****")
+        print("#   Imposing ion flux BC weakly.")
 
     if(args.restart!=None):
         print("#")

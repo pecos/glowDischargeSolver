@@ -31,7 +31,7 @@ rm -f $screenOut
 
 # Run an example case of the Chebyshev time domain solver
 
-$newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart reference_solns/scenario21_Np150_restart.npy \
+$newtCmd --weakbc --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart reference_solns/scenario21_Np150_restart.npy \
          --outfile $newtFile >> $screenOut 2>&1 || error_exit "Shooting failed"
 
 $diffCmd --solution $newtFile >> $screenOut || error_exit "Solution differs from reference"

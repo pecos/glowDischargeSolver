@@ -43,7 +43,7 @@ rm -f $screenOut
 
 
 #echo "Run time domain shooting... Save to ${newtFile}"
-$newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart reference_solns/scenario2_Np150_restart.npy \
+$newtCmd --weakbc --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart reference_solns/scenario2_Np150_restart.npy \
          --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
 $diffCmd --solution $newtFile >> $screenOut || error_exit "Solution differs from reference"

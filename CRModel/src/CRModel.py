@@ -854,13 +854,13 @@ class CollisionalRadiativeModel:
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             
             # Calculations for escape factor
-            # if (i == 0):  # For now, we only calculate the escape factors for the reasonance lines. 
+            if (i == 0):  # For now, we only calculate the escape factors for the reasonance lines. 
 
-            eta = self.escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],
+                eta = self.escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],
                                           self.p.g_j[itrans],self.p.g_i[itrans],
                                           self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L) 
-            # else:
-                # eta=1.0
+            else:
+                eta=1.0
                 
 
             # if np.min(eta) < 1.0:

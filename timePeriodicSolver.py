@@ -74,7 +74,7 @@ class timePeriodicSolver:
         # Run from IC for 1 period
         self.tds.solve(0.0, 1.0/Nt, Nt,
                        savedata=None, verbose=True, rtol=1e-7,
-                       computeSensitivity=True, weak_bc=False)
+                       computeSensitivity=True, weak_bc=self.args.weakbc)
 
         # Compute difference between final state and Uic
         self.res = self.tds.U2 - Uic
@@ -148,6 +148,8 @@ if __name__ == "__main__":
                         help='Filename to save restart file')
     parser.add_argument('--verbose',default=False,
                         action='store_true', help='Be extra chatty')
+    parser.add_argument('--weakbc',default=False,
+                        action='store_true', help='Enforce ion flux BC weakly')
     parser.add_argument('--plot', default=False,
                         action='store_true', help="Plot the final state for inspection.")
     parser.add_argument('--V0', metavar='V0', default=100,
@@ -266,7 +268,7 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==15):
         print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
-        Ns = 17 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
     elif(args.scenario==16):
         print('#   Running CR model = 16 (33 species, 1Torr, Nominal)')        
         Ns = 1+30+1+1 # background state + excited states + electrons + ions 
