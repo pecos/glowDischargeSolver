@@ -39,13 +39,15 @@ M_H = Mr_H/spc.N_A        # [kg] mass of argon atom (6.63352088e-26 kg)
 a0_H = 52.9e-12   # [m] Bohr radius of Hydrogen
 
 # Argon
-xi = 6                      # [#] number of optical electrons of argon
+xi_Ar = 6                   # [#] number of optical electrons of argon
 Mr_Ar = 39.948/1000.0       # [kg/mol]
 R = spc.R/Mr_Ar             # R = 208.13 [J/kg/K]  Argon
 M_Ar = Mr_Ar/spc.N_A        # [kg] mass of argon atom (6.63352088e-26 kg)
 RydEn = spc.Rydberg*spc.c*spc.h/spc.e # [eV]
 a0 = 71e-12 # [m] Bohr radius of argon
 g_ion = 4.0 # There should be two ionizasion levels. What do we do then??
+g_ion_1 = 4.0 # There are two ionizasion levels.
+g_ion_2 = 2.0 
 
 Eion = 15.7596119 # ionization energies of Ar in [eV]
 # Eion = np.array([15.7596119]) # ionization energies of Ar in [eV]

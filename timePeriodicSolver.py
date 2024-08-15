@@ -82,7 +82,8 @@ class timePeriodicSolver:
         # Compute the Jacobian
         
 
-        A = I_Ndof
+        # A = I_Ndof
+        A = np.copy(I_Ndof)
         # A = np.identity(self.tds.Ndof)
 
         self.jac = self.tds.A1 - A
@@ -136,7 +137,7 @@ if __name__ == "__main__":
                         type=float, help='Secondary electron emission parameter')
     parser.add_argument('--rtol',metavar='rtol', default=1e-6,
                         type=float, help="Relative tolerance for non-linear solve")
-    parser.add_argument('--atol',metavar='atol', default=1e-14,
+    parser.add_argument('--atol',metavar='atol', default=1e-12,
                         type=float, help="Absolute tolerance for non-linear solve")
     parser.add_argument('--scenario', metavar='scenario', default=0,
                         type=int, help='Scenario index')
@@ -218,9 +219,6 @@ if __name__ == "__main__":
     elif(args.scenario==6):
         print('#   Running scenario = 6 (6 species, 23 rxn, 1Torr, 100V, Sampling)')
         Ns = 6
-    elif(args.scenario==7):
-        print('#   Running scenario = 7 (6 species, 23 rxn, 250mTorr, 100V, Sampling)')
-        Ns = 6
     elif(args.scenario==8):
         print("#   Running scenario = 9 (6 species, 23 rxn, 500mTorr, 100V, Sampling)")
         Ns = 6
@@ -266,11 +264,14 @@ if __name__ == "__main__":
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4
+    elif(args.scenario==7):
+        print('#   Running scenario = 7 (6 species, 34 rxn, Nominal)')
+        Ns = 6
     elif(args.scenario==15):
-        print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
+        print('#   Running CR model = 15 (17 species, Nominal)')
         Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
     elif(args.scenario==16):
-        print('#   Running CR model = 16 (33 species, 1Torr, Nominal)')        
+        print('#   Running CR model = 16 (33 species, Nominal)')        
         Ns = 1+30+1+1 # background state + excited states + electrons + ions 
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))

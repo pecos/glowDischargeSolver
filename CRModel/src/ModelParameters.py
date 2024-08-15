@@ -16,12 +16,12 @@ from ExcitationCrossSections import CharacteriseTransitions
 
 #----------------------------------------------------------------------------------
 
-sigma_factor_AtomExc = 4*np.pi*a0_H**2*Eion_H**2 * M_Ar/M_H * xi**2
+sigma_factor_AtomExc = 4*np.pi*a0_H**2*Eion_H**2 * M_Ar/M_H
 mass_factor = 2*spc.m_e/(M_Ar + spc.m_e)
 
 mu_ei = (M_Ar - spc.m_e)*spc.m_e/M_Ar # Reduced mass
-# lambda_factor = spc.h**2/(2.0*np.pi*spc.m_e*spc.k)*K_eV
-lambda_factor = spc.h**2/(2.0*np.pi*mu_ei*spc.k)*K_eV
+lambda_factor = spc.h**2/(2.0*np.pi*spc.m_e*spc.k)*K_eV
+# lambda_factor = spc.h**2/(2.0*np.pi*mu_ei*spc.k)*K_eV
 
 
 # Atom Impact Excitation
@@ -34,7 +34,7 @@ beta_ij = [1.79e-24, 4.8e-26, 4.8e-26, 4.8e-26, 4.8e-26, 1.79e-24]
 
 # photoionization
 gamma_i = [0.0, 0.0763, 0.0458, 0.0305, 0.0915]
-photoionization_factor = 1.0/g_ion/(2.0*spc.m_e*spc.c**2)
+photoionization_factor = 1.0/(2.0*spc.m_e*spc.c**2)
 
 Zeff = np.sqrt(1.67) # effective charge
 gauntFactor_FreeFree = 1.0 
@@ -173,8 +173,13 @@ class modelParameters:
 
         self.deltaIon = np.zeros(self.N_lvl, dtype=np.float64)
         for i in range(self.N_lvl):    
-            deltaIon = Eion - self.E_lvl[i]*cm_eV
+            if (not self.isPrimed_lvl[i]): # There are two ion ground levels
+                Eion_Ar = Eion_Ar_1
+            else:
+                Eion_Ar = Eion_Ar_2
+            deltaIon = Eion_Ar - self.E_lvl[i]*cm_eV
             self.deltaIon[i] = deltaIon 
+
 
     
         #----------------------------------------------------------------------------------
@@ -579,44 +584,6 @@ class modelParameters:
         # # plt.title('Energy levels')
         # # plt.grid(True)
         # # # plt.legend()
-
-
-        # # # BSR
-        # # 0 1 3.55459e-22
-        # # 0 2 5.22631e-22
-        # # 0 3 9.12048e-23
-        # # 0 4 2.13143e-21
-        # # 0 5 2.09412e-22
-        # # 0 6 1.44821e-22
-        # # 0 7 1.6845e-22
-        # # 0 8 6.80299e-23
-        # # 0 9 1.55133e-22
-        # # 0 10 6.01045e-23
-        # # 0 11 6.72448e-23
-        # # 0 12 9.80869e-23
-        # # 0 13 7.74843e-23
-        # # 0 14 2.27167e-22
-
-        # # # IST
-        # # 0 1 8.465143e-22
-        # # 0 2 4.276331e-22
-        # # 0 3 1.542259e-22
-        # # 0 4 1.034436e-21
-        # # 0 5 5.316713e-22
-        # # 0 6 5.200199e-22
-        # # 0 7 5.419829e-22
-        # # 0 8 2.737786e-22
-        # # 0 9 3.639379e-22
-        # # 0 10 1.770719e-22
-        # # 0 11 2.880844e-22
-        # # 0 12 3.216043e-22
-        # # 0 13 1.560001e-22
-        # # 0 14 5.059534e-22
-
-
-        # plt.show()
-        # exit(-1)
-
             
 
         #----------------------------------------------------------------------------------
@@ -747,7 +714,9 @@ class modelParameters:
    
         # Electron Impact Ionization
         self.sigma_ionLXCat = np.interp(eRange,self.IonizationGround[:,0],self.IonizationGround[:,1])  
-        deltaIon = Eion - self.E_lvl[0]*cm_eV 
+        # deltaIon = Eion - self.E_lvl[0]*cm_eV 
+        deltaIon = self.deltaIon[0]
+
         self.sigma_ionLXCat[np.where(eRange < deltaIon)] = 0
 
         # sigma_ion = self.sigma_ionLXCat     
@@ -771,9 +740,11 @@ class modelParameters:
             char = SubShell[-1] 
                 
             # isPrimed_lvl    
-            deltaIon = Eion - self.E_lvl[i]*cm_eV # Which Eion should I use? There are two!                    
+            # deltaIon = Eion - self.E_lvl[i]*cm_eV   
+            deltaIon = self.deltaIon[i]   
+                                    
             # (Vriens and Smeets, 1980) Which Borh radius do I need here?
-            # sigma_ion = 4*np.pi*a0**2*RydEn**2/(self.p.eRange + 3.25*deltaIon)*(5/(3*deltaIon) - 1/self.p.eRange - 2*deltaIon/(3*self.p.eRange**2))     
+            # sigma_ion = 4*np.pi*a0_H**2*RydEn**2/(eRange + 3.25*deltaIon)*(5/(3*deltaIon) - 1/eRange - 2*deltaIon/(3*eRange**2))     
 
             # (H. Deutsch et al, 2003) 
             u = eRange/deltaIon
@@ -787,31 +758,97 @@ class modelParameters:
             self.sigma_ij_Ion[i] = sigma_ion
 
 
+        # fig,ax = plt.subplots(dpi=160)
+        # ax.plot(eRange,self.sigma_ij_Ion[0],label="Ar")
+        # ax.plot(eRange,self.sigma_ij_Ion[1],label="s5")
+        # ax.plot(eRange,self.sigma_ij_Ion[2],label="s4")
+        # ax.plot(eRange,self.sigma_ij_Ion[3],label="s3")
+        # ax.plot(eRange,self.sigma_ij_Ion[4],label="s2")
+        # ax.plot(eRange,self.sigma_ij_Ion[5],label="p10")
+        # ax.plot(eRange,self.sigma_ij_Ion[6],label="p9")
+        # ax.plot(eRange,self.sigma_ij_Ion[7],label="p8")
+        # ax.plot(eRange,self.sigma_ij_Ion[8],label="p7")
+        # plt.legend()
+        # ax.semilogy()
+        # plt.grid(True)
+        # plt.show()  
+        # exit(-1)      
+        
+
+
+        # 3-body recombination (reverse of electron-impact ionization) procesess  # by principle of detailed balance
+        self.sigma_ij_Recomb = {}
+        for i in range(0,self.N_lvl):              
+
+            # deltaIon = Eion - self.E_lvl[i]*cm_eV                   
+            deltaIon = self.deltaIon[i]   
+
+            if i == 0:
+                g_plus = g_ion_1 + g_ion_2               
+            elif (not self.isPrimed_lvl[i]):
+                g_plus = g_ion_1
+            else:
+                g_plus = g_ion_2
+                
+            sigma_Recomb = self.g_lvl[i] / g_plus * (eRange[:,0] + deltaIon) / eRange[:,0] * \
+                np.interp(eRange[:,0],eRange[:,0]-deltaIon,self.sigma_ij_Ion[i][:,0] )  
+                                   
+            self.sigma_ij_Recomb[i] =  sigma_Recomb[:, np.newaxis]   
+
 
 
         # Atom impact Ionization 
-        deltaIon = Eion - self.E_lvl[0]*cm_eV
+        # deltaIon = Eion - self.E_lvl[0]*cm_eV
+        deltaIon = self.deltaIon[0]   
         eRange_temp = eRange - Eion
         eRange_temp[np.where(eRange_temp < 0.0)] = 0.0
         
         self.sigma_1a_ion = 1.8e-25*(eRange_temp)**1.3
         self.sigma_1a_ion[np.where(eRange < deltaIon)] = 0.0
 
-        
         self.sigma_ia_ion = {}
         self.sigma_ia_ion[0] = self.sigma_1a_ion
         for i in range(1,self.N_lvl):
             
-            # Ionization due to atom impact from any level
-            deltaIon = Eion - self.E_lvl[i]*cm_eV
+            # deltaIon = Eion - self.E_lvl[i]*cm_eV
+            deltaIon = self.deltaIon[i]   
+            
+            if i==0: 
+                xi = xi_Ar
+            else:
+                xi = 1
                      
             # self.sigma_ia_ion = 4*np.pi*a0_H**2*(Eion_H/deltaIon)**2 * M_Ar/M_H * xi**2 * 2*spc.m_e/(M_Ar + spc.m_e) * (eRange/deltaIon - 1) \
             # / (1.0 + 2*spc.m_e/(M_Ar + spc.m_e) * (eRange/deltaIon - 1) )**2
-            sigma_ia_ion = sigma_factor_AtomExc / deltaIon**2 * mass_factor  * \
+            sigma_ia_ion = sigma_factor_AtomExc * xi**2 / deltaIon**2 * mass_factor  * \
                 (eRange/deltaIon - 1) / (1.0 + mass_factor * (eRange/deltaIon - 1) )**2  
             sigma_ia_ion[np.where(eRange < deltaIon)] = 0.0
             self.sigma_ia_ion[i] = sigma_ia_ion
               
+
+
+        # 3-body recombination (reverse of electron-impact ionization) procesess  # by principle of detailed balance
+        self.sigma_ia_Recomb = {}
+        for i in range(0,self.N_lvl):              
+
+            # deltaIon = Eion - self.E_lvl[i]*cm_eV                   
+            deltaIon = self.deltaIon[i]   
+
+            if i == 0:
+                g_plus = g_ion_1 + g_ion_2               
+            elif (not self.isPrimed_lvl[i]):
+                g_plus = g_ion_1
+            else:
+                g_plus = g_ion_2
+
+            sigma_Recomb = self.g_lvl[i] / g_plus * (eRange[:,0] + deltaIon) / eRange[:,0] * \
+                np.interp(eRange[:,0],eRange[:,0]-deltaIon,self.sigma_ia_ion[i][:,0] )  
+                
+            self.sigma_ia_Recomb[i] =  sigma_Recomb[:, np.newaxis]   
+
+
+
+
 
         # Atom impact de/excitation from ground
         self.sigma_ij_Atom_ExcFromGround = {}
@@ -827,7 +864,7 @@ class modelParameters:
                 j = self.DictRacah_lvl[atomImpactExcitationTransitionsFromGroundSate[itrans]]             
                 eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV
                     
-                sigma_ij_a = fij[itrans] * sigma_factor_AtomExc / eij**2 * mass_factor  * \
+                sigma_ij_a = fij[itrans] * sigma_factor_AtomExc * xi_Ar**2 / eij**2 * mass_factor  * \
                         (eRange/eij - 1) / (1.0 + mass_factor * (eRange/eij - 1) )**2
                 sigma_ij_a[np.where(eRange < eij)] = 0.0
 
@@ -894,8 +931,13 @@ class modelParameters:
             self.j_Atom_Exc_2[itrans] = j 
             
             eij = (self.E_lvl[j] - self.E_lvl[i])*cm_eV
+
+            if i==0: 
+                xi = xi_Ar
+            else:
+                xi = 1
                     
-            sigma_ij_a = self.f_ji[itrans] * sigma_factor_AtomExc / eij**2 * mass_factor  * \
+            sigma_ij_a = self.f_ji[itrans] * sigma_factor_AtomExc * xi**2 / eij**2 * mass_factor  * \
                         (eRange/eij - 1) / ( 1.0 + mass_factor * (eRange/eij - 1) )**2
 
             sigma_ij_a[np.where(eRange < eij)] = 0.0
@@ -943,12 +985,15 @@ class modelParameters:
         self.sigma_c_ion = {}        
         
         i = 0 # from ground state
-        deltaIon = Eion - self.E_lvl[i]*cm_eV
+        # deltaIon = Eion - self.E_lvl[i]*cm_eV
+        deltaIon = self.deltaIon[i]   
 
-        sigma_c_ion = 2.8e-20*(Eion_H/(eRange + deltaIon))**3
+        g_plus = g_ion_1 + g_ion_2  
+
+        sigma_c_ion = 2.8e-20 * (Eion_H / (eRange + deltaIon) )**3
         sigma_c_ion[np.where(eRange <= 2*Eion_H - deltaIon)] = 3.5e-21                                                
-        sigma_c_ion = sigma_c_ion*self.g_lvl[i]*photoionization_factor*(eRange + deltaIon)**2 \
-            / eRange*spc.e # Mind the units of the energy
+        sigma_c_ion = sigma_c_ion * self.g_lvl[i] / g_plus * (eRange + deltaIon)**2 \
+            / eRange * photoionization_factor *spc.e # Mind the units of the energy
         # sigma_c_ion[np.where(self.p.eRange < deltaIon)] = 0.0 # Mind that the limits of the integral have changed
 
         self.sigma_c_ion[0] =  sigma_c_ion
@@ -956,17 +1001,21 @@ class modelParameters:
 
         nTrans = 5
         for i in range(1,nTrans):
+            # deltaIon = Eion - self.E_lvl[i]*cm_eV 
+            deltaIon = self.deltaIon[i]   
+            
+            if (not self.isPrimed_lvl[i]):
+                g_plus = g_ion_1
+            else:
+                g_plus = g_ion_2
 
-            deltaIon = Eion - self.E_lvl[i]*cm_eV 
-
-            sigma_c_ion = 7.91*(deltaIon/Eion_H)**2.5*(Eion_H/(eRange + deltaIon))**3
+            sigma_c_ion = 7.91 * (deltaIon/Eion_H)**2.5 * (Eion_H / (eRange + deltaIon))**3
             sigma_c_ion[np.where(eRange <= 0.59*Eion_H - deltaIon)] = 2.0                    
-            sigma_c_ion = sigma_c_ion*1e-22*gamma_i[i]*self.g_lvl[i] * \
-                photoionization_factor * (eRange + deltaIon)**2/eRange*spc.e # Mind the units of the energy
+            sigma_c_ion = sigma_c_ion * 1e-22 * gamma_i[i] * self.g_lvl[i] / g_plus * \
+                photoionization_factor * (eRange + deltaIon)**2 /eRange *spc.e # Mind the units of the energy
             
             # sigma_c_ion[np.where(eRange < deltaIon)] = 0.0 # Mind that the limits of the integral have changed
             self.sigma_c_ion[i] =  sigma_c_ion
-
 
         # Elastic Collisions
         self.sigma_el_e1 = np.interp(eRange,eRange_elastic_e1,sigma_elastic_e1)*1e-20
@@ -986,8 +1035,12 @@ class modelParameters:
 
         self.sigma_ij_Exc_LXCat = np.array(list(self.sigma_ij_Exc_LXCat.values()))        
         self.sigma_ij_Ion = np.array(list(self.sigma_ij_Ion.values()))
+        self.sigma_ij_Recomb = np.array(list(self.sigma_ij_Recomb.values()))
+
         
         self.sigma_ia_ion = np.array(list(self.sigma_ia_ion.values()))
+        self.sigma_ia_Recomb = np.array(list(self.sigma_ia_Recomb.values()))
+
         self.sigma_c_ion = np.array(list(self.sigma_c_ion.values()))
         
         self.sigma_ij_Atom_ExcFromGround = np.array(list(self.sigma_ij_Atom_ExcFromGround.values()))

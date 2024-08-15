@@ -137,10 +137,11 @@ class CollisionalRadiativeModel:
         # self.R = 0.028/scalingFactor #  radius of the torch
         # self.L = self.R*2 # length 
 
-        # self.lambda_D = 1/((2.405/self.R)**2 + (np.pi/self.L)**2) # [m^2]  # M.T. !< This is lambda**2 
-        self.lambda_D = 1/((2.405/self.R)**2) # [m^2]  # M.T. !< This is lambda**2 
+        self.lambda_D = 1/((2.405/self.R)**2 + (np.pi/self.L)**2) # [m^2]  # M.T. !< This is lambda**2 
+        # self.lambda_D = 1/((2.405/self.R)**2) # [m^2]  # M.T. !< This is lambda**2 
         
         
+
         self.iNg = self.p.DictRacah_lvl["Ar"]
         self.iN1s5 = self.p.DictRacah_lvl["Ar(4s[3/2]2)"]   # metastable           
         self.iN1s4 = self.p.DictRacah_lvl["Ar(4s[3/2]1)"]   # resonance
@@ -170,7 +171,7 @@ class CollisionalRadiativeModel:
         For Electron Energy Distribution Function (EEDF) :
         """
         self.NeRange = 1000
-        self.eRange = np.logspace(np.log10(1e-3),np.log10(300),self.NeRange,dtype=np.float64)  # [eV]
+        self.eRange = np.logspace(np.log10(1e-3),np.log10(300),self.NeRange,dtype=np.float64)  # [eV]      
         self.eRange = self.eRange[:, np.newaxis] # I have added np.newaxis so that it works in both vectorized 
                                                  # and non-vectorised versions of the jaccobian calculation. 
                                                  # However, when I remove it, the non-vectrorized version runs faster. 
@@ -181,7 +182,7 @@ class CollisionalRadiativeModel:
         self.ones_eRange = np.ones((self.NeRange),dtype=np.float64)
 
         self.eVel = np.sqrt(2*self.eRange*spc.e/spc.m_e) # Electron velocity v = sqrt(2 E / m_e)            
-        self.aVel = np.sqrt(2*self.eRange*spc.e/M_Ar) # Atom velocity v = sqrt(2 E / m)
+        self.aVel = np.sqrt(2*self.eRange*spc.e/(M_Ar/2.0)) # Atom velocity v = sqrt(2 E / mu)  mu -> reduced masss
 
         self.p.EvaluateCrossSections(self.eRange)
         self.p.ConvertCrossSectionsToNumPy()
@@ -350,12 +351,15 @@ class CollisionalRadiativeModel:
         # for key in self.p.sigma_ij_Ion:
             # self.p.sigma_ij_Ion[key] = cp.asarray(self.p.sigma_ij_Ion[key])  
         self.p.sigma_ij_Ion = cp.asarray(self.p.sigma_ij_Ion)  
+        self.p.sigma_ij_Recomb = cp.asarray(self.p.sigma_ij_Recomb)  
 
         self.p.sigma_1a_ion = cp.asarray(self.p.sigma_1a_ion)
 
         # for key in self.p.sigma_ia_ion:
             # self.p.sigma_ia_ion[key] = cp.asarray(self.p.sigma_ia_ion[key])
         self.p.sigma_ia_ion = cp.asarray(self.p.sigma_ia_ion)
+        self.p.sigma_ia_Recomb = cp.asarray(self.p.sigma_ia_Recomb)
+
 
         # for key in self.p.sigma_ij_Atom_ExcFromGround:
             # self.p.sigma_ij_Atom_ExcFromGround[key]  = cp.asarray(self.p.sigma_ij_Atom_ExcFromGround[key])
@@ -591,15 +595,16 @@ class CollisionalRadiativeModel:
         # Ar(i) + e- <-> Ar+ + e- + e-
         Qi_factor = 1.0 / 2.0 * (parameters.lambda_factor/T_e)**(1.5)
         for i in range(self.N_lvl):                           
-            deltaIon = self.p.deltaIon[i]
+            # deltaIon = self.p.deltaIon[i]
             
             Si = self.trapz(self.p.sigma_ij_Ion[i]*eVelTimesEEDF, axis=0 )                                                       
-            Qi = ( self.p.g_lvl[i] / g_ion * Qi_factor * xp.exp(deltaIon/T_e)) * Si # I need to check again this one.            
+            # Qi = ( self.p.g_lvl[i] / g_ion * Qi_factor * xp.exp(deltaIon/T_e)) * Si            
+            Qi = Qi_factor * self.trapz(self.p.sigma_ij_Recomb[i]*eVelTimesEEDF, axis=0 )                                                       
 
             self.ElecrtonImpactIonizationRate[i,:,0] = Si
             self.ElecrtonImpactIonizationRate[i,:,1] = Qi
-            
-                  
+
+
         ################## Elecrton impact de/excitation ##################
         # Ar(i) + e- <-> Ar(j) + e- 
         for iCollTrans in range(self.p.NCollTrans): 
@@ -616,45 +621,22 @@ class CollisionalRadiativeModel:
 
             self.ElecrtonImpactExcitationRate[iCollTrans,:,0] = Cij
             self.ElecrtonImpactExcitationRate[iCollTrans,:,1] = Fji
-
-
-        # ################# Radiation processes ##################
-        # # Ar(j) -> Ar(i) + h vij 
-        # for itrans in self.p.EmissionTransitions: 
-        #     """
-        #     Transition data for Ar I
-        #     i -> lower level
-        #     j -> upper level
-        #     """     
-        
-        #     i = self.p.index_i_lvl[itrans]
-        #     j = self.p.index_j_lvl[itrans]
-
-        #     # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
-
-        #     # Calculations for escape factor
-        #     if (i == 0):  # For now, we only calculate the escape factors for the reasonance lines. 
-        #         eta = self.escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],self.p.g_j[itrans],self.p.g_i[itrans],\
-        #                          self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L) 
-        #     else:
-        #         eta=1.0
-
-        #     self.Aeff_ji[itrans,:] = self.p.A_ji[itrans]*eta 
-
+            
                 
         ################## Atom impact Ionization ##################
         # Ar(i) + Ar(1) <-> Ar+ + e- + Ar(1)
-        Wm_factor = 1.0/2.0*(parameters.lambda_factor/T_e)**(1.5)
+        Wm_factor = 1.0 / 2.0 * (parameters.lambda_factor/T_e)**(1.5)
         for i in range(self.N_lvl):
-            # Ionization due to atom impact from any level
-            deltaIon = self.p.deltaIon[i]
+            # deltaIon = self.p.deltaIon[i]
                                  
             Vm = self.trapz(self.p.sigma_ia_ion[i]*aVelTimesAEDF, axis=0 )   
-            Wm = self.p.g_lvl[i]/g_ion * Wm_factor * xp.exp(deltaIon/(T_g*K_eV)) * Vm # Check that I use T_g in the exponent
+            # Wm = self.p.g_lvl[i]/g_ion * Wm_factor * xp.exp(deltaIon/(T_g*K_eV)) * Vm # Check that I use T_g in the exponent
+            Wm = Wm_factor * self.trapz(self.p.sigma_ia_Recomb[i]*aVelTimesAEDF, axis=0 )   
+
                             
             self.AtomImpactIonizationRate[i,:,0] = Vm
             self.AtomImpactIonizationRate[i,:,1] = Wm
-                        
+       
 
         
         ################## Ionization due to heavy particle collisions ##################
@@ -709,14 +691,13 @@ class CollisionalRadiativeModel:
 
         ################# Photorecombination/photoionization ##################
         nTrans = 5
-        for i in range(0,nTrans): # We include also the photoionization from ground state which has a different cross section
+        for i in range(0,nTrans):
 
             Ri = self.trapz(self.p.sigma_c_ion[i]*eVelTimesEEDF, axis=0 )
             Ri_prime = self.trapz(self.p.sigma_c_ion[i]*self.eRange*eVelTimesEEDF, axis=0 )
 
             self.PhotorecombinationRate[i,:,0] = Ri
             self.PhotorecombinationRate[i,:,1] = Ri_prime
-
 
 
         # # ################## Bremsstrahlung emission ##################
@@ -814,13 +795,13 @@ class CollisionalRadiativeModel:
             Si = self.ElecrtonImpactIonizationRate[i,:,0]
             Qi = self.ElecrtonImpactIonizationRate[i,:,1]
 
-            Rsi = npop[:,i]*ne*Si # Electron impact ionization
-            Rqi = nion*ne*ne*Qi 
-            
+            Rsi = npop[:,i] * ne * Si # Electron impact ionization
+            Rqi = nion * ne * ne * Qi 
+                     
             dydt[:,i] += - Rsi + Rqi 
             dydt[:,iNe] += + Rsi - Rqi # rate of change of ion number density
             dydt[:,iEe] += deltaIon * (Rqi - Rsi) # rate of change of eletron energy
-                         
+
 
         ################## Elecrton impact de/excitation ##################
         # Ar(i) + e- <-> Ar(j) + e- 
@@ -838,7 +819,7 @@ class CollisionalRadiativeModel:
             dydt[:,i] += - Rcij + Rfji 
             dydt[:,j] += + Rcij - Rfji 
             dydt[:,iEe] +=  eij * (Rfji - Rcij) # rate of change of eletron energy
-        
+   
                 
         ################# Radiation processes ##################
         # Ar(j) -> Ar(i) + h vij 
@@ -862,15 +843,6 @@ class CollisionalRadiativeModel:
             else:
                 eta=1.0
                 
-
-            # if np.min(eta) < 1.0:
-            #     lambda_0 = spc.h*spc.c/((self.p.E_j[itrans]-self.p.E_i[itrans])*cm_eV*spc.e)*1e9 # wavelength of transition
-            #     print(self.p.Racah_lvl[j], " (", round(self.p.E_j[itrans]*cm_eV,3) ,"eV) ", 
-            #           " -> ", self.p.Racah_lvl[i], " (", round(self.p.E_i[itrans]*cm_eV,2) ,"eV) ",
-            #           " wavelength = ", round(lambda_0,3), "min ef = ", eta[75])
-
-            # np.argmin(eta)
-            
             Rspem =  npop[:,j] * self.p.A_ji[itrans] * eta        
             dydt[:,i] += + Rspem # radiative transitions into lower state
             dydt[:,j] += - Rspem # radiative transitions out of higher state
@@ -881,9 +853,9 @@ class CollisionalRadiativeModel:
 
 
         ################## Atom impact Ionization ##################
+        # Ionization due to atom impact from any level
         # Ar(i) + Ar(1) <-> Ar+ + e- + Ar(1)
         for i in range(self.N_lvl):
-            # Ionization due to atom impact from any level
             # deltaIon = self.p.deltaIon[i]
                                  
             Vm = self.AtomImpactIonizationRate[i,:,0]
@@ -906,10 +878,10 @@ class CollisionalRadiativeModel:
         S_mr = self.S_mr      # resonance-metastable collisions 
         S_m  = self.S_m       # metastable-metastable collisions
 
-        iN1s5 = self.iN1s5  # metastable           
-        iN1s4 = self.iN1s4  # resonance
-        iN1s3 = self.iN1s3  # metastable   
-        iN1s2 = self.iN1s2  # resonance
+        iN1s5 = self.iN1s5  # metastable  1          
+        iN1s4 = self.iN1s4  # resonance   2
+        iN1s3 = self.iN1s3  # metastable  3  
+        iN1s2 = self.iN1s2  # resonance   4
                 
         # resonance-resonance  2 Ar(r) -> Ar+ + Ar + e  
         Rkii_I = npop[:,iN1s4]*npop[:,iN1s4]*S_r              

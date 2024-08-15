@@ -53,9 +53,9 @@ from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
 
-from psaapProperties_6Species_1Torr_Expanded import setPsaapProperties_6Species_1Torr_Expanded
+from psaapProperties_6Species import setPsaapProperties_6Species
 
-from psaapProperties_CRModel_1Torr import setPsaapProperties_CRModel_1Torr
+from psaapProperties_CRModel import setPsaapProperties_CRModel
 from CRModel import CollisionalRadiativeModel
 
 import Constants as CRconst
@@ -194,8 +194,9 @@ class modelClosures:
         self.tauL    = 2.54 * 0.005 / (1./13.6e6)
         # self.np0     = 8e16             # "nominal" electron density [1/m^3]
         self.qe      = 1.6e-19          # unit charge [C]
-        self.eps0    = 8.86e-12         # unit charge [C]
+        self.eps0    = 8.86e-12         # permittivity of free space [F/m]
         self.eArea   = np.pi * 0.05**2  # electrode area [m^2]
+
 
         # Parameters needed for the Collisional-Radiative model
         self.Pressure = 0.0
@@ -269,14 +270,14 @@ class modelClosures:
             energy[indFixH,i] = 10.0
             energy_U[i,j,indFixH,:] = 0.0
 
-            mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb #NOTE(malamast): Why do we divide by nb?
-            # mu_U_tmp = mu_ee * xp.diag(energy_U[i,j,:,:]) 
+            mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
+
+            # mu_U_tmp = mu_ee * xp.diag(energy_U[i,j,:,:])
             # mu_U[:,:] = xp.diag(mu_U_tmp)
             mu_U[:,:] = xp.diag(mu_ee) @ energy_U[i,j,:,:]
-                                           
-                        
-        if (j == self.Ns - 1): 
-            mu_U -= xp.diag(mu[:,i] / nb) 
+
+        if (j == self.Ns - 1):
+            mu_U -= xp.diag(mu[:,i] / nb)
 
         return mu_U
 
@@ -330,7 +331,7 @@ class modelClosures:
             D_ee = (2./3)*self.diffusivityList[i].D_T_expression((2./3)*energy[:,i]) / nb
             # D_U_tmp = D_ee * xp.diag(energy_U[i,j,:,:])
             # D_U[:,:] = xp.diag(D_U_tmp)
-            D_U[:,:] = xp.diag(D_ee) * energy_U[i,j,:,:]
+            D_U[:,:] = xp.diag(D_ee) @ energy_U[i,j,:,:]
 
 
         elif EinsteinForm and i == 0:
@@ -588,7 +589,7 @@ class timeDomainCollocationSolver:
             Nr = 0 # It is evaluated within the model based on the number of species you include.            
             self.solveCRModel = True
             elasticCollisionActivationFactor = 0.0 # Elastic collision term is being handled within the CR model.
-            print("Elastic collision term is being handled within the CR model. ")
+            print("#   Elastic collision term is being handled within the CR model. ")
             # if self.temporal_scheme != "BE" or self.temporal_scheme != "CN":
             #     print("ERROR: Curently we suppport only the 'BE' and 'CN' temporal schemes for the CR model.")
             #     exit(-1)
@@ -632,9 +633,9 @@ class timeDomainCollocationSolver:
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==7):
-             setPsaapProperties_6Species_1Torr_Expanded(gam, V0, VDC, self.params, Nr, iSample)
+             setPsaapProperties_6Species(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==15 or scenario==16):
-            setPsaapProperties_CRModel_1Torr(gam, V0, VDC, self.params, Ns)
+            setPsaapProperties_CRModel(gam, V0, VDC, self.params, Ns)
             self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, \
                 self.params.Pressure, self.params.GasTemperature, backgroundSpecieActivationFactor)
             self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119; self.params.dEps[self.Ns-1] = 0.0
@@ -703,6 +704,11 @@ class timeDomainCollocationSolver:
         self.electronCurrent = np.zeros((2,1),dtype=np.float64)
         self.ionCurrent      = np.zeros((2,1),dtype=np.float64)
         
+        
+        self.electricField = np.zeros((self.Np,1),dtype=np.float64)
+        self.electricPotential = np.zeros((self.Np,1),dtype=np.float64)
+
+        
         self.ntot_U = np.zeros((self.Np, self.Nv)) 
         # all but background
         for i in range(1, self.Ns-1):
@@ -730,6 +736,10 @@ class timeDomainCollocationSolver:
         self.totalCurrent       = cp.asarray(self.totalCurrent)
         self.ionCurrent         = cp.asarray(self.ionCurrent)
         self.electronCurrent    = cp.asarray(self.electronCurrent)
+
+        self.electricField      = cp.asarray(self.electricField)
+        self.electricPotential  = cp.asarray(self.electricPotential)
+ 
         
         self.Dp                 = cp.asarray(self.Dp)
         self.LpD                = cp.asarray(self.LpD)
@@ -835,6 +845,8 @@ class timeDomainCollocationSolver:
         nT = Uin[self.Ns*self.Np:] # assumes just 1 temperature!
         Te = nT/dens[:,iele]
   
+
+  
         ntot = xp.zeros((self.Np, 1),dtype=xp.float64)
         # add all heavies but background
         for i in range(1, self.Ns-1):
@@ -862,8 +874,6 @@ class timeDomainCollocationSolver:
 
         # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
         EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] # Reduced Electric field  E / N
-
-
 
 
         # Temperature of species
@@ -898,37 +908,32 @@ class timeDomainCollocationSolver:
                 fspec[:,i] += self.params.charge(i)*xp.multiply(mu[:,i], dens[:,i])*(-phi_x[:,0])
             fspec[:,i] -= xp.multiply(diffusivity[:,i],dens_x[:,i])  
 
+        # Form electron energy flux
+        # (See G J M Hagelaar and L C Pitchford 2005 Plasma Sources Sci. Technol. 14 722)
+        fT = xp.zeros((self.Np, 1),dtype=xp.float64)
+        #NOTE(malamas): Do I need to add the dDe/dx part here? The Bolsig reports De is within the derivative.
+        # fT[:,0] = (5./3.)*(-mu[:,0]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,0], nT_x[:,0]))
+        fT[:,0] = -mu[:,iee]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee], nT_x[:,0])
+
 
         # overwrite endpoints in ion flux (weakly impose BC)
         if (weak_bc):
             fspec[ 0,iion[0]] = -self.params.ksion*dens[ 0,iion[0]] + mu[0,iion[0]]*dens[ 0,iion[0]]*(-phi_x[0,0])
             fspec[-1,iion[0]] =  self.params.ksion*dens[-1,iion[0]] + mu[-1,iion[0]]*dens[-1,iion[0]]*(-phi_x[-1,0])
 
-
         # Strong BC equations
-        rstrg = xp.zeros(4)
+        rstrg = xp.zeros(6)
         rstrg[0] = fspec[ 0,iele[0]] - (- self.params.ks * dens[ 0,iele[0]] * Te[0,0]**0.5 - self.params.gam * fspec[ 0,iion[0]])
         rstrg[1] = fspec[-1,iele[0]] - (+ self.params.ks * dens[-1,iele[0]] * Te[-1,0]**0.5 - self.params.gam * fspec[-1,iion[0]])
 
         rstrg[2] = fspec[ 0,iion[0]] - (- self.params.ksion*dens[ 0,iion[0]] + mu[0,iion[0]]*dens[ 0,iion[0]]*(-phi_x[0,0]))
         rstrg[3] = fspec[-1,iion[0]] - (+ self.params.ksion*dens[-1,iion[0]] + mu[-1,iion[0]]*dens[-1,iion[0]]*(-phi_x[-1,0]))
 
-        #if (self.Ns>2):
-        #    fspec[ 0,2:self.Ns] = 0.0
-        #    fspec[-1,2:self.Ns] = 0.0
+        rstrg[4] = fT[0,0] - (- (5./3.)*self.params.ks * Te[0,0]**0.5 * nT[0,0] - self.params.gam * fspec[ 0,iion[0]] * self.params.EeBC )
+        rstrg[5] = fT[-1,0] - (+ (5./3.)*self.params.ks * Te[-1,0]**0.5 * nT[-1,0] - self.params.gam * fspec[-1,iion[0]] * self.params.EeBC )
 
         # form derivatives of fluxes at collocation points
         fspec_x = self.Dp @ fspec
-
-
-        # Form electron energy flux                        
-        # (See G J M Hagelaar and L C Pitchford 2005 Plasma Sources Sci. Technol. 14 722)
-        fT = xp.zeros((self.Np, 1),dtype=xp.float64)
-        #NOTE(malamas): Do I need to add the dDe/dx part here? The Bolsig reports De is within the derivative.
-        # fT[:,0] = (5./3.)*(-mu[:,0]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,0], nT_x[:,0]))
-        fT[:,0] = -mu[:,iee]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee], nT_x[:,0])
-        
-
 
         # form derivative of electron energy flux at collocation points
         fT_x = self.Dp @ fT
@@ -1017,6 +1022,10 @@ class timeDomainCollocationSolver:
         ############################################################
         # Computation of total, displacement, and particle current #
         ############################################################
+        self.electricField[:]     = - phi_x * self.params.V0L
+        self.electricPotential[:] = self.phi * self.params.qStar
+
+        
         E_currentTimeStep = - phi_x
  
         # pull off state for convenience
@@ -1056,6 +1065,8 @@ class timeDomainCollocationSolver:
             
         self.ionCurrent[:]      = particleCurrent[:,iion]
         self.electronCurrent[:] = particleCurrent[:,iele]
+
+
 
         return res, rstrg
 
@@ -1119,6 +1130,10 @@ class timeDomainCollocationSolver:
             res[self.Np]     = rstrg[2]
             res[2*self.Np-1] = rstrg[3]
 
+        # # electron temperature
+        # res[self.Ns*self.Np  ]     = rstrg[4]
+        # res[(self.Ns+1)*self.Np-1] = rstrg[5]
+
         for i in range(2,self.Ns-1):
             res[i*self.Np  ] = dens[ 0,i] - 0.0
             res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
@@ -1143,6 +1158,7 @@ class timeDomainCollocationSolver:
         # electron temperature
         res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC * dens[0,iele])
         res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC * dens[-1,iele])
+
 
         return res
 
@@ -1180,6 +1196,10 @@ class timeDomainCollocationSolver:
             # ion flux
             res[self.Np]     = rstrg[2]
             res[2*self.Np-1] = rstrg[3]
+
+        # # electron temperature
+        # res[self.Ns*self.Np  ]     = rstrg[4]
+        # res[(self.Ns+1)*self.Np-1] = rstrg[5]
 
         for i in range(2,self.Ns-1):
             res[i*self.Np  ] = dens[ 0,i] - 0.0
@@ -1339,6 +1359,9 @@ class timeDomainCollocationSolver:
         if (solve_poisson):
             self.solve_poisson(dens[:,iele],dens[:,iion],time)
 
+
+
+
         # form flux Jacobians
         dens_x = self.Dp @ dens
         nT_x   = self.Dp @ nT
@@ -1357,7 +1380,7 @@ class timeDomainCollocationSolver:
         diffusivity = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         energy[:,0] = Te[:,0] # For electrons
         energy[:,1] = EN[:,0] # For ions
-        for i in range(2,self.Ns): #NOTE(malamast): We assume the ion mobility is a function of Te
+        for i in range(2,self.Ns): 
             energy[:,i] = Tg[:,0]
         energy[:,iee] = Te[:,0]
 
@@ -1425,10 +1448,13 @@ class timeDomainCollocationSolver:
 
 
 
-        # # overwrite endpoints in fi (weakly impose BC)
-        # fspec[ 0,1] = -self.params.ksion * dens[ 0,iion[0]] + mu[0,1] * dens[ 0,iion[0]] * (-phi_x[ 0,0])
-        # fspec[-1,1] = +self.params.ksion * dens[-1,iion[0]] + mu[-1,1] * dens[-1,iion[0]] * (-phi_x[-1,0])
-
+        # overwrite endpoints in fi (weakly impose BC)
+        # in 1D, the unit normal vector is nx = −1 on the ’left’ and nx = 1 on the ’right’ boundary
+        fspec[ 0,1] = -self.params.ksion * dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * (-phi_x[ 0,0])
+        fspec[-1,1] =  self.params.ksion * dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * (-phi_x[-1,0])
+        # fspec[ 0,1] = -self.params.ksion * dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * ( max(-phi_x[ 0,0]*(-1),0.0) ) * (-1)
+        # fspec[-1,1] =  self.params.ksion * dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * ( max(-phi_x[-1,0],0.0) )
+                
 
         # species equations
         fspec_U = xp.zeros((self.Ns, self.Ns+1,self.Np, self.Np),dtype=xp.float64)
@@ -1467,15 +1493,11 @@ class timeDomainCollocationSolver:
         fT_U[1,:,:] = -mu[:,[iee]]*xp.multiply(nT,-phi_x_ni)
 
 
-
-
         for j in range(0, self.Nv):
             # fT_U[j,:,:] += (5./3.) * xp.multiply(-mu_U[0,j,:,:], xp.multiply(nT,-phi_x))
             # fT_U[j,:,:] -= (5./3.) * xp.multiply(diffusivity_U[0, j, :, :], nT_x[:,0])
             fT_U[j,:,:] -=  xp.multiply(mu_U[iee,j,:,:], xp.multiply(nT,-phi_x))
             fT_U[j,:,:] -=  xp.multiply(diffusivity_U[iee, j, :, :], nT_x[:,0])
-
-
 
 
         # fT_U[self.Ns,:,:] += (5./3.)*( -xp.multiply(mu[:,iele],xp.multiply(Imat,-phi_x))
@@ -1486,24 +1508,34 @@ class timeDomainCollocationSolver:
 
         if (weak_bc):
             # overwrite endpoints in fi (weakly impose BC)
+            # in 1D, the unit normal vector is nx = −1 on the ’left’ and nx = 1 on the ’right’ boundary
             for i in range(0,self.Nv):
                 fspec_U[1,i,0,:] = 0
                 fspec_U[1,i,-1,:] = 0
 
+            # if ((-phi_x[0,0] * (-1)) > 0.0):
             fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
             fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
             for i in range(0,self.Nv):
                 fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])
-            fspec_U[1,1,0,0] += -self.params.ksion + mu[0,1] * (-phi_x[0,0])
+            fspec_U[1,1,0,0] += mu[0,1] * (-phi_x[0,0])
 
+            fspec_U[1,1,0,0] += -self.params.ksion
+
+            # if ((-phi_x[-1,0]) > 0.0):
             fspec_U[1,0,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
             fspec_U[1,1,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
             for i in range(0,self.Nv):
                 fspec_U[1,i,-1,:] += mu_U[1,i,-1,:] * dens[-1,1] * (-phi_x[-1,0])
-            fspec_U[1,1,-1,-1] += self.params.ksion + mu[-1,1] * (-phi_x[-1,0])
+            fspec_U[1,1,-1,-1] += mu[-1,1] * (-phi_x[-1,0])
 
-        rstrg_U = xp.zeros((4,self.Nv*self.Np))
-        # fe BC
+            fspec_U[1,1,-1,-1] += self.params.ksion
+
+
+
+        rstrg_U = xp.zeros((6,self.Nv*self.Np))
+
+        # electron flux BC
         for i in range(0,self.Nv):
             rstrg_U[0,i*self.Np:(i+1)*self.Np] = fspec_U[0,i,0,:] - (- self.params.gam*fspec_U[ 1,i,0,:])
         rstrg_U[0,0] += self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
@@ -1514,8 +1546,7 @@ class timeDomainCollocationSolver:
         rstrg_U[1,self.Np-1] -= self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
         rstrg_U[1,self.Nv*self.Np-1] -= self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
 
-
-        # fi BC
+        # ion flux BC
         for i in range(0,self.Nv):
             rstrg_U[2,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,0,:] - mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])
         rstrg_U[2,0:self.Np]          -= (mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:]))
@@ -1527,6 +1558,17 @@ class timeDomainCollocationSolver:
         rstrg_U[3,0:self.Np]          -= mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
         rstrg_U[3,self.Np:2*self.Np]  -= mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
         rstrg_U[3,2*self.Np-1] -=  (self.params.ksion + mu[-1,1] * (-phi_x[-1,0]))
+
+        # electron energy BC
+        for i in range(0,self.Nv):
+            rstrg_U[4,i*self.Np:(i+1)*self.Np] = fT_U[i,0,:] - ( - self.params.gam*fspec_U[ 1,i,0,:] * self.params.EeBC )
+        rstrg_U[4,0] += (5./3.)*self.params.ks * nT[0,0] * (0.5 * Te[0,0]**(-0.5) * Te_ne[0,0])
+        rstrg_U[4,self.Ns*self.Np] += (5./3.)*self.params.ks * (Te[0,0]**(0.5) + nT[0,0] * 0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] )
+
+        for i in range(0,self.Nv):
+            rstrg_U[5,i*self.Np:(i+1)*self.Np] = fT_U[i,-1,:] - ( - self.params.gam*fspec_U[1,i,-1,:] * self.params.EeBC )
+        rstrg_U[5,self.Np-1] -= (5./3.)*self.params.ks * nT[-1,0] * (0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1])
+        rstrg_U[5,self.Nv*self.Np-1] -= (5./3.)*self.params.ks * (Te[-1,0]**(0.5) + nT[-1,0] * 0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1])
 
         # form Jacobians of derivatives of fluxes at collocation points
         fspec_x_U = xp.zeros((self.Ns, self.Ns+1, self.Np, self.Np),dtype=xp.float64)
@@ -1783,6 +1825,10 @@ class timeDomainCollocationSolver:
             self.jac[self.Np    ,:] = rstrg_U[2,:]
             self.jac[2*self.Np-1,:] = rstrg_U[3,:]
 
+        # electron energy flux
+        # self.jac[self.Ns*self.Np,:] = rstrg_U[4,:]
+        # self.jac[(self.Ns+1)*self.Np-1,:] = rstrg_U[5,:]
+
         for i in range(2,self.Ns-1):
             self.jac[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
             self.jac[i*self.Np,i*self.Np] = 1.0
@@ -1840,6 +1886,10 @@ class timeDomainCollocationSolver:
             self.jac[self.Np    ,:] = rstrg_U[2,:]
             self.jac[2*self.Np-1,:] = rstrg_U[3,:]
 
+        # # electron energy flux
+        # self.jac[self.Ns*self.Np,:] = rstrg_U[4,:]
+        # self.jac[(self.Ns+1)*self.Np-1,:] = rstrg_U[5,:]
+
         for i in range(2,self.Ns-1):
             self.jac[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
             self.jac[i*self.Np,i*self.Np] = 1.0
@@ -1865,6 +1915,7 @@ class timeDomainCollocationSolver:
             self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
             self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
+
         self.jac[self.Ns*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
         self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
         self.jac[self.Ns*self.Np,0] = -self.params.EeBC
@@ -1872,6 +1923,8 @@ class timeDomainCollocationSolver:
         self.jac[(self.Ns+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
         self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
         self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
+
+
 
     def jacobianLCN(self, Uin, time, dt, weak_bc=False):
         """Evaluates the Jacobian for Crank-Nicolson time marching.
@@ -1952,17 +2005,17 @@ class timeDomainCollocationSolver:
             self.jac0[2*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
 
         for i in range(2,self.Ns-1):
-            self.jac0[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac0[i*self.Np      ,:] = xp.zeros((1,self.Nv*self.Np))
             self.jac0[(i+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
 
 
         # Dirichlet on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
             self.jac0[(self.Ns-1)*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
-            self.jac0[self.Ns*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac0[self.Ns*self.Np-1  ,:] = xp.zeros((1,self.Nv*self.Np))
 
         # Dirichlet on electron temperature
-        self.jac0[self.Ns*self.Np  ,:] = xp.zeros((1,self.Nv*self.Np))
+        self.jac0[self.Ns*self.Np      ,:] = xp.zeros((1,self.Nv*self.Np))
         self.jac0[(self.Ns+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
 
 
@@ -2153,15 +2206,22 @@ class timeDomainCollocationSolver:
         # xp = np
 
 
+
+
         if(savedata!=None):
             Usave=xp.ndarray((Nstep+1,self.U2.shape[0]),dtype=xp.float64)
             TotalCurrentSave=xp.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=xp.float64)
             IonCurrentSave=xp.ndarray((Nstep+1,self.ionCurrent.shape[0]),dtype=xp.float64)
             ElectronCurrentSave=xp.ndarray((Nstep+1,self.electronCurrent.shape[0]),dtype=xp.float64)
+            electricFieldSave=xp.ndarray((Nstep+1,self.electricField.shape[0]),dtype=xp.float64)
+            electricPotentialSave=xp.ndarray((Nstep+1,self.electricPotential.shape[0]),dtype=xp.float64)
+
             Usave[0,:] = self.U2[:,0]
             TotalCurrentSave[0,:] = self.totalCurrent[:,0]
             IonCurrentSave[0,:] = self.ionCurrent[:,0]
             ElectronCurrentSave[0,:] = self.electronCurrent[:,0]
+            electricFieldSave[0,:] = self.electricField[:,0]
+            electricPotentialSave[0,:] = self.electricPotential[:,0]
 
         print("#")
         print("# {0:8s} {1:10s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s} {7:12s}".format(
@@ -2190,6 +2250,9 @@ class timeDomainCollocationSolver:
             TotalCurrentSave[1,:] = self.totalCurrent[:,0]
             IonCurrentSave[1,:] = self.ionCurrent[:,0]
             ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
+            electricFieldSave[1,:] = self.electricField[:,0]
+            electricPotentialSave[1,:] = self.electricPotential[:,0]
+
 
         for istep in range(1, Nstep):
             # start_time = cpu_time.time()
@@ -2216,7 +2279,9 @@ class timeDomainCollocationSolver:
                 TotalCurrentSave[istep+1,:] = self.totalCurrent[:,0]
                 IonCurrentSave[istep+1,:] = self.ionCurrent[:,0]
                 ElectronCurrentSave[istep+1,:] = self.electronCurrent[:,0]
-
+                electricFieldSave[istep+1,:] = self.electricField[:,0]
+                electricPotentialSave[istep+1,:] = self.electricPotential[:,0]
+            
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
             
@@ -2227,6 +2292,8 @@ class timeDomainCollocationSolver:
             xp.save("TotalCurrent_" + savedata, TotalCurrentSave)
             xp.save("IonCurrent_" + savedata, IonCurrentSave)
             xp.save("ElectronCurrent_" + savedata, ElectronCurrentSave)
+            xp.save("ElectricField_" + savedata, electricFieldSave)
+            xp.save("ElectricPotential_" + savedata, electricPotentialSave)
 
 
     def solveLCN(self, time0, dt, Nstep, savedata=None, verbose=False,
@@ -2447,9 +2514,6 @@ if __name__ == "__main__":
     elif(args.scenario==6):
         print('#   Running scenario = 6 (6 species, 23 rxn, 1Torr, 100V, Sampling)')
         Ns = 6
-    elif(args.scenario==7):
-        print('#   Running scenario = 7 (6 species, 23 rxn, 250mTorr, 100V, Sampling)')
-        Ns = 6
     elif(args.scenario==8):
         print('#   Running scenario = 8 (6 species, 23 rxn, 500mTorr, 100V, Sampling)')
         Ns = 6
@@ -2471,11 +2535,14 @@ if __name__ == "__main__":
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
         Ns = 4
+    elif(args.scenario==7):
+        print('#   Running scenario = 7 (6 species, 34 rxn, Nominal)')
+        Ns = 6
     elif(args.scenario==15):
-        print('#   Running CR model = 15 (17 species, 1Torr, Nominal)')
+        print('#   Running CR model = 15 (17 species, Nominal)')
         Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
     elif(args.scenario==16):
-        print('#   Running CR model = 16 (33 species, 1Torr, Nominal)')
+        print('#   Running CR model = 16 (33 species, Nominal)')
         Ns = 1+30+1+1 # background state + excited states + electrons + ions         
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))

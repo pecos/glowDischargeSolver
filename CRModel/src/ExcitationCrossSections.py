@@ -15,7 +15,7 @@ import ModelParameters as parameters
 
 #----------------------------------------------------------------------------------
 
-sigma_factor_AtomExc = 4*np.pi*a0_H**2*Eion_H**2 * M_Ar/M_H * xi**2
+sigma_factor_AtomExc = 4*np.pi*a0_H**2*Eion_H**2 * M_Ar/M_H * xi_Ar**2
 mass_factor = 2*spc.m_e/(M_Ar + spc.m_e)
 
 mu_ei = (M_Ar - spc.m_e)*spc.m_e/M_Ar # Reduced mass

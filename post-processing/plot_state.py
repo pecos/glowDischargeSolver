@@ -16,23 +16,28 @@ isPlot = True
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
-# ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 2; c = False; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
+ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 3; c = True; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 2; c = False; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 3; c = False; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 4; c = False; f = '../discard.npy'; cl = 'b-'; lb = "discard"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 5; c = False; f = '../exception_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 6; c = True; f = '../exception_U0.npy'; cl = 'g-'; lb = "U1"; m = "6sp"
+ic = 6; c = False; f = '../exception_U0.npy'; cl = 'g-'; lb = "U1"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 7; c = False; f = '../exception_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 8; c = False; f = '../restart_6spec_CN_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = True; f = '../restart_6spec_CN_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = False; f = '../newton_6spec_CN_Np150.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 ic = 9; c = False; f = '../Results/CR/1Torr75V/Ns17_EnergyTransport_BSR/2/nonconverged_U1.npy'; cl = 'b-'; lb = "U1"; m = "CR"
@@ -76,14 +81,14 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 
 # these values are required to "redimensionalize" the results
 # they must be consistent with the scenario input file
-Pressure  = 1.0*spc.torr               # [Pa] 
+Pressure  = 5.0*spc.torr               # [Pa] 
 GasTemperature = 293.15                 # [K]
 nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
 ne0 = 8e16           # "nominal" electron density [1/m^3]
 L   = 2.00*0.005     # half-gap-width [m] (gap width is 2 cm)
 tau = (1./13.56e6)   # period of driving voltage [s]
-V0  = 100.0          # amplitude of driving voltage [V]
+V0  = 150.0          # amplitude of driving voltage [V]
 p_0 = Pressure
 
 # Number of Chebyshev modes

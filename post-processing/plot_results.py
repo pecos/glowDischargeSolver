@@ -151,7 +151,7 @@ def ReadOESAr4pData():
    # for ic in Ar_Exp:
    #    if ic != "Ei" and ic != "gi":
    #       # if ic == "0.5Torr-100V" or ic == "1.0Torr-100V" or ic == "5.0Torr-100V" :
-   #       # if ic == "0.1Torr-150V" or ic == "0.5Torr-150V" or ic == "1.0Torr-150V" or ic == "5.0Torr-150V" or ic == "10.0Torr-150V" :
+   #       if ic == "0.1Torr-150V" or ic == "0.5Torr-150V" or ic == "1.0Torr-150V" or ic == "5.0Torr-150V" or ic == "10.0Torr-150V" :
    #       # if ic == "0.1Torr-300V" or ic == "0.5Torr-300V" or ic == "1.0Torr-300V" or ic == "5.0Torr-300V" or ic == "10.0Torr-300V":
    #       # if ic == "0.1Torr-500V" or ic == "0.5Torr-500V" :
    #       # if ic == "0.1Torr-750V" or ic == "0.5Torr-750V" :
@@ -160,7 +160,7 @@ def ReadOESAr4pData():
    #       # if ic == "1.0Torr-100V" or ic == "1.0Torr-150V" or ic == "1.0Torr-300V" or ic == "1.0Torr-400V" :
    #       # if ic == "5.0Torr-100V" or ic == "5.0Torr-150V" or ic == "5.0Torr-300V" :
    #       # if ic == "10.0Torr-150V" or ic == "10.0Torr-300V" :
-   #       if ic == "5.0Torr-300V" or ic == "1.0Torr-300V" :
+   #       # if ic == "5.0Torr-300V" or ic == "1.0Torr-300V" :
    #          Ar_Exp_ni = Ar_Exp[ic]         
    #          ls = ':'
    #          uplims =  Ar_Exp_ni[:,1]/Ar_Exp_gi
@@ -369,8 +369,8 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # ic = 5; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_Biagi/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Biagi"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 6; c = True; f = '../Results/CR/1Torr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "1Torr-150V"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 6; c = False; f = '../Results/CR/1Torr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "1Torr-150V"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 7; c = True; f = '../Results/CR/100mTorr150V/Ns17_Ein_BSR/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "100mTorr-150V"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -465,7 +465,8 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 
 
 # ic = 34; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Final/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$nD_m = 2.42 \cdot 10^{18}$"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 34; c = False; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Final/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Const $\mu_i$"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 35; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Ion/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$\mu_i = 8e18$"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -480,14 +481,86 @@ case = {}; file = {}; clr = {}; label = {}; model = {}
 # ic = 38; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "$nD_m = 4.38 \cdot 10^{18}$"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 39; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "VarIon"; m = "CR"
+ic = 39; c = False; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Var $\mu_i$"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 40; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon_NAtoms/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "NAtoms"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 40; c = False; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon_NAtoms/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "NAtoms"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 41; c = True; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_VarIon_Ionization/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ionization"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+# ic = 42; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_StrongBC_gamma0.1/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ee Flux BC"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 43; c = True; f = '../Results/6spec/1Torr150V/6sp_Ein_BSR_VarIon_StrongBC/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "150V"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 43; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_StrongBC_gamma0.15/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Strong BC"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 44; c = False; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_OriginalBC_gamma0.15/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Original BC"; m = "6sp"
+ic = 44; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_OriginalBC_gamma0.15/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6 spec -old"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 45; c = False; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Final_2/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 46; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_constNg/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Const Ng"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+ic = 47; c = False; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_DetailedBalance/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ns = 17"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 48; c = False; f = '../Results/CR/1Torr75V/Ns33_Ein_BSR_VarIon/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ns = 33"; m = "CR2"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+ic = 51; c = False; f = '../Results/CR/1Torr75V/Final/Ns17/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ns = 17"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 54; c = False; f = '../Results/CR/1Torr75V/Final/Ns17_NoAAExcRxn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "no aa exc rxn"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 52; c = True; f = '../Results/CR/1Torr75V/Final/Ns17_NoAARxn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "no aa rxn"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 53; c = True; f = '../Results/CR/1Torr75V/Final/Ns17_NoAAIonRxn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "no aa ion rxn"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 55; c = True; f = '../Results/CR/1Torr75V/Final/Ns17_NoAARadRecombRxn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "no rad recombrxn"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+ic = 55; c = False; f = '../Results/CR/2.5Torr75V/Final/Ns17/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "2.5Torr-75V"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+ic = 56; c = False; f = '../Results/CR/1Torr150V/Ns17/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "1Torr-150V"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+ic = 57; c = False; f = '../Results/CR/500mTorr75V/Ns17/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "0.5Torr-75V"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 58; c = False; f = '../Results/CR/500mTorr150V/Ns17/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "0.5Torr-150V"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 59; c = False; f = '../Results/CR/2.5Torr150V/Ns17/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "2.5Torr-150V"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 60; c = False; f = '../Results/CR/5Torr75V/Final/Ns17_MaxEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-75V"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 61; c = True; f = '../Results/CR/1Torr75V/Final/6spec/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6spec"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 # these values are required to "redimensionalize" the results
@@ -536,10 +609,16 @@ FromGlowDischargeToCRIndexing = {}
 FromCRToGlowDischargeIndexing = {}
 xr = {}; i_mid = {}
 
+TotalCurrent = {}; IonCurrent = {}; ElectronCurrent = {}
+ElectricField = {}; ElectricPotential = {}
+
+
 # if case1:
 for ic in case: 
    if case[ic]: 
       print("Loading case ",ic, " from file :", file[ic])
+
+
 
       # spatial grid
       xp = -np.cos(np.pi*np.linspace(0,Np-1,Np)/(Np-1))
@@ -561,6 +640,21 @@ for ic in case:
       # load solution file
       D = np.load(file[ic].format(Np))
       D = np.transpose(D)
+
+
+
+      # fname = ''
+      # for s in range(len(file[ic].split('/'))-1):
+      #    fname = fname + file[ic].split('/')[s] + '/'
+
+      # TotalCurrent[ic] = np.load(fname + "TotalCurrent_" + file[ic].split('/')[-1])
+      # IonCurrent[ic] = np.load(fname + "IonCurrent_" + file[ic].split('/')[-1])
+      # ElectronCurrent[ic] = np.load(fname + "ElectronCurrent_" + file[ic].split('/')[-1])
+
+      # ElectricField[ic] = np.load(fname + "ElectricField_" + file[ic].split('/')[-1])
+      # ElectricPotential[ic] = np.load(fname + "ElectricPotential_" + file[ic].split('/')[-1])
+
+      
 
 
       # Ns is the number of scpecies
@@ -656,7 +750,6 @@ for ic in case:
 
 
 
-
 # make some plots
 
 '''
@@ -686,6 +779,116 @@ ax.set_ylabel(r"$t$ [s]", fontsize=18)
 plt.setp(ax.get_yticklabels(), fontsize=12)
 plt.savefig('Te_6spec_contour.png')
 '''
+
+isReportingCurrents = False
+if (isReportingCurrents):
+   print("Reporting Currents...")
+
+   for ic in case: 
+      if case[ic]: 
+         print("Case number: ", ic)
+         
+         print('TotalCurrent = ', np.mean(TotalCurrent[ic][1:,:],axis=0))
+         print('IonCurrent = ', np.mean(IonCurrent[ic][1:,:],axis=0))
+         print('ElectronCurrent = ', np.mean(ElectronCurrent[ic][1:,:],axis=0))
+
+
+   # TotalCurrent
+   fig,ax = plt.subplots(dpi=160)
+   plt.title("TotalCurrent")
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(tr[1:], TotalCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[1:], TotalCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$I$ [A]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/TotalCurrent_electrodes.png')
+
+
+   # IonCurrent
+   fig,ax = plt.subplots(dpi=160)
+   plt.title("IonCurrent")
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(tr[1:], IonCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[1:], IonCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$I$ [A]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/IonCurrent_electrodes.png')
+
+   # ElectronCurrent
+   fig,ax = plt.subplots(dpi=160)
+   plt.title("ElectronCurrent")
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(tr[1:], ElectronCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[1:], ElectronCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$I$ [A]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/ElectronCurrent_electrodes.png')
+
+
+   # Electron number density
+   fig,ax = plt.subplots(dpi=160)
+   plt.title("ne(t)")
+   for ic in case: 
+      if case[ic]:               
+         ax.plot(tr[:], ne[ic][0,:], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[:], ne[ic][-1,:], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$n_{e}$ [m$^{-3}$]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/ne_electrodes.png')
+
+
+
+   # Electric Field
+   fig,ax = plt.subplots(dpi=160)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr[ic], np.mean(ElectricField[ic],axis=0),lw=2, label=label[ic])
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   ax.legend(fontsize=12,loc=2)
+   ax.set_xlabel(r"$x$ [cm]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylim((0,8.0))
+   ax.set_ylabel(r"$E$ [V/m]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/EField_mean.png')
+
+   # Electric Potential
+   fig,ax = plt.subplots(dpi=160)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr[ic], np.mean(ElectricPotential[ic],axis=0),lw=2, label=label[ic])
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   ax.legend(fontsize=12,loc=2)
+   ax.set_xlabel(r"$x$ [cm]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylim((0,8.0))
+   ax.set_ylabel(r"$\phi$ [V]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/EPotential_mean.png')
+
+
+
+
+
 
 
 
@@ -770,7 +973,7 @@ if (isPlotLines):
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/nb_line.png')
 
-   # Te/phi
+   # Te
    fig,ax = plt.subplots(dpi=160)
    ax.plot(xr, Te[ic][:,t0], 'b-', lw=2, label=r"t={0:.2f}T".format(tp[t0]))
    ax.plot(xr, Te[ic][:,t1], 'r-', lw=2, label=r"t={0:.2f}T".format(tp[t1]))
@@ -783,25 +986,20 @@ if (isPlotLines):
    # ax.set_ylim((0,10))
    ax.set_ylabel(r"$T_e$ [eV]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   #ax2 = ax.twinx()
-   #ax2.plot(xr, V0*phi[:,t0], 'b--', lw=2)
-   #ax2.plot(xr, V0*phi[:,t1], 'r--', lw=2)
-   #ax2.plot(xr, V0*phi[:,t2], 'g--', lw=2)
-   #ax2.plot(xr, V0*phi[:,t3], 'c--', lw=2)
-   #ax2.set_ylim((-120,120))
-   #ax2.set_ylabel(r"$\phi$ [V]", labelpad=-5, fontsize=18)
-   #plt.setp(ax2.get_yticklabels(), fontsize=12)
    plt.savefig('./png/Te_line.png')
 
 
 if (isPlotMeans):
    print("Plotting means...")
-
-   # ic1 = 8; ic2 = 29 
+   
+   # # ic1 = 34; ic2 = 39 
+   # ic1 = 44; ic2 = 46 
    # print("Realative differences [%]:")
    # x1 = (np.mean(ne[ic1],axis=1))[i_mid[ic1]]
    # x2 = (np.mean(ne[ic2],axis=1))[i_mid[ic2]]
    # print("ne = ",np.abs(x1-x2)/x1*100) 
+   # print("ne (ratio) = ", max(x1,x2) / min(x1,x2) ) 
+
    
    # x1 = (np.mean(nm[ic1],axis=1))[i_mid[ic1]]
    # x2 = (np.mean(nm[ic2],axis=1))[i_mid[ic2]]
@@ -834,20 +1032,13 @@ if (isPlotMeans):
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(nee[ic],axis=1),lw=2, label=label[ic])
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.legend(fontsize=12,loc=2)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    # ax.set_ylim((0,8.0))
    ax.set_ylabel(r"$E_e$ [J]", fontsize=16)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   #
-   #ax2 = ax.twinx()
-   #ax2.plot(xr[ic], V0*np.mean(phi,axis=1), 'r--', lw=2, label=r"$\phi$")
-   #ax2.legend(fontsize=12,loc=1)
-   ##ax2.set_ylim((0,70))
-   #ax2.set_ylabel(r"$\phi$ [V]", fontsize=18)
-   #plt.setp(ax2.get_yticklabels(), fontsize=12)
    plt.savefig('./png/Ee_mean.png')
 
 
@@ -860,9 +1051,10 @@ if (isPlotMeans):
          # ax.semilogy(xr[ic], np.mean(ne[ic],axis=1), clr[ic], lw=2, label=label[ic])
          ax.semilogy(xr[ic], np.mean(ni[ic],axis=1), '--', lw=2)
 
-   ax.plot(xr[ic][i_mid[ic]], Ar_Exp_Ne,'k*', lw=1, label="Exp (Langmuir)")
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
+
+         ax.plot(xr[ic][i_mid[ic]], Ar_Exp_Ne,'k*', lw=1, label="Exp (Langmuir)")
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{e}$ [m$^{-3}$]", fontsize=16)
@@ -876,8 +1068,8 @@ if (isPlotMeans):
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(nm[ic],axis=1), lw=2, label=label[ic])
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(m)}$ [m$^{-3}$]", fontsize=18)
@@ -889,8 +1081,8 @@ if (isPlotMeans):
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(nr[ic],axis=1), lw=2, label=label[ic])
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(r)}$ [m$^{-3}$]", fontsize=18)
@@ -902,13 +1094,12 @@ if (isPlotMeans):
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(n4p[ic],axis=1), lw=2, label=label[ic])         
-
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
    # ls = ''; uplims =  [Ar_Lumped4p_Exp_ni[1]]; lolims =  [Ar_Lumped4p_Exp_ni[2]]
    # plt.errorbar(xr[ic][i_mid[ic]], Ar_Lumped4p_Exp_ni[0], yerr=(lolims, uplims), 
    #              c='k', marker='s' ,linestyle=ls, lw=1.1, label="Exp (lumped)")
    ax.legend(fontsize=12)
    # ax.semilogy()
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(4p)}$ [m$^{-3}$]", fontsize=18)
@@ -921,8 +1112,8 @@ if (isPlotMeans):
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(nb[ic],axis=1), lw=2, label=label[ic])
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR}$ [m$^{-3}$]", fontsize=18)
@@ -934,8 +1125,8 @@ if (isPlotMeans):
    for ic in case: 
       if case[ic]: 
          ax.semilogy(xr[ic], np.mean(ne[ic],axis=1)/np.mean(nb[ic],axis=1)*100, lw=2, label=label[ic])   
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.legend(fontsize=12)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r" Ion. Degree [$\%$]", fontsize=18)
@@ -944,14 +1135,14 @@ if (isPlotMeans):
 
 
 
-   # Te/phi
+   # Te
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(Te[ic],axis=1),lw=2, label=label[ic])
-   ax.plot(xr[ic][i_mid[ic]], Ar_Exp_Te,'k*', lw=1, label="Exp (Langmuir)")
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
+         ax.plot(xr[ic][i_mid[ic]], Ar_Exp_Te,'k*', lw=1, label="Exp (Langmuir)")
    ax.legend(fontsize=12,loc=2)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylim((0,8.0))
@@ -972,8 +1163,8 @@ if (isPlotMeans):
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(Tg[ic],axis=1), lw=2, label=label[ic])
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.legend(fontsize=12,loc=2)
-   ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$T_g$ [K]", fontsize=18)
@@ -1016,14 +1207,15 @@ if (isPlotMeans):
 
 
 
+
    # label_tmp = "Exp (lumped) - " + ExpCase
    # ax.scatter(Eps_lumped_exp, ni_lumped_exp[ExpCase]/gi_lumped_exp, c='k', marker='.', lw=1.5, label=label_tmp)        
    # ax.scatter(dEps[ic0][0:-2], npop_LTE/g[ic0][0:-2],lw=0.8, label="Boltzmann at  Te = " + str(round(Te0,2)))   
    # ax.scatter(dEps[ic0][0:-2], npop_LTE_2/g[ic0][0:-2],marker='.',lw=1.0, label="Boltzmann at  Te = " + str(round(Te0_2,2)))   
         
    ax.legend(fontsize=12,loc=2)
-   ax.loglog()
-   # ax.semilogy()
+   # ax.loglog()
+   ax.semilogy()
    # ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.set_xlabel(r"$E$ [eV]", fontsize=16)
    plt.setp(ax.get_xticklabels(), fontsize=12)
