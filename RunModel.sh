@@ -48,8 +48,8 @@ rm -f $screenOut
 
 
 # echo "Run 1 period ..."
-# $baseCmd --t0 0.0 --verbose --restart $newtFile --outfile "discard.npy"
-$baseCmd --t0 0.0 --outfile "discard.npy" 
+$baseCmd --t0 0.0 --verbose --restart $newtFile --outfile "discard.npy"
+# $baseCmd --t0 0.0 --outfile "discard.npy" 
 
 # echo "Run 0 to 125...${baseFile}T125.npy"
 # $baseCmd --t0 0.0 --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"

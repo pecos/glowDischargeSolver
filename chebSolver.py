@@ -841,8 +841,8 @@ class timeDomainCollocationSolver:
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]              # Electrons
         iion = [1]              # Ions
-        # inb  = self.Ns - 1      # Background species
-        iee  = self.Ns          # Electron Energy
+        # inb  = [self.Ns - 1]  # Background species
+        iee  = [self.Ns]        # Electron Energy
 
      
         
@@ -894,11 +894,11 @@ class timeDomainCollocationSolver:
 
         # Temperature of species
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64) #NOTE(malamast): We now have self.Ns+1 instead of Ns
-        energy[:,0] = Te[:,0] # For electrons
-        energy[:,1] = EN[:,0] # For ions
+        energy[:,iele[0]] = Te[:,0] # For electrons
+        energy[:,iion[0]] = EN[:,0] # For ions Ar+
         for i in range(2,self.Ns):
             energy[:,i] = Tg[:,0] # For species
-        energy[:,iee] = Te[:,0] # For electron energy
+        energy[:,iee[0]] = Te[:,0] # For electron energy
 
         # Transport Properties for species
         # NOTE(malamast): We now include transport coefficients for the electron energy equation
@@ -912,8 +912,8 @@ class timeDomainCollocationSolver:
                                                        self.EinsteinForm, self.EinsteinFormIon)
 
         if self.EinsteinForm:
-            mu[:,iee] = (5./3.) * mu[:,0] 
-            diffusivity[:,iee] = (5./3.) * diffusivity[:,0] 
+            mu[:,iee[0]] = (5./3.) * mu[:,0] 
+            diffusivity[:,iee[0]] = (5./3.) * diffusivity[:,0] 
 
 
         # Form species fluxes
@@ -927,14 +927,14 @@ class timeDomainCollocationSolver:
             fspec[:,i] -= xp.multiply(diffusivity[:,i],dens_x[:,i])  
 
 
-        # Form electron energy flux
+        # Form electron energy flux                        
         # (See G J M Hagelaar and L C Pitchford 2005 Plasma Sources Sci. Technol. 14 722)
         fT = xp.zeros((self.Np, 1),dtype=xp.float64)
         #NOTE(malamas): Do I need to add the dDe/dx part here? The Bolsig reports De is within the derivative.
-        # fT[:,0] = (5./3.)*(-mu[:,0]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,0], nT_x[:,0]))
-        fT[:,0] = -mu[:,iee]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee], nT_x[:,0])
+        fT[:,0] = -mu[:,iee[0]]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee[0]], nT_x[:,0])
 
-        # overwrite endpoints in ion flux (weakly impose BC)
+
+        # overwrite endpoints in fe (weakly impose BC)        
         if (weak_bc):
             if self.IonEffEField:
                 fspec[ 0,iion[0]] = -self.params.ksion * dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * ( max(Eeff[ 0,0]*(-1),0.0) ) * (-1)
@@ -1049,7 +1049,8 @@ class timeDomainCollocationSolver:
         res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] *= self.backgroundSpecieActivationFactor
 
         #  Electron Energy
-        res[self.Ns*self.Np:(self.Ns+1)*self.Np]        = dt*(fT_x - omega[:,iee, np.newaxis] - SJ  - SEC)
+        res[self.Ns*self.Np:(self.Ns+1)*self.Np]        = dt*(fT_x - omega[:,iee] - SJ  - SEC)
+
 
         #  Effective electric field for ions
         if self.IonEffEField:
@@ -1345,10 +1346,12 @@ class timeDomainCollocationSolver:
         xp = self.xp_module
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
-        iele = [0]
-        iion = [1]
-        # inb  = self.Ns - 1    # Background species
-        iee  = self.Ns        # Electron Energy
+        iele = [0]              # Electrons
+        iion = [1]              # Ions
+        # inb  = [self.Ns - 1]  # Background species
+        iee  = [self.Ns]        # Electron Energy
+
+
                 
         Imat    = self.I_Np 
 
@@ -1360,8 +1363,6 @@ class timeDomainCollocationSolver:
         nT = Uin[self.Ns*self.Np:(self.Ns+1)*self.Np] # assumes just 1 temperature!
         Te = nT/dens[:,iele]
 
-        # Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
-        # Te_nT = xp.multiply(Imat,1./dens[:,iele])
 
         if self.IonEffEField:
             Eeff = Uin[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np] # Effective electric field for argon ions
@@ -1388,7 +1389,6 @@ class timeDomainCollocationSolver:
         for i in range(0, self.Nv):
             Tg_U[:,i] = -(Tg[:,0]/ntot[:,0])*ntot_U[:,i]
 
-        # Tg_U[:,self.Ns] += -xp.ones(self.Np)/ntot[:,0]
         Tg_U[:,self.Ns] += -self.ones_Np/ntot[:,0]
 
 
@@ -1427,11 +1427,11 @@ class timeDomainCollocationSolver:
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         mu     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
-        energy[:,0] = Te[:,0] # For electrons
-        energy[:,1] = EN[:,0] # For ions
+        energy[:,iele[0]] = Te[:,0] # For electrons
+        energy[:,iion[0]] = EN[:,0] # For ions
         for i in range(2,self.Ns): 
             energy[:,i] = Tg[:,0]
-        energy[:,iee] = Te[:,0]
+        energy[:,iee[0]] = Te[:,0]
 
 
         for i in range(0,self.Ns+1):
@@ -1440,13 +1440,13 @@ class timeDomainCollocationSolver:
                                                        self.EinsteinForm, self.EinsteinFormIon)
             
         if self.EinsteinForm:
-            mu[:,iee] = (5./3.) * mu[:,0] 
-            diffusivity[:,iee] = (5./3.) * diffusivity[:,0] 
+            mu[:,iee[0]] = (5./3.) * mu[:,0] 
+            diffusivity[:,iee[0]] = (5./3.) * diffusivity[:,0] 
 
 
         energy_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
         energy_U[0,0,:,:] = Te_ne; energy_U[0,self.Ns,:,:] = Te_nT 
-        energy_U[iee,0,:,:] = Te_ne; energy_U[iee,self.Ns,:,:] = Te_nT
+        energy_U[iee[0],0,:,:] = Te_ne; energy_U[iee[0],self.Ns,:,:] = Te_nT
 
         if not self.IonEffEField:            
             energy_U[1,0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ phi_x_ne 
@@ -1474,15 +1474,11 @@ class timeDomainCollocationSolver:
 
         if self.EinsteinForm:
             for j in range(0,self.Nv):
-                mu_U[iee,j,:,:] = (5./3.) * mu_U[0,j,:,:]
-                diffusivity_U[iee,j,:,:] = (5./3.) * diffusivity_U[0,j,:,:]
+                mu_U[iee[0],j,:,:] = (5./3.) * mu_U[0,j,:,:]
+                diffusivity_U[iee[0],j,:,:] = (5./3.) * diffusivity_U[0,j,:,:]
             
 
 
-        # # must have electron flux for use in Jacobian of Joule heating
-        # fe = xp.zeros((self.Np, 1),dtype=xp.float64)
-        # fe[:,0] = -xp.multiply(mu[:,0], dens[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], dens_x[:,0]) 
-        # fe = fe.reshape((self.Np,1)) 
         
         # must have these for joule heating terms
         fspec = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
@@ -1493,14 +1489,10 @@ class timeDomainCollocationSolver:
                 else:
                     fspec[:,i] += self.params.charge(i) * mu[:,i] * dens[:,i] * (-phi_x[:,0])
             fspec[:,i] -= xp.multiply(diffusivity[:,i], dens_x[:,i]) 
-
-        
-        # fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
-        # fT = fT.reshape((self.Np,1))
+      
 
         # must have electron flux for use in Jacobian of Joule heating
         fe = xp.zeros((self.Np, 1),dtype=xp.float64) 
-        # NOTE(malamast): This was double calculated before. Now we just copy the flux
         fe[:,0] = fspec[:,0]
 
 
@@ -1545,31 +1537,22 @@ class timeDomainCollocationSolver:
         
 
         # energy equations
-        # fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
-        # fT = fT.reshape((self.Np,1))
-
         fT = xp.zeros((self.Np, 1),dtype=xp.float64)
-        fT[:,0] = -xp.multiply(mu[:,iee],nT[:,0]) * (-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee], nT_x[:,0])
+        fT[:,0] = -xp.multiply(mu[:,iee[0]],nT[:,0]) * (-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee[0]], nT_x[:,0])
 
       
         fT_U = xp.zeros((self.Nv,self.Np, self.Np),dtype=xp.float64)
-        # fT_U[0,:,:] = (5./3.)*(-mu[:,iele]*xp.multiply(nT,-phi_x_ne))
-        # fT_U[1,:,:] = (5./3.)*(-mu[:,iele]*xp.multiply(nT,-phi_x_ni))
-        fT_U[0,:,:] = -mu[:,[iee]]*xp.multiply(nT,-phi_x_ne) #NOTE(malamast): Here we need to have [iee] instead of iee to make it consistent. Why? Need to discuss with Todd.
-        fT_U[1,:,:] = -mu[:,[iee]]*xp.multiply(nT,-phi_x_ni)
+        fT_U[0,:,:] = -mu[:,iee] * xp.multiply(nT,-phi_x_ne) #NOTE(malamast): Here we need to have iee instead of iee[0] to make it consistent. Why? Need to discuss with Todd.
+        fT_U[1,:,:] = -mu[:,iee] * xp.multiply(nT,-phi_x_ni)
 
 
         for j in range(0, self.Nv):
-            # fT_U[j,:,:] += (5./3.) * xp.multiply(-mu_U[0,j,:,:], xp.multiply(nT,-phi_x))
-            # fT_U[j,:,:] -= (5./3.) * xp.multiply(diffusivity_U[0, j, :, :], nT_x[:,0])
-            fT_U[j,:,:] -=  xp.multiply(mu_U[iee,j,:,:], xp.multiply(nT,-phi_x))
-            fT_U[j,:,:] -=  xp.multiply(diffusivity_U[iee, j, :, :], nT_x[:,0])
+            fT_U[j,:,:] -=  xp.multiply(mu_U[iee[0],j,:,:], xp.multiply(nT,-phi_x))
+            fT_U[j,:,:] -=  xp.multiply(diffusivity_U[iee[0], j, :, :], nT_x[:,0])
 
 
-        # fT_U[self.Ns,:,:] += (5./3.)*( -xp.multiply(mu[:,iele],xp.multiply(Imat,-phi_x))
-                                    #    -xp.multiply(diffusivity[:,iele], self.Dp))
-        fT_U[self.Ns,:,:] +=  -xp.multiply(mu[:,[iee]],xp.multiply(Imat,-phi_x)) \
-                              -xp.multiply(diffusivity[:,[iee]], self.Dp)
+        fT_U[self.Ns,:,:] +=  -xp.multiply(mu[:,iee],xp.multiply(Imat,-phi_x)) \
+                              -xp.multiply(diffusivity[:,iee], self.Dp)
 
         if (weak_bc):
             # overwrite endpoints in fi (weakly impose BC)
@@ -1759,10 +1742,6 @@ class timeDomainCollocationSolver:
         SEC_U[      0, :, :] += self.params.EC * xp.multiply(Imat, Tg)
         SEC_U *= self.elasticCollisionActivationFactor
 
-
-
-        # fT = (5./3.)*(-xp.multiply(mu[:,0], nT[:,0]) * (-phi_x[:,0]) - xp.multiply(diffusivity[:,0], nT_x[:,0]))
-        # fT[:,0] = -mu[:,iee]*nT[:,0] * (-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee], nT_x[:,0])
 
 
         # evaluate S---the source term required in the background
