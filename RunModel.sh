@@ -11,8 +11,7 @@ NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 0 --gpu_device_id 0"
 
 # Solver Parameters
 Np=150
-Nt=64000
-# Nt=5120
+Nt=5120
 # Nt=10
 # dt=0.0078125
 dt=0.00390625
@@ -36,21 +35,21 @@ newtFile="newton_6spec_CN_Np${Np}.npy"
 saveFile="newton_6spec_CN_Np${Np}_fullsoln.npy"
 
 
-FLAGS="--V0 75 --VDC 0.0 --gam 0.1 --scenario $scenario --EinsteinForm  --elasticCollisionActivation --backgroundSpecieActivation"
-# --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation
+FLAGS="--V0 75 --VDC 0.0 --gam 0.1 --scenario $scenario --EinsteinForm  --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField"
+# --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField
 
 baseCmd="$EXE $FLAGS --Np $Np --Nt $Nt --dt $dt --tscheme BE"
 newtCmd="$NEWTEXE $FLAGS --Np $Np --Nt $Nt1 --Nn 25 --tscheme CN --alpha0 0.1 --increaseFac 1.2"
 saveCmd="$EXE $FLAGS --Np $Np --Nt $Nt1 --dt $dt1 --tscheme CN"
 
 
-screenOut="run_CR.out"
+screenOut="runPrint.out"
 rm -f $screenOut
 
 
 # echo "Run 1 period ..."
 # $baseCmd --t0 0.0 --verbose --restart $newtFile --outfile "discard.npy"
-$baseCmd --t0 0.0 --outfile "discard.npy"
+$baseCmd --t0 0.0 --outfile "discard.npy" 
 
 # echo "Run 0 to 125...${baseFile}T125.npy"
 # $baseCmd --t0 0.0 --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"

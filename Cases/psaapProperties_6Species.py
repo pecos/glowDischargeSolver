@@ -83,6 +83,11 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     c = 299792458                # speed of light [m/s]
     se = 40                      # momentum cross section [A^2]
 
+    Mr_Ar = 39.948/1000.0       # [kg/mol]
+    M_Ar = Mr_Ar/spc.N_A        # [kg] mass of argon atom (6.63352088e-26 kg)
+    M_ArIon = M_Ar - spc.m_e    # [kg] mass of argon ion 
+    
+
     # nominal electron energy
     e0 = 1.0  # [eV]
 
@@ -113,6 +118,7 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     nDr  = 2.42e18
     nD4p = 2.42e18
 
+
     # reaction parameters (NB: k_i = Ck*Ee^B*exp(-A/Ee))
     #                          Ee = 3/2*Te (Te in eV)
     #                          -> k_i = [Ck*(2/3)^B] * Ee^B * exp[-(3/2)*A/Ee]
@@ -138,10 +144,6 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     ks = 1.366109824889323e7 # electron recombination rate [cm/s/eV]
     # ks = 1/4 * np.sqrt(2/3*spc.e * 8/np.pi/spc.m_e) * 100.0 # electron recombination rate [cm/s/eV] 
 
-    Mr_Ar = 39.948/1000.0       # [kg/mol]
-    M_Ar = Mr_Ar/spc.N_A        # [kg] mass of argon atom (6.63352088e-26 kg)
-    M_ArIon = M_Ar - spc.m_e    # [kg] mass of argon ion 
-    
     ksion = 0.0#1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_ArIon) * 100.0 # ion rate [cm/s] 
 
     ksa = 1/4 * np.sqrt(8*spc.k*GasTemperature/np.pi/M_Ar) * 100.0 # atom rate [cm/s] 
@@ -215,6 +217,9 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     ksion    = ksion*tau/L
     ksa      = ksa*tau/L
     p0       = p/qe/np0
+
+    # non-dimensional parameter for the effective electric field for ions
+    vmStar = V0 * tau**2 / L**2 * qe / M_ArIon
 
     ThermalConductivity = 17.7e-3 # [W/m/K] at 300K
     
@@ -354,6 +359,7 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     # params.EC = 2.0 * me / mAr * 3.8e9 * tau
 
     params.verticalShift = verticalShift / V0
+    params.vmStar  = vmStar
 
     # Parameters needed to compute the current with dimensions
     params.V0Ltau  = V0 / (L * tau)
@@ -729,7 +735,7 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     # Di_interp = uniform_filter1d(Di_interp, size=1)
     Di_spline = CubicSpline(EN_interp, Di_interp)
     Di_EN_spline = CubicSpline.derivative(Di_spline)
-    diffusivity = Diffusivity(interpolate = True, D_expression = Di_spline, D_T_expression = Di_EN_spline)
+    diffusivity = Diffusivity(interpolate = False, D_expression = Di_spline, D_T_expression = Di_EN_spline)
     diffList.append(diffusivity)
 
     # fig,ax = plt.subplots()
@@ -790,6 +796,7 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Nr, iSample):
     # i = 2:Ns-1  -> excited levels
     # i = Ns - 1  -> ground state
     # i = Ns      -> electron energy
+    # i = Nv - 1  -> ion Effective Electric field
 
     # CR Indexing 
     # i = 0       -> ground state

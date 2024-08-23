@@ -16,7 +16,7 @@ isPlot = True
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
-ic = 1; c = True; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "6sp"
+ic = 1; c = False; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 2; c = False; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -31,8 +31,8 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 ic = 7; c = False; f = '../exception_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 8; c = True; f = '../restart_6spec_CN_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 8; c = True; f = '../restart_6spec_CN_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 8; c = False; f = '../newton_6spec_CN_Np150.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 8; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
@@ -131,6 +131,7 @@ ne = {}; ni = {}; nb = {}; nee = {}; npop = {}; Tg = {}
 nm = {}; nr = {}; n4p = {}; Te = {}; dEps = {}; g = {}
 FromGlowDischargeToCRIndexing = {}
 FromCRToGlowDischargeIndexing = {}
+Eeff = {}
 
 # if case1:
 for ic in case: 
@@ -172,13 +173,16 @@ for ic in case:
       FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(2,Ns-1)) + [0, 1] # We have excluded electron energy
 
       
-
+      # D_reshaped = np.reshape(D,(Np, Ns+1+1),'F')
       D_reshaped = np.reshape(D,(Np, Ns+1),'F')
 
       ne[ic]  = ne0 * D_reshaped[:,0]              # electron density
       ni[ic]  = ne0 * D_reshaped[:,1]              # ion density
       nb[ic]  = nAr * D_reshaped[:,Ns - 1]         # "background" (argon neutral) density
       nee[ic] = (2./3.) * ne0 * D_reshaped[:,Ns]   # electron energy (ne * ee)
+
+      # Eeff[ic] = V0/L * D_reshaped[:,Ns+1] 
+
 
       npop[ic] = np.ndarray((Np, Ns-2),dtype=np.float64)
       npop[ic][:,0] = nb[ic]
@@ -237,7 +241,7 @@ if (isPlot):
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$E_e$ [J]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/ne_mean.png')
+   plt.savefig('./png/ne.png')
 
 
    # ne
@@ -252,7 +256,7 @@ if (isPlot):
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{e,i}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/ne_mean.png')
+   plt.savefig('./png/ne.png')
 
    # nm
    fig,ax = plt.subplots(dpi=160)
@@ -265,7 +269,7 @@ if (isPlot):
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(m)}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/nm_mean.png')
+   plt.savefig('./png/nm.png')
 
    # nr
    fig,ax = plt.subplots(dpi=160)
@@ -278,7 +282,7 @@ if (isPlot):
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(r)}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/nr_mean.png')
+   plt.savefig('./png/nr.png')
 
    # n4p
    fig,ax = plt.subplots(dpi=160)
@@ -291,7 +295,7 @@ if (isPlot):
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR(4p)}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/n4p_mean.png')
+   plt.savefig('./png/n4p.png')
 
    # nb
    fig,ax = plt.subplots(dpi=160)
@@ -304,7 +308,7 @@ if (isPlot):
    plt.setp(ax.get_xticklabels(), fontsize=12)
    ax.set_ylabel(r"$n_{AR}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/nb_mean.png')
+   plt.savefig('./png/nb.png')
 
 
 
@@ -321,7 +325,7 @@ if (isPlot):
    #    plt.setp(ax.get_xticklabels(), fontsize=12)
    #    ax.set_ylabel(r"$n_i}$ [m$^{-3}$] isp = " + str(isp), fontsize=18)
    #    plt.setp(ax.get_yticklabels(), fontsize=12)
-   #    plt.savefig('./png/n4p_mean.png')
+   #    plt.savefig('./png/n4p.png')
 
 
 
@@ -346,7 +350,7 @@ if (isPlot):
    ##ax2.set_ylim((0,70))
    #ax2.set_ylabel(r"$\phi$ [V]", fontsize=18)
    #plt.setp(ax2.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/Te_mean.png')
+   plt.savefig('./png/Te.png')
 
 
    # Tg
@@ -367,7 +371,7 @@ if (isPlot):
    ##ax2.set_ylim((0,70))
    #ax2.set_ylabel(r"$\phi$ [V]", fontsize=18)
    #plt.setp(ax2.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/Tg_mean.png')
+   plt.savefig('./png/Tg.png')
 
 
    # # distribution
@@ -383,5 +387,17 @@ if (isPlot):
    # plt.savefig('./png/nb_mean.png')
 
 
+   # # Eeff
+   # fig,ax = plt.subplots(dpi=160)
+   # for ic in case: 
+   #    if case[ic]: 
+   #       ax.plot(xr, Eeff[ic], clr[ic], lw=2, label=label[ic])
+   # ax.legend(fontsize=12)
+   # ax.set_xlim((xr[0], xr[-1]))
+   # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$E^{ef}$ [V/m]", fontsize=18)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/Eeff.png')
 
 plt.show()

@@ -6,13 +6,13 @@ import time as cpu_time
 class timePeriodicSolver:
 
     def __init__(self, args, Ns, NT, Np, elasticCollisionActivationFactor,
-                 backgroundSpecieActivationFactor, EinsteinForm,
+                 backgroundSpecieActivationFactor, EinsteinForm, IonEffEField,
                  gam, V0, VDC, restart=None, scenario=0, scheme='BE',
                  alpha0 = 1.0, increaseFac = 1.0, iSample = 0):
         self.tds = cs.timeDomainCollocationSolver(args, Ns, NT, Np,
                                                   elasticCollisionActivationFactor,
                                                   backgroundSpecieActivationFactor,
-                                                  EinsteinForm,
+                                                  EinsteinForm,IonEffEField,
                                                   gam, V0,
                                                   VDC, scenario, scheme, iSample)
 
@@ -31,16 +31,11 @@ class timePeriodicSolver:
         else:
             # Default initial guess.  This should be overwritten
             # by reading restart if you want this to work.
-            self.tds.U1[0:self.tds.Np] = 1e-3
-            self.tds.U1[self.tds.Np:2*self.tds.Np] = 1e-4
-            self.tds.U1[2*self.tds.Np:] = 0.75
-
-            # #tds.U1[0:tds.Ns*tds.Np] = 1e-4
-            # self.tds.U1[0:(self.tds.Ns-1)*self.tds.Np] = 1.0e-4             # 'usual' species
-            # self.tds.U1[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = 1.0  # background specie
-            # self.tds.U1[self.tds.Ns*self.tds.Np:] = self.tds.params.EeBC*self.tds.U1[0:self.tds.Np] # electron energy
-
-
+            self.tds.U1[0:(self.tds.Ns-1)*self.tds.Np] = 1.0e-4             # 'usual' species
+            self.tds.U1[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = 1.0  # background specie
+            self.tds.U1[self.tds.Ns*self.tds.Np:(self.tds.Ns+1)*self.tds.Np] = self.tds.params.EeBC*self.tds.U1[0:self.tds.Np] # electron energy
+            self.tds.solve_poisson(self.tds.U1[0:self.tds.Np],self.tds.U1[self.tds.Np:2*self.tds.Np],1.0/args.Nt)
+            self.tds.U1[(self.tds.Ns+1)*self.tds.Np:(self.tds.Ns+2)*self.tds.Np] = self.tds.phi # effective electric field for ions
 
 
         self.tds.U2 = np.copy(self.tds.U1)
@@ -165,6 +160,8 @@ if __name__ == "__main__":
                         action='store_true', help="Activate Einstein's form for diffusion coefficient for electrons.")
     parser.add_argument('--EinsteinFormIon', default=False,
                         action='store_true', help="Activate Einstein's form for diffusion coefficient for ions.")
+    parser.add_argument('--IonEffEField', default=False,
+                        action='store_true', help="Activate effective electric field for ions.")
     parser.add_argument('--alpha0', metavar='alpha0', default=1.0,
                         type=float, help='Newton step under-relaxation factor')
     parser.add_argument('--increaseFac', metavar='increaseFac', default=1.0,
@@ -308,9 +305,15 @@ if __name__ == "__main__":
     else:
         print("#   The Einstein's form for diffusion coefficient is not used for ions.")
 
+    IonEffEField = False
+    if(args.IonEffEField==True):
+        print("#   An effective electric field is used for ions.")
+        IonEffEField = True
+
+
     tps = timePeriodicSolver(args, Ns, 1, args.Np, elasticCollisionActivationFactor,
                              backgroundSpecieActivationFactor,
-                             EinsteinForm,
+                             EinsteinForm, IonEffEField,
                              args.gam, args.V0, args.VDC,
                              restart=args.restart, scenario=args.scenario,
                              scheme=args.tscheme,

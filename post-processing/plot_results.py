@@ -501,8 +501,7 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 43; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_StrongBC_gamma0.15/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Strong BC"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 44; c = False; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_OriginalBC_gamma0.15/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Original BC"; m = "6sp"
-ic = 44; c = True; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_OriginalBC_gamma0.15/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6 spec -old"; m = "6sp"
+ic = 44; c = False; f = '../Results/6spec/1Torr75V/6sp_Ein_BSR_VarIon_OriginalBC_gamma0.15/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Original BC"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 ic = 45; c = False; f = '../Results/CR/1Torr75V/Ns17_Ein_BSR_Final_2/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "CR"; m = "CR"
@@ -546,7 +545,6 @@ ic = 56; c = False; f = '../Results/CR/1Torr150V/Ns17/newton_CR_CN_Np150_fullsol
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-
 ic = 57; c = False; f = '../Results/CR/500mTorr75V/Ns17/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "0.5Torr-75V"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
@@ -559,7 +557,44 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 ic = 60; c = False; f = '../Results/CR/5Torr75V/Final/Ns17_MaxEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "5Torr-75V"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 61; c = True; f = '../Results/CR/1Torr75V/Final/6spec/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6spec"; m = "6sp"
+
+
+
+ic = 61; c = False; f = '../Results/CR/1Torr75V/Final/6spec/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6spec - no elastic"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+
+ic = 62; c = False; f = '../Results/CR/1Torr75V/Final/Ns17_Ion/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ion 2"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 63; c = False; f = '../Results/CR/1Torr75V/Final/Ns33/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Ns = 33"; m = "CR2"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+ic = 64; c = False; f = '../Results/CR/1Torr75V/Final/6spec_Eeff/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - Eef - 1ev"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 65; c = False; f = '../Results/CR/1Torr75V/Final/6spec_Eeff/Teb05eV/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - Eef - 0.5ev"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 66; c = True; f = '../newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp 1Torr-62V"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 67; c = False; f = '../Results/CR/1Torr75V/Final/6spec_DCbias10/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "DCbias = 5% Vpp"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 69; c = True; f = '../Results/CR/1Torr75V/Final/6spec_t1/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - 0.5ev (new)"; m = "6sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 70; c = True; f = '../Results/CR/1Torr75V/Final/6spec_t2/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - Eef - 0.5ev (new)"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 71; c = False; f = '../Results/CR/1Torr75V/Final/6spec_t1_1ev/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - 1eV (new)"; m = "6sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 72; c = True; f = '../Results/CR/1Torr75V/Final/6spec_StBCIon/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "6sp - Eef - 0.5ev - StBCIon"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
@@ -608,9 +643,10 @@ nm = {}; nr = {}; n4p = {}; Te = {}; dEps = {}; g = {}
 FromGlowDischargeToCRIndexing = {}
 FromCRToGlowDischargeIndexing = {}
 xr = {}; i_mid = {}
+Eeff = {}
 
 TotalCurrent = {}; IonCurrent = {}; ElectronCurrent = {}
-ElectricField = {}; ElectricPotential = {}
+ElectricField = {}; ElectricPotential = {}; EffElectricField = {}
 
 
 # if case1:
@@ -653,6 +689,9 @@ for ic in case:
 
       # ElectricField[ic] = np.load(fname + "ElectricField_" + file[ic].split('/')[-1])
       # ElectricPotential[ic] = np.load(fname + "ElectricPotential_" + file[ic].split('/')[-1])
+      # if ic == 64 or ic == 65 or ic == 70:
+      #    EffElectricField[ic] = np.load(fname + "EffElectricField_" + file[ic].split('/')[-1])
+
 
       
 
@@ -690,8 +729,10 @@ for ic in case:
       FromCRToGlowDischargeIndexing[ic]  = [Ns-2, Ns-1] + list(range(1,Ns-2)) + [0] # We have excluded electron energy
       FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(2,Ns-1)) + [0, 1] # We have excluded electron energy
 
-      
-      D_reshaped = np.reshape(D,(Np, Ns+1, np.shape(D)[1]),'F')
+      if ic == 64 or ic == 65 or ic == 70 or ic == 72:
+         D_reshaped = np.reshape(D,(Np, Ns+1+1, np.shape(D)[1]),'F')         
+      else:   
+         D_reshaped = np.reshape(D,(Np, Ns+1, np.shape(D)[1]),'F')
 
       # ne  = D[0:1*Np,:]          # electron density
       # ni  = D[1*Np:2*Np,:]       # ion density
@@ -707,6 +748,8 @@ for ic in case:
       ni[ic]  = ne0 * D_reshaped[:,1,:]               # ion density
       nb[ic]  = nAr * D_reshaped[:,Ns - 1,:]          # "background" (argon neutral) density
       nee[ic] = (2./3.) * ne0 * D_reshaped[:,Ns,:]    # electron energy (ne * ee)
+      if ic == 64 or ic == 65 or ic == 70  or ic == 72:
+         Eeff[ic] = V0 / L * D_reshaped[:,Ns+1,:]        # effective electric field for ions 
 
       npop[ic] = np.ndarray((Np, Ns-2, np.shape(D)[1]),dtype=np.float64)
       npop[ic][:,0,:] = nb[ic]
@@ -857,11 +900,78 @@ if (isReportingCurrents):
 
 
 
-   # Electric Field
+
+   # Electric Field - Electrodes
+   fig,ax = plt.subplots(dpi=160)
+   # plt.title("ne(t)")
+   for ic in case: 
+      if case[ic]:               
+         ax.plot(tr[1:], ElectricField[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[1:], ElectricField[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$E$ [V/m]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/EField_electrodes.png')
+
+
+   # Effective Electric Field - Electrodes
+   fig,ax = plt.subplots(dpi=160)
+   # plt.title("ne(t)")
+   for ic in case: 
+      if case[ic]:               
+         ax.plot(tr[1:], EffElectricField[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[1:], EffElectricField[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$E^{ef}$ [V/m]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/EffEField_electrodes.png')
+
+   # Electric Potential - Electrodes
+   fig,ax = plt.subplots(dpi=160)
+   # plt.title("ne(t)")
+   for ic in case: 
+      if case[ic]:               
+         ax.plot(tr[1:], ElectricPotential[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[1:], ElectricPotential[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$\phi$ [V]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/EPotential_electrodes.png')
+
+
+   # Electric Power - Electrodes
+   fig,ax = plt.subplots(dpi=160)
+   # plt.title("ne(t)")
+   for ic in case: 
+      if case[ic]:               
+         ax.plot(tr[1:], TotalCurrent[ic][1:,0]*ElectricPotential[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+         ax.plot(tr[1:], TotalCurrent[ic][1:,1]*ElectricPotential[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   ax.set_xlim((tr[0], tr[-1]))
+   ax.legend(fontsize=12)
+   ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$P$ [W]", fontsize=16)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/EPower_electrodes.png')
+
+
+
+   # Mean Electric Field
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
          ax.plot(xr[ic], np.mean(ElectricField[ic],axis=0),lw=2, label=label[ic])
+         ax.plot(xr[ic], np.mean(EffElectricField[ic],axis=0),lw=2, label=label[ic]+" - Eff")
+
          ax.set_xlim((xr[ic][0], xr[ic][-1]))
    ax.legend(fontsize=12,loc=2)
    ax.set_xlabel(r"$x$ [cm]", fontsize=16)
@@ -871,7 +981,7 @@ if (isReportingCurrents):
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/EField_mean.png')
 
-   # Electric Potential
+   # Mean Electric Potential
    fig,ax = plt.subplots(dpi=160)
    for ic in case: 
       if case[ic]: 
