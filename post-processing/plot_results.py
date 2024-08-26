@@ -17,7 +17,6 @@ def PartitionFunctionsAnalytical(T_e):
     
     return Q_n,Q_i
 
-
 def BoltzmannDistribution(n_tot,T_e,Qtot,E_lvl,g_lvl):
 
     q = len(E_lvl)
@@ -31,10 +30,6 @@ def BoltzmannDistribution(n_tot,T_e,Qtot,E_lvl,g_lvl):
        
     return npop_LTE
               
-
-
-
-
 def CalcBoltzmannDistribution(ic0, Te0 , model, npop,dEps, g, i_mid):
 
 
@@ -56,15 +51,11 @@ def CalcBoltzmannDistribution(ic0, Te0 , model, npop,dEps, g, i_mid):
 
    return npop_LTE
 
-
-
 #----------------------------------------------------------------------------------
                      
 def GetOpCondName(Torr, Voltage, decimal_point=3):
       operatingConditionName = str(round(Torr,decimal_point)) + "Torr-" + str(round(Voltage)) + "V"
       return operatingConditionName
-
-
 
 def ReadLumpedAr4pData():
 
@@ -96,9 +87,6 @@ def ReadLumpedAr4pData():
       Ar_Exp[OpCond] = Ar_Exp_ni
 
    return Ar_Exp
-
-
-
 
 def ReadOESAr4pData():
 
@@ -184,8 +172,6 @@ def ReadOESAr4pData():
 
    return Ar_Exp
 
-
-
 def ReadLangmuirData():
 
 
@@ -211,8 +197,6 @@ def ReadLangmuirData():
 
    return Langmuir_Exp
 
-
-
 def ReadLASAr4sData():
 
    Ar_Exp_gi = np.array([5, 3, 1, 3])   
@@ -233,10 +217,6 @@ def ReadLASAr4sData():
    LES_Exp["Ei"] = Ar_Exp_Ei; LES_Exp["gi"] = Ar_Exp_gi   
 
    return LES_Exp
-
-
-
-
 
 #----------------------------------------------------------------------------------
 

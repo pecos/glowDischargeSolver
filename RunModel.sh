@@ -13,8 +13,8 @@ NEWTEXE="python3 ./timePeriodicSolver.py --use_gpu 0 --gpu_device_id 0"
 Np=150
 Nt=5120
 # Nt=10
-# dt=0.0078125
-dt=0.00390625
+dt=0.0078125
+# dt=0.00390625
 # dt=0.001953125
 
 # Nt1=128
@@ -23,8 +23,8 @@ Nt1=256
 dt1=0.00390625
 
 # Model Selection
-# scenario=15
-scenario=7
+scenario=15
+# scenario=7
 
 # baseFile="restart_CR_BE_Np${Np}_"
 # newtFile="newton_CR_CN_Np${Np}.npy"
@@ -48,8 +48,8 @@ rm -f $screenOut
 
 
 # echo "Run 1 period ..."
-$baseCmd --t0 0.0 --verbose --restart $newtFile --outfile "discard.npy"
-# $baseCmd --t0 0.0 --outfile "discard.npy" 
+# $baseCmd --t0 0.0 --verbose --restart $newtFile --outfile "discard.npy"
+$baseCmd --t0 0.0 --outfile "discard.npy" 
 
 # echo "Run 0 to 125...${baseFile}T125.npy"
 # $baseCmd --t0 0.0 --outfile "${baseFile}T125.npy" > $screenOut || error_exit "First run failed"

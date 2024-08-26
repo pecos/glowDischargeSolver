@@ -367,14 +367,17 @@ def setPsaapProperties_CRModel(gam, inputV0, inputVDC, params, Ns):
     Nmue_v_Te = mobilityData[:,1]
     Nmue_v_Te[0:indices_Te0] = Nmue_v_Te[indices_Te0]
     mue_interp = (Nmue_v_Te[:]/nAr)*V0*tau/(L*L)
-    mue_interp = uniform_filter1d(mue_interp, size=20)
-    # mue_interp_2 = (Nmue_v_Te[:]/nAr)*V0*tau/(L*L)*clip_factor + (1 - clip_factor) * params.mu[0]
-    mue_spline = CubicSpline(Te_trans, mue_interp)
-    mue_Te_spline = CubicSpline.derivative(mue_spline)
-    # mue_spline_2 = CubicSpline(Te_trans, mue_interp_2)
-    # mue_Te_spline_2 = CubicSpline.derivative(mue_spline_2)
-    mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    mue_interp = uniform_filter1d(mue_interp, size=10)
+    # mue_spline = CubicSpline(Te_trans, mue_interp)
+    # mue_Te_spline = CubicSpline.derivative(mue_spline)
+    # mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_Te_spline)
+    # muList.append(mobility)
+    EN_interp = EN / (1e21 * params.V0L/params.nAr) * 2/3 # We multiply with 2/3 here to make it compatible with  mobility_U function.
+    mue_spline = CubicSpline(EN_interp, mue_interp)
+    mue_EN_spline = CubicSpline.derivative(mue_spline)
+    mobility = Mobility(interpolate = True, mu_expression = mue_spline, mu_T_expression = mue_EN_spline)
     muList.append(mobility)
+
 
     # fig, ax = plt.subplots()
     # ax.set_title('Mobility Coef.')
@@ -382,12 +385,19 @@ def setPsaapProperties_CRModel(gam, inputV0, inputVDC, params, Ns):
     # ax.set_ylabel(r"$\mu_e \, $ [$ \, m^{2}/V/s$]")
     # # ax.loglog(Te_trans, Nmue_v_Te[:]/nAr, marker = 'o', label = 'Nominal')
     # ax.plot(Te_trans, mue_interp, marker = '.', label = 'raw')
-    # # ax.plot(Te_trans, mue_interp_2, marker = '.', label = 'smoothed')
     # ax.plot(Te_trans, mue_Te_spline(Te_trans), marker = '*', label = 'raw - grad')
-    # # ax.plot(Te_trans, mue_Te_spline_2(Te_trans), marker = '*', label = 'smoothed - derivative')
     # plt.axhline(y=params.mu[0], color='k', linestyle='--')
     # ax.legend()
 
+
+    # fig, ax = plt.subplots()
+    # ax.set_title('Electron Mobility Coef.')
+    # ax.set_xlabel('E/nAr [Td]')
+    # ax.set_ylabel(r"$\mu_e \, $ [$ \, m^{2}/V/s$]")
+    # ax.plot(EN, mue_interp, marker = '.', label = 'raw')
+    # ax.plot(EN, mue_EN_spline(EN_interp), marker = '*', label = 'raw - grad')
+    # plt.axhline(y=params.mu[0], color='k', linestyle='--')
+    # ax.legend()
 
 
     #-------------------------------------------------------------------------------

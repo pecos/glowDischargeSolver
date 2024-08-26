@@ -286,7 +286,7 @@ class modelClosures:
         return mu_U
 
 
-    def diffusivity(self, i, energy, mu, nb, EinsteinForm, EinsteinFormIon = False):
+    def diffusivity(self, i, energy, mu, nb, Te, Tg, EinsteinForm, EinsteinFormIon = False):
         xp  = self.xp_module
 
         DEf = xp.zeros((energy.shape[0],1),dtype=xp.float64)
@@ -302,9 +302,10 @@ class modelClosures:
 
         elif EinsteinForm and i == 0:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-            if i==1: # ions
-                DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,self.Ns-1], mu[:,i]) / V0
-                # DEf[:,0] = self.D[i] / nb
+            if i==0: # electron
+                DEf[:,0] = 2.0 / 3.0 * xp.multiply(Te, mu[:,i]) / V0               
+            elif i==1: # ions
+                DEf[:,0] = 2.0 / 3.0 * xp.multiply(Tg, mu[:,i]) / V0   
             else:
                 DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,i], mu[:,i]) / V0
 
@@ -318,10 +319,11 @@ class modelClosures:
 
         return DEf[:,0]
 
-    def diffusivity_U(self, i, j, energy, energy_U, mu, D, nb, EinsteinForm, EinsteinFormIon = False):
+    def diffusivity_U(self, i, j, energy, energy_U, mu, D, nb, Te, Te_U, Tg, Tg_U, EinsteinForm, EinsteinFormIon = False):
         xp  = self.xp_module
 
         D_U = xp.zeros((energy_U.shape[2], energy_U.shape[2]),dtype=xp.float64)
+
 
         if (len(self.diffusivityList) > i and self.diffusivityList[i].interpolate):
             indFixL = (energy[:,i]<=0.0)
@@ -339,20 +341,23 @@ class modelClosures:
 
 
         elif EinsteinForm and i == 0:
+            Imat = xp.identity(Te_U.shape[0])
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-            D_U[:,:] = 2.0 / 3.0 * xp.diag(mu[:,i]) @ energy_U[i,j,:,:] / V0
+
+            D_U[:,:] = 2.0 / 3.0 * np.diag(mu[:,i]) @ xp.multiply(Imat,Te_U[:,j]) / V0
 
             if (len(self.mobilityList) > i and self.mobilityList[i].interpolate):
                 mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
-                D_U[:,:] += xp.diag(mu_ee * 2.0 / 3.0 * energy[:,i] / V0) @ energy_U[i,j,:,:]
+                D_U[:,:] += xp.diag(mu_ee * 2.0 / 3.0 * Te / V0) @ energy_U[i,j,:,:]
 
         elif EinsteinFormIon and self.Z[i] != 0 and i != 0:
+            Imat = xp.identity(Te_U.shape[0])
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-            D_U[:,:] = 2.0 / 3.0 * np.diag(mu[:,i]) @ energy_U[self.Ns-1,j,:,:] / V0
+            D_U[:,:] = 2.0 / 3.0 * np.diag(mu[:,i]) @ xp.multiply(Imat,Tg_U[:,j]) / V0
 
             if (len(self.mobilityList) > i and self.mobilityList[i].interpolate):
                 mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
-                D_U[:,:] += xp.diag(mu_ee * 2.0 / 3.0 * energy[:,self.Ns-1] / V0) @ energy_U[i,j,:,:]
+                D_U[:,:] += xp.diag(mu_ee * 2.0 / 3.0 * Tg / V0) @ energy_U[i,j,:,:]
 
         if (j == self.Ns - 1):
             D_U[:,:] -= xp.diag(D[:,i] / nb)
@@ -884,37 +889,63 @@ class timeDomainCollocationSolver:
         nT_x   = self.Dp @ nT
         phi_x  = self.Dp @ self.phi
 
-        if not self.IonEffEField:
-            # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
-            EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] # Reduced Electric field  E / N
+        # Reduced Electric field  E / N 
+        EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] 
+        # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
+        if self.IonEffEField:
+            ENion =  np.abs(Eeff)  / dens[:,[self.Ns-1]] 
         else:
-            EN =  np.abs(Eeff)  / dens[:,[self.Ns-1]] # Reduced Electric field  E / N
-
+            ENion =  EN
 
 
         # Temperature of species
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64) #NOTE(malamast): We now have self.Ns+1 instead of Ns
-        energy[:,iele[0]] = Te[:,0] # For electrons
-        energy[:,iion[0]] = EN[:,0] # For ions Ar+
+        energy[:,iele[0]] = EN[:,0] # For electrons
+        energy[:,iion[0]] = ENion[:,0] # For ions Ar+
         for i in range(2,self.Ns):
             energy[:,i] = Tg[:,0] # For species
-        energy[:,iee[0]] = Te[:,0] # For electron energy
+        energy[:,iee[0]] = EN[:,0] # For electron energy
 
         # Transport Properties for species
         # NOTE(malamast): We now include transport coefficients for the electron energy equation
         mu              = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         
-        
         for i in range(0,self.Ns+1):
             mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
             diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,self.Ns-1],
-                                                       self.EinsteinForm, self.EinsteinFormIon)
+                                                       Te[:,0], Tg[:,0], self.EinsteinForm, self.EinsteinFormIon)
 
         if self.EinsteinForm:
-            mu[:,iee[0]] = (5./3.) * mu[:,0] 
-            diffusivity[:,iee[0]] = (5./3.) * diffusivity[:,0] 
+            mu[:,iee[0]] = (5./3.) * mu[:,iele[0]] 
+            diffusivity[:,iee[0]] = (5./3.) * diffusivity[:,iele[0]] 
 
+
+        # L   = 2.00*0.005     # half-gap-width [m] (gap width is 2 cm)
+        # xr = (self.xp+1)*L*100 # [cm]
+
+        # fig,ax = plt.subplots(dpi=160)
+        # ax.plot(xr, mu[:,0])
+        # ax.legend(fontsize=12)
+        # ax.set_xlim((xr[0], xr[-1]))
+        # ax.set_ylabel(r"$\mu_e \, $ [$ \, m^{2}/V/s$]")
+        # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+        # plt.setp(ax.get_xticklabels(), fontsize=12)
+        # plt.setp(ax.get_yticklabels(), fontsize=12)
+        # plt.axhline(y=self.params.mu[0], color='k', linestyle='--')
+
+
+        # fig,ax = plt.subplots(dpi=160)
+        # ax.plot(xr, diffusivity[:,0])
+        # ax.legend(fontsize=12)
+        # ax.set_xlim((xr[0], xr[-1]))
+        # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+        # plt.setp(ax.get_xticklabels(), fontsize=12)
+        # plt.setp(ax.get_yticklabels(), fontsize=12)
+        # plt.axhline(y=self.params.D[0], color='k', linestyle='--')
+
+        # plt.show()
+        # exit(-1)
 
         # Form species fluxes
         fspec = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
@@ -1391,10 +1422,12 @@ class timeDomainCollocationSolver:
 
         Tg_U[:,self.Ns] += -self.ones_Np/ntot[:,0]
 
-
-
         # NOTE(malamast): I clip the electron temperature when a low value occurs. 
         # Te = np.where(Te < Tg,Tg, Te) 
+
+        Te_U = xp.zeros((self.Np, self.Nv),dtype=xp.float64)
+        Te_U[:,0] = -Te[:,0]/dens[:,iele[0]]
+        Te_U[:,iee[0]] = 1./dens[:,iele[0]]
 
         Te_ne = -xp.multiply(Te/dens[:,iele],Imat)
         Te_nT = xp.multiply(Imat,1./dens[:,iele])          
@@ -1415,11 +1448,16 @@ class timeDomainCollocationSolver:
         phi_x_ni = self.phi_x_ni
 
 
-        if not self.IonEffEField:
-            # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
-            EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] # Reduced Electric field  E / N
+        # Reduced Electric field  E / N 
+        EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] 
+        # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
+        Esign = -phi_x/dens[:,[self.Ns-1]]/EN # NOTE(malamast): This is needed to get the derivatives of EN based on those of -phe_x
+        if self.IonEffEField:
+            ENion =  np.abs(Eeff)  / dens[:,[self.Ns-1]] 
+            Eeffsign = Eeff/dens[:,[self.Ns-1]]/ENion # NOTE(malamast): This is needed to get the derivatives of EN based on those of -phe_x
         else:
-            EN =  np.abs(Eeff)  / dens[:,[self.Ns-1]] # Reduced Electric field  E / N
+            ENion =  EN
+            Eeffsign = Esign
 
 
 
@@ -1427,33 +1465,43 @@ class timeDomainCollocationSolver:
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         mu     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
-        energy[:,iele[0]] = Te[:,0] # For electrons
-        energy[:,iion[0]] = EN[:,0] # For ions
+        energy[:,iele[0]] = EN[:,0]    # For electrons
+        energy[:,iion[0]] = ENion[:,0] # For ions
         for i in range(2,self.Ns): 
             energy[:,i] = Tg[:,0]
-        energy[:,iee[0]] = Te[:,0]
-
+        energy[:,iee[0]] = EN[:,0]
 
         for i in range(0,self.Ns+1):
             mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
             diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,self.Ns-1],
-                                                       self.EinsteinForm, self.EinsteinFormIon)
-            
+                                                       Te[:,0], Tg[:,0], self.EinsteinForm, self.EinsteinFormIon)
+
         if self.EinsteinForm:
-            mu[:,iee[0]] = (5./3.) * mu[:,0] 
-            diffusivity[:,iee[0]] = (5./3.) * diffusivity[:,0] 
+            mu[:,iee[0]] = (5./3.) * mu[:,iele[0]] 
+            diffusivity[:,iee[0]] = (5./3.) * diffusivity[:,iele[0]] 
 
 
         energy_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
-        energy_U[0,0,:,:] = Te_ne; energy_U[0,self.Ns,:,:] = Te_nT 
-        energy_U[iee[0],0,:,:] = Te_ne; energy_U[iee[0],self.Ns,:,:] = Te_nT
+
+
+        energy_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
+        # # Use this if me is a function of Te
+        # energy_U[0,0,:,:] = Te_ne; energy_U[0,self.Ns,:,:] = Te_nT 
+        # energy_U[iee[0],0,:,:] = Te_ne; energy_U[iee[0],self.Ns,:,:] = Te_nT
+        # Use this if me is a function of EN
+        energy_U[0,0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ne)) 
+        energy_U[0,1,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ni)) 
+        energy_U[0,self.Ns-1,:,:] = -xp.multiply(EN/dens[:,[self.Ns-1]],Imat) 
+        energy_U[iee[0],0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ne))  
+        energy_U[iee[0],1,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ni))  
+        energy_U[iee[0],self.Ns-1,:,:] = -xp.multiply(EN/dens[:,[self.Ns-1]],Imat) 
 
         if not self.IonEffEField:            
-            energy_U[1,0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ phi_x_ne 
-            energy_U[1,1,:,:] = np.diag(1/dens[:,self.Ns-1]) @ phi_x_ni 
-        else:
-            energy_U[1,self.Nv-1,:,:] = np.diag(1/dens[:,self.Ns-1])            
-        energy_U[1,self.Ns-1,:,:] = -xp.multiply(EN/dens[:,[self.Ns-1]],Imat) 
+            energy_U[1,0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ne))  
+            energy_U[1,1,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ni))  
+        else:            
+            energy_U[1,self.Nv-1,:,:] = np.diag(Eeffsign[:,0]/dens[:,self.Ns-1])            
+        energy_U[1,self.Ns-1,:,:] = -xp.multiply(ENion/dens[:,[self.Ns-1]],Imat) 
                 
         
         for i in range(2,self.Ns): 
@@ -1468,7 +1516,7 @@ class timeDomainCollocationSolver:
             for j in range(0,self.Nv):
                 diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j, energy, energy_U,
                                                                    mu, diffusivity, dens[:,self.Ns-1],
-                                                                   self.EinsteinForm, self.EinsteinFormIon)
+                                                                   Te[:,0],Te_U,Tg[:,0],Tg_U,self.EinsteinForm, self.EinsteinFormIon)
                 mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, mu, dens[:,self.Ns-1])
 
 
@@ -1618,7 +1666,7 @@ class timeDomainCollocationSolver:
             for i in range(0,self.Nv):
                 rstrg_U[2,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,0,:] - mu_U[1,i,0,:] * dens[0,1] * (max(Eeff[0,0]*(-1),0.0) * (-1))
             rstrg_U[2,self.Np] -= ( -self.params.ksion + mu[0,1] * (max(Eeff[0,0]*(-1),0.0) * (-1)) )
-            rstrg_U[2,(self.Nv-1)*self.Np] -= ( mu[0,1] * dens[0,1] )
+            rstrg_U[2,(self.Nv-1)*self.Np] -= ( mu[0,1] * dens[0,1] ) # NOTE(malamast): I need to reconsider this one!
         else:
             for i in range(0,self.Nv):
                 rstrg_U[2,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,0,:] - mu_U[1,i,0,:] * dens[0,1] * (max(-phi_x[0,0]*(-1),0.0) * (-1))
