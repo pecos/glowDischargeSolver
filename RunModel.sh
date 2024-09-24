@@ -25,8 +25,8 @@ dt1=0.00390625
 # dt1=0.001953125
 
 # Model Selection
-# scenario=7
-scenario=15
+scenario=7
+# scenario=15
 
 baseFile="restart_CR_BE_Np${Np}_"
 newtFile="newton_CR_CN_Np${Np}.npy"
@@ -40,7 +40,7 @@ saveFile="newton_CR_CN_Np${Np}_fullsoln.npy"
 # newtFile="newton_8spec_CN_Np${Np}.npy"
 # saveFile="newton_8spec_CN_Np${Np}_fullsoln.npy"
 
-FLAGS="--V0 75 --VDC 0.0 --gam 0.075 --scenario $scenario --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField"
+FLAGS="--V0 75 --VDC 0.0 --gam 0.1 --scenario $scenario --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField"
 # --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField
 
 baseCmd="$EXE $FLAGS --Np $Np --Nt $Nt --dt $dt --tscheme BE"
@@ -55,8 +55,8 @@ rm -f $screenOut
 # echo "Run 1 period ..."
 # $baseCmd --t0 0.0 --restart "${baseFile}T125.npy" --outfile "discard.npy"
 # $baseCmd --t0 0.0 --restart "discard.npy"  --verbose --outfile "discard.npy" 
-# $baseCmd --t0 0.0 --outfile "discard.npy" 
-$baseCmd --t0 0.0 --restart "newton_CR_CN_Np150.npy"  --verbose --outfile "discard.npy" 
+$baseCmd --t0 0.0 --outfile "discard.npy" 
+# $baseCmd --t0 0.0 --restart "newton_CR_CN_Np150.npy"  --verbose --outfile "discard.npy" 
 
 
 # echo "Run 0 to 125...${baseFile}T125.npy"
