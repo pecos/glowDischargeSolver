@@ -136,7 +136,7 @@ class modelParameters:
     def __init__(self, Ns):
         """Set model parameter values.  
         """
-        self.Ns = Ns # number of species
+        # self.Ns = Ns # number of species
 
         homeDir = os.getcwd()
         
@@ -145,7 +145,7 @@ class modelParameters:
         Read in NIST data for states of Ar I  
         """
         
-        p = NIST_read_ArI('./CRModel/Data','ArI-States.csv', Ns-2)
+        p = NIST_read_ArI('./CRModel/Data','ArI-States.csv', Ns-4)
         os.chdir(homeDir)
 
         (self.Configuration_lvl, self.Term_lvl, self.J_lvl, 
@@ -180,6 +180,17 @@ class modelParameters:
             deltaIon = Eion_Ar - self.E_lvl[i]*cm_eV
             self.deltaIon[i] = deltaIon 
 
+
+        self.E_lvl_ArIon    = 15.7596119
+        self.E_lvl_Ar2Ion   = 14.501
+        self.E_lvl_Ar2m     = 11.564763 # 11.577-0.012237
+        self.Ar2Ion_DissEn  = 1.2586119
+        self.Ar2m_DissEn    = 0.012237
+
+        # Dissociation energy of Ar2* in ground state is  0.012237 eV
+        # Dissociation energy of Ar2+ is 1.3144 eV
+
+            
 
     
         #----------------------------------------------------------------------------------
@@ -758,16 +769,51 @@ class modelParameters:
             self.sigma_ij_Ion[i] = sigma_ion
 
 
+        # # Absolute partial and total cross sections for electron-impact ionization of argon from threshold to 1000 eV (H. C. Straub et al., 1995)
+        # e_exp = np.array([17, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 140, 160, 180, 200, 225, 
+        #                   250, 275, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000])
+        # sigma_Ion_exp = np.array([0.017, 0.46, 1.24, 1.84, 2.26, 2.55, 2.66, 2.7, 2.69, 2.67, 2.67, 2.67, 2.66, 2.69, 2.7, 2.69, 2.67, 2.64, 2.61, 2.55, 2.45, 2.35,
+        #                           2.27, 2.18, 2.1, 1.99, 1.87, 1.79, 1.63, 1.51, 1.39, 1.31, 1.23, 1.16, 1.09, 1.03, 0.976, 0.932, 0.901, 0.865, 0.824, 0.795]) *1e-20
+
+        # self.sigma_ij_Ion2 = {}
+        # for i in range(0,self.N_lvl):              
+        #     SubShell = str(self.SubShell_lvl[i])
+        #     # print(SubShell)
+        #     char = SubShell[-1] 
+                
+        #     # isPrimed_lvl    
+        #     # deltaIon = Eion - self.E_lvl[i]*cm_eV   
+        #     deltaIon = self.deltaIon[i]   
+                                    
+        #     # (Vriens and Smeets, 1980) Which Borh radius do I need here?
+        #     sigma_ion = 4*np.pi*a0_H**2*RydEn**2/(eRange + 3.25*deltaIon)*(5/(3*deltaIon) - 1/eRange - 2*deltaIon/(3*eRange**2))     
+
+        #     sigma_ion[np.where(eRange < deltaIon)] = 0
+        #     self.sigma_ij_Ion2[i] = sigma_ion
+
         # fig,ax = plt.subplots(dpi=160)
-        # ax.plot(eRange,self.sigma_ij_Ion[0],label="Ar")
-        # ax.plot(eRange,self.sigma_ij_Ion[1],label="s5")
-        # ax.plot(eRange,self.sigma_ij_Ion[2],label="s4")
-        # ax.plot(eRange,self.sigma_ij_Ion[3],label="s3")
-        # ax.plot(eRange,self.sigma_ij_Ion[4],label="s2")
-        # ax.plot(eRange,self.sigma_ij_Ion[5],label="p10")
-        # ax.plot(eRange,self.sigma_ij_Ion[6],label="p9")
-        # ax.plot(eRange,self.sigma_ij_Ion[7],label="p8")
-        # ax.plot(eRange,self.sigma_ij_Ion[8],label="p7")
+        # ax.plot(eRange,self.sigma_ij_Ion[0],c='blue',label="Ar")
+        # ax.plot(eRange,self.sigma_ij_Ion[1],c='green',label="s5")
+        # ax.plot(eRange,self.sigma_ij_Ion[2],c='red',label="s4")
+        # ax.plot(eRange,self.sigma_ij_Ion[3],c='cyan',label="s3")
+        # ax.plot(eRange,self.sigma_ij_Ion[4],c='magenta',label="s2")
+        # ax.plot(eRange,self.sigma_ij_Ion[5],c='yellow',label="p10")
+        # ax.plot(eRange,self.sigma_ij_Ion[6],c='black',label="p9")
+        # ax.plot(eRange,self.sigma_ij_Ion[7],c='orange',label="p8")
+        # ax.plot(eRange,self.sigma_ij_Ion[8],c='purple',label="p7")
+
+        # # ax.plot(eRange,self.sigma_ij_Ion2[0],c='blue',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[1],c='green',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[2],c='red',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[3],c='cyan',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[4],c='magenta',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[5],c='yellow',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[6],c='black',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[7],c='orange',ls='--')
+        # # ax.plot(eRange,self.sigma_ij_Ion2[8],c='purple',ls='--')
+
+        # ax.plot(e_exp,sigma_Ion_exp,c='olive',label="Exp")
+        
         # plt.legend()
         # ax.semilogy()
         # plt.grid(True)

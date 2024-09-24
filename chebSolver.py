@@ -115,8 +115,11 @@ class modelClosures:
         self.Z = np.zeros(Ns+1)
         self.Z[0] = -1 # electrons are always -1
         self.Z[1] =  1 # ions are always 1
-        self.Z[2] =  0 # background specie should be 0
-        self.Z[-1] = -1 # electron energy is always -1 for compatibility purposes
+
+        # specific heat at constant volume and pressure
+        self.Cv = np.zeros(Ns+1)
+        self.Cp = np.zeros(Ns+1)
+
 
         # mobility
         self.mu = np.zeros(Ns+1) # NOTE(malamast): We now include transport coefficients for the electron energy equation
@@ -186,6 +189,7 @@ class modelClosures:
         # electron energy Dirichlet BC
         self.EeBC = 0.75
         # self.EeBC = 1.5
+        self.electron_energy_dirichlet = True
 
         # Parameters needed to compute the current with dimensions
         self.V0Ltau  = 100 / (2.54 * 0.005 * (1./13.6e6))
@@ -210,10 +214,7 @@ class modelClosures:
         self.reactionsList =[]
         self.diffusivityList =[]
         self.mobilityList =[]
-
-
-        
-
+      
 
     def copy_operators_H2D(self, dev_id):
       
@@ -229,17 +230,16 @@ class modelClosures:
         self.B      = cp.asarray(self.B)
         self.C      = cp.asarray(self.C)
 
+        self.Cv      = cp.asarray(self.Cv)
+        self.Cp      = cp.asarray(self.Cp)
+
         # self.ksion = cp.asarray(self.ksion)
-
-
 
       return
 
 
     def charge(self,i):
         return self.Z[i]
-
-
 
 
     def mobility(self, i, energy, nb):
@@ -302,17 +302,11 @@ class modelClosures:
 
         elif EinsteinForm and i == 0:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-            if i==0: # electron
-                DEf[:,0] = 2.0 / 3.0 * xp.multiply(Te, mu[:,i]) / V0               
-            elif i==1: # ions
-                DEf[:,0] = 2.0 / 3.0 * xp.multiply(Tg, mu[:,i]) / V0   
-            else:
-                DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,i], mu[:,i]) / V0
+            DEf[:,0] = 2.0 / 3.0 * xp.multiply(Te, mu[:,i]) / V0
 
         elif EinsteinFormIon and self.Z[i] != 0 and i != 0:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-            DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,self.Ns-1], mu[:,i]) / V0
-            # DEf[:,0] = 2.0 / 3.0 * xp.multiply(energy[:,i], mu[:,i]) / V0
+            DEf[:,0] = 2.0 / 3.0 * xp.multiply(Tg, mu[:,i]) / V0
 
         else:
             DEf[:,0] = self.D[i] / nb
@@ -536,20 +530,24 @@ class timeDomainCollocationSolver:
             exit(-1)
         self.solveCRModel = False
         
+        
         # Indexing 
         # i = 0       -> electrons 
-        # i = 1       -> ions        
-        # i = 2:Ns-2  -> excited levels
+        # i = 1       -> ions 
+        # i = 2       -> argon molecular ions 
+        # i = 3       -> argon excimer molecules 
+        # i = 4:Ns-1  -> excited levels
         # i = Ns - 1  -> ground state
         # i = Ns      -> electron energy
+        # i = Nv - 1  -> ion Effective Electric field
 
-        
         self.Ns = Ns        # Number of species
         self.NT = NT        # Number of temperatures
-        self.Nv = Ns+NT   # Total number of 'state' variables
+        self.Nv = Ns+NT     # Total number of 'state' variables
         if IonEffEField:
             self.Nv = self.Nv + 1 # One more state variable for the effective electric field for Ions
-            
+
+        self.Nion = 1 # TODO(trevilo): don't hardcode this!
 
         self.deg = Np-1 # degree of Chebyshev polys we use
         self.Np = Np # Number of points used to define state in space
@@ -596,10 +594,13 @@ class timeDomainCollocationSolver:
         elif(scenario==21):
             Nr = 8
         elif(scenario==7):
-            Nr = 34
+            # Nr = 34
+            Nr = 46
+            self.Nion = 2
         elif(scenario==15 or scenario==16):
             Nr = 0 # It is evaluated within the model based on the number of species you include.            
             self.solveCRModel = True
+            self.Nion = 2
             elasticCollisionActivationFactor = 0.0 # Elastic collision term is being handled within the CR model.
             print("#   Elastic collision term is being handled within the CR model. ")
             # if self.temporal_scheme != "BE" or self.temporal_scheme != "CN":
@@ -646,14 +647,15 @@ class timeDomainCollocationSolver:
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==7):
-             setPsaapProperties_6Species(gam, V0, VDC, self.params, Nr, iSample)
+             setPsaapProperties_6Species(gam, V0, VDC, self.params, Ns, Nr, iSample)
         elif(scenario==15 or scenario==16):
             setPsaapProperties_CRModel(gam, V0, VDC, self.params, Ns)
+            self.params.electron_energy_dirichlet = False
             self.cr = CollisionalRadiativeModel(self.args, Ns, NT, self.Np, \
                 self.params.Pressure, self.params.GasTemperature, backgroundSpecieActivationFactor)
             self.params.dEps[0] = 0.0; self.params.dEps[1] = 15.7596119; self.params.dEps[self.Ns-1] = 0.0
-            self.params.dEps[2:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-2]*CRconst.cm_eV;
-
+            self.params.dEps[2] = 14.501; self.params.dEps[3] = 11.564763 # I need to re-evaluate the last one!
+            self.params.dEps[4:self.Ns-1] = self.cr.p.E_lvl[1:self.Ns-4]*CRconst.cm_eV;
 
         # Points used to define state and collocation
         # (Gauss-Lobatto-Chebyshev points)
@@ -702,11 +704,15 @@ class timeDomainCollocationSolver:
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
         ident0[0,0] = ident0[-1,-1] = 0.0
-        self.phi_ni = np.dot(self.LpD_inv, -self.params.alpha*ident0)
-        self.phi_ne = -self.phi_ni
+        self.phi_n  = np.dot(self.LpD_inv, -self.params.alpha*ident0)       
+        # self.phi_ni = np.dot(self.LpD_inv, -self.params.alpha*ident0)
+        # self.phi_ne = -self.phi_ni
 
-        self.phi_x_ne = self.Dp @ self.phi_ne
-        self.phi_x_ni = self.Dp @ self.phi_ni
+        # self.phi_x_ne = self.Dp @ self.phi_ne
+        # self.phi_x_ni = self.Dp @ self.phi_ni
+        self.phi_x_n = self.Dp @ self.phi_n
+
+
 
         self.I_Np =  np.identity(self.Np)
         self.I_Ndof = np.identity(self.Ndof)
@@ -730,7 +736,9 @@ class timeDomainCollocationSolver:
             self.ntot_U[:,i] += self.ones_Np
         # background contribution
         self.ntot_U[:,self.Ns-1] += self.params.nAronp0*self.ones_Np
-        
+    
+        self.TwoOverThree = 2.0/3.0     
+        self.ThreeOverTwo = 3.0/2.0  
 
         
     
@@ -760,8 +768,9 @@ class timeDomainCollocationSolver:
         self.LpD                = cp.asarray(self.LpD)
         self.LpD_inv            = cp.asarray(self.LpD_inv)
 
-        self.phi_x_ne           = cp.asarray(self.phi_x_ne)
-        self.phi_x_ni           = cp.asarray(self.phi_x_ni)
+        # self.phi_x_ne           = cp.asarray(self.phi_x_ne)
+        # self.phi_x_ni           = cp.asarray(self.phi_x_ni)
+        self.phi_x_n            = cp.asarray(self.phi_x_n)
 
         self.I_Np               = cp.asarray(self.I_Np)
         self.I_Ndof             = cp.asarray(self.I_Ndof)
@@ -808,7 +817,7 @@ class timeDomainCollocationSolver:
         U0[ind:] = 0.0
         self.U2[2*self.Np:] = self.V0p @ U0
 
-    def solve_poisson(self, ne,ni,time):
+    def solve_poisson(self, dens,time):
         xp = self.xp_module
 
         """Solve Gauss' law for the electric potential.
@@ -820,7 +829,16 @@ class timeDomainCollocationSolver:
 
         Outputs: None (sets self.phi to computed potential)
         """
-        r = -self.params.alpha*(ni-ne)
+
+        r = xp.zeros((self.Np, 1),dtype=xp.float64)
+
+        for i in range(self.Ns):
+            if self.params.charge(i) != 0:
+                r += self.params.charge(i) * dens[:,[i]] 
+        
+        r *= -self.params.alpha  
+        
+        # r = -self.params.alpha*(ni-ne)
         r[0] = 0.0
         r[-1] = xp.sin(2*xp.pi*time) + self.params.verticalShift
         # self.phi = xp.linalg.solve(self.LpD, r)
@@ -844,10 +862,11 @@ class timeDomainCollocationSolver:
         xp = self.xp_module
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
-        iele = [0]              # Electrons
-        iion = [1]              # Ions
-        # inb  = [self.Ns - 1]  # Background species
-        iee  = [self.Ns]        # Electron Energy
+        iele  = [0]             # Electrons
+        iion  = list(range(1, 1 + self.Nion)) # Ions Ar+, Ar2+
+        inb   = [self.Ns-1]     # Background species
+        iee   = [self.Ns]       # Electron Energy
+        # iEeff = [self.Nv -1]    # Ion Effective Electric field
 
      
         
@@ -861,7 +880,7 @@ class timeDomainCollocationSolver:
         Te = nT/dens[:,iele]
   
         if self.IonEffEField: 
-            Eeff = Uin[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np] # Effective electric field for argon ions
+            Eeff = Uin[(self.Nv-1)*self.Np:(self.Nv)*self.Np] # Effective electric field for argon ions
 
 
         ntot = xp.zeros((self.Np, 1),dtype=xp.float64)
@@ -870,7 +889,7 @@ class timeDomainCollocationSolver:
             ntot[:,0] += dens[:,i]
 
         # add background contribution (accounting for non-dim difference)
-        ntot[:,0] += self.params.nAronp0 * dens[:,self.Ns-1]
+        ntot[:,0] += self.params.nAronp0 * dens[:,inb[0]]
 
         # Temperature (from ideal gas law)
         Tg = xp.zeros((self.Np, 1),dtype=xp.float64)
@@ -882,7 +901,7 @@ class timeDomainCollocationSolver:
           
         # solve poisson equation for phi
         # now have self.phi
-        self.solve_poisson(dens[:,iele],dens[:,iion],time)
+        self.solve_poisson(dens,time)
 
         # Form fluxes at grid points
         dens_x = self.Dp @ dens
@@ -890,105 +909,96 @@ class timeDomainCollocationSolver:
         phi_x  = self.Dp @ self.phi
 
         # Reduced Electric field  E / N 
-        EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] 
-        # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
+        EN =  xp.abs(- phi_x)  / dens[:,inb] 
+        # EN_Td = 1e21 * xp.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,inb]) #  Electric field / N [Td]   
         if self.IonEffEField:
-            ENion =  np.abs(Eeff)  / dens[:,[self.Ns-1]] 
+            ENion =  xp.abs(Eeff)  / dens[:,inb] 
         else:
             ENion =  EN
 
 
         # Temperature of species
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64) #NOTE(malamast): We now have self.Ns+1 instead of Ns
-        energy[:,iele[0]] = EN[:,0] # For electrons
-        energy[:,iion[0]] = ENion[:,0] # For ions Ar+
-        for i in range(2,self.Ns):
+
+        # Initialize all energies to heavy species...
+        for i in range(0,self.Ns):
             energy[:,i] = Tg[:,0] # For species
-        energy[:,iee[0]] = EN[:,0] # For electron energy
+
+        # and overwrite for some
+        energy[:,iele[0]] = Te[:,0] # Electrons
+
+        for i in range(0, self.Nion):
+          energy[:,iion[i]] = ENion[:,0] # For ions
+
+        energy[:,iee[0]] = Te[:,0] # Electron energy
 
         # Transport Properties for species
-        # NOTE(malamast): We now include transport coefficients for the electron energy equation
         mu              = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         
         for i in range(0,self.Ns+1):
-            mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
-            diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,self.Ns-1],
+            mu[:,i]  = self.params.mobility(i, energy, dens[:,inb[0]])
+            diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,inb[0]],
                                                        Te[:,0], Tg[:,0], self.EinsteinForm, self.EinsteinFormIon)
 
         if self.EinsteinForm:
             mu[:,iee[0]] = (5./3.) * mu[:,iele[0]] 
             diffusivity[:,iee[0]] = (5./3.) * diffusivity[:,iele[0]] 
-
-
-        # L   = 2.00*0.005     # half-gap-width [m] (gap width is 2 cm)
-        # xr = (self.xp+1)*L*100 # [cm]
-
-        # fig,ax = plt.subplots(dpi=160)
-        # ax.plot(xr, mu[:,0])
-        # ax.legend(fontsize=12)
-        # ax.set_xlim((xr[0], xr[-1]))
-        # ax.set_ylabel(r"$\mu_e \, $ [$ \, m^{2}/V/s$]")
-        # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
-        # plt.setp(ax.get_xticklabels(), fontsize=12)
-        # plt.setp(ax.get_yticklabels(), fontsize=12)
-        # plt.axhline(y=self.params.mu[0], color='k', linestyle='--')
-
-
-        # fig,ax = plt.subplots(dpi=160)
-        # ax.plot(xr, diffusivity[:,0])
-        # ax.legend(fontsize=12)
-        # ax.set_xlim((xr[0], xr[-1]))
-        # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
-        # plt.setp(ax.get_xticklabels(), fontsize=12)
-        # plt.setp(ax.get_yticklabels(), fontsize=12)
-        # plt.axhline(y=self.params.D[0], color='k', linestyle='--')
-
-        # plt.show()
-        # exit(-1)
+            
 
         # Form species fluxes
         fspec = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
             if self.params.charge(i) != 0.0:
-                if self.IonEffEField and i == iion[0]:
+                if self.IonEffEField and self.params.charge(i) > 0:
                     fspec[:,i] += self.params.charge(i)*xp.multiply(mu[:,i], dens[:,i])*(Eeff[:,0])
                 else: 
                     fspec[:,i] += self.params.charge(i)*xp.multiply(mu[:,i], dens[:,i])*(-phi_x[:,0])
             fspec[:,i] -= xp.multiply(diffusivity[:,i],dens_x[:,i])  
 
-
         # Form electron energy flux                        
         # (See G J M Hagelaar and L C Pitchford 2005 Plasma Sources Sci. Technol. 14 722)
         fT = xp.zeros((self.Np, 1),dtype=xp.float64)
-        #NOTE(malamas): Do I need to add the dDe/dx part here? The Bolsig reports De is within the derivative.
+        #NOTE(malamas): Do I need to add the dDe/dx part here? The Bolsig paper reports De is within the derivative.
         fT[:,0] = -mu[:,iee[0]]*nT[:,0]*(-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee[0]], nT_x[:,0])
 
-
-        # overwrite endpoints in fe (weakly impose BC)        
         if (weak_bc):
+        # overwrite endpoints in fi (weakly impose BC)
+        # in 1D, the unit normal vector is nx = −1 on the ’left’ and nx = 1 on the ’right’ boundary
+
             if self.IonEffEField:
-                fspec[ 0,iion[0]] = -self.params.ksion * dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * ( max(Eeff[ 0,0]*(-1),0.0) ) * (-1)
-                fspec[-1,iion[0]] =  self.params.ksion * dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * ( max(Eeff[-1,0],0.0) )
+                for i in range(0, self.Nion):
+                    fspec[ 0,iion[i]] = -self.params.ksion * dens[ 0,iion[i]] + mu[ 0,iion[i]] * dens[ 0,iion[i]] * ( max(Eeff[ 0,0]*(-1),0.0) ) * (-1)
+                    fspec[-1,iion[i]] =  self.params.ksion * dens[-1,iion[i]] + mu[-1,iion[i]] * dens[-1,iion[i]] * ( max(Eeff[-1,0],0.0) )
             else:
-                fspec[ 0,iion[0]] = -self.params.ksion * dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * ( max(-phi_x[ 0,0]*(-1),0.0) ) * (-1)
-                fspec[-1,iion[0]] =  self.params.ksion * dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * ( max(-phi_x[-1,0],0.0) )
+                for i in range(0, self.Nion):
+                    fspec[ 0,iion[i]] = -self.params.ksion * dens[ 0,iion[i]] + mu[ 0,iion[i]] * dens[ 0,iion[i]] * ( max(-phi_x[ 0,0]*(-1),0.0) ) * (-1)
+                    fspec[-1,iion[i]] =  self.params.ksion * dens[-1,iion[i]] + mu[-1,iion[i]] * dens[-1,iion[i]] * ( max(-phi_x[-1,0],0.0) )
 
         # Strong BC equations
-        rstrg = xp.zeros(6)
-        rstrg[0] = fspec[ 0,iele[0]] - (- self.params.ks * dens[ 0,iele[0]] * Te[0,0]**0.5 - self.params.gam * fspec[ 0,iion[0]]) # NOTE(malamast): Should I set a if condition in case fspec is towards the plasma?
-        rstrg[1] = fspec[-1,iele[0]] - (+ self.params.ks * dens[-1,iele[0]] * Te[-1,0]**0.5 - self.params.gam * fspec[-1,iion[0]])
+        rstrg = xp.zeros(8)
+
+        fionL = 0.0
+        fionR = 0.0
+        for i in range(0, self.Nion):
+            fionL += fspec[ 0, iion[i]]
+            fionR += fspec[-1, iion[i]]
+
+        rstrg[0] = fspec[ 0,iele[0]] - (- self.params.ks * dens[ 0,iele[0]] * Te[ 0,0]**0.5 - self.params.gam * fionL )
+        rstrg[1] = fspec[-1,iele[0]] - (+ self.params.ks * dens[-1,iele[0]] * Te[-1,0]**0.5 - self.params.gam * fionR )
 
         if self.IonEffEField:
-            rstrg[2] = fspec[ 0,iion[0]] - (- self.params.ksion*dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * max(Eeff[ 0,0]*(-1),0.0) * (-1) )
-            rstrg[3] = fspec[-1,iion[0]] - (+ self.params.ksion*dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * max(Eeff[-1,0],0.0) )
+            for i in range(0, self.Nion):
+                rstrg[2 + 2*i] = fspec[ 0,iion[i]] - (- self.params.ksion*dens[ 0,iion[i]] + mu[ 0,iion[i]] * dens[ 0,iion[i]] * max(Eeff[ 0,0]*(-1),0.0) * (-1) )
+                rstrg[3 + 2*i] = fspec[-1,iion[i]] - (+ self.params.ksion*dens[-1,iion[i]] + mu[-1,iion[i]] * dens[-1,iion[i]] * max(Eeff[-1,0],0.0) )
         else:
-            rstrg[2] = fspec[ 0,iion[0]] - (- self.params.ksion*dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * max(-phi_x[ 0,0]*(-1),0.0) * (-1) )
-            rstrg[3] = fspec[-1,iion[0]] - (+ self.params.ksion*dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * max(-phi_x[-1,0],0.0) )
+            for i in range(0, self.Nion):
+                rstrg[2 + 2*i] = fspec[ 0,iion[i]] - (- self.params.ksion*dens[ 0,iion[i]] + mu[ 0,iion[i]] * dens[ 0,iion[i]] * max(-phi_x[ 0,0]*(-1),0.0) * (-1) )
+                rstrg[3 + 2*i] = fspec[-1,iion[i]] - (+ self.params.ksion*dens[-1,iion[i]] + mu[-1,iion[i]] * dens[-1,iion[i]] * max(-phi_x[-1,0],0.0) )
 
-        rstrg[4] = fT[0,0] - (- (5./3.)*self.params.ks * Te[0,0]**0.5 * nT[0,0] - self.params.gam * fspec[ 0,iion[0]] * self.params.EeBC )
-        rstrg[5] = fT[-1,0] - (+ (5./3.)*self.params.ks * Te[-1,0]**0.5 * nT[-1,0] - self.params.gam * fspec[-1,iion[0]] * self.params.EeBC )
 
+        rstrg[6] = fT[ 0,0] - (- (5./3.)*self.params.ks * Te[ 0,0]**0.5 * nT[ 0,0] - self.params.gam * fionL * self.params.EeBC )
+        rstrg[7] = fT[-1,0] - (+ (5./3.)*self.params.ks * Te[-1,0]**0.5 * nT[-1,0] - self.params.gam * fionR * self.params.EeBC )
 
         # form derivatives of fluxes at collocation points
         fspec_x = self.Dp @ fspec
@@ -1001,7 +1011,7 @@ class timeDomainCollocationSolver:
 
         # Form reaction source terms at collocation points
         if (self.solveCRModel):
-             
+                        
             vars_CR = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)                
             # ground state. background species is first in the CR model arrangement            
             vars_CR[:,0:self.Ns] = dens[:, self.cr.FromGlowDischargeToCRIndexing[0:-1]]*self.params.np0
@@ -1017,7 +1027,8 @@ class timeDomainCollocationSolver:
             omega = xp.zeros_like(omega_CR)
             omega = omega_CR[:, self.cr.FromCRToGlowDischargeIndexing] * self.params.tauOvernp0
             omega [:,self.Ns-1] /=  self.params.nAronp0  
-            Qrad[:,0] = Qrad_CR * self.params.tauOvernp0                        
+            Qrad[:,0] = Qrad_CR * self.params.tauOvernp0   
+            
         else:
             omega = self.params.rxnSourceTerm(Te, dens)
         
@@ -1027,26 +1038,30 @@ class timeDomainCollocationSolver:
         SJ = -self.params.qStar*fspec[:,iele]*(-phi_x) 
 
         # Elastic collision term at collocation points
-        SEC  = -self.params.EC * (nT - xp.multiply(dens[:, iele], Tg)) #NOTE(malamast): This was dens[0, iele] and I changed it to dens[:, iele] 
+        SEC  = -self.params.EC * (nT - xp.multiply(dens[:, iele], Tg)) 
         SEC *= self.elasticCollisionActivationFactor
         
         
+
+        
         # evaluate S---the source term required in the background
         # species evolution to ensure constant pressure
-        fa = xp.copy(fT)
+        fa = xp.copy(fT) # Here we include the contribution from electrons
+        
         for i in range(1,self.Ns-1): 
-            if self.params.charge(i) != 0.0:
-                if self.IonEffEField and i == iion[0]:
-                    fa[:,0] += (5./3.)*(self.params.charge(i) * xp.multiply(mu[:,i],
-                                        xp.multiply(dens[:,i],Tg[:,0]) * (Eeff[:,0])))
+            CpOverCv = self.params.Cp[i]/self.params.Cv[i]            
+            if self.params.charge(i) != 0:                
+                if self.IonEffEField and self.params.charge(i) > 0:
+                    fa[:,0] += CpOverCv * (self.params.charge(i) * xp.multiply(mu[:,i], 
+                                xp.multiply(dens[:,i], self.params.Cv[i] * self.TwoOverThree*Tg[:,0] )  * (Eeff[:,0])))
                 else:
-                    fa[:,0] += (5./3.)*(self.params.charge(i) * xp.multiply(mu[:,i],
-                                        xp.multiply(dens[:,i],Tg[:,0]) * (-phi_x[:,0])))
-            fa[:,0] -= (5./3.)*(xp.multiply(diffusivity[:,i], (self.Dp @ xp.multiply(dens[:,i],Tg[:,0])))) 
+                    fa[:,0] += CpOverCv * (self.params.charge(i) * xp.multiply(mu[:,i],
+                                xp.multiply(dens[:,i],self.params.Cv[i] * self.TwoOverThree*Tg[:,0]) * (-phi_x[:,0])))
+            fa[:,0] -= CpOverCv * (xp.multiply(diffusivity[:,i], 
+                        (self.Dp @ xp.multiply(dens[:,i],self.params.Cv[i] * self.TwoOverThree*Tg[:,0])))) 
             
-
         # background thermal conductivity contribution
-        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0]) 
+        fa[:,0] += - self.params.kappaB * (self.Dp @ ( self.params.Cv[inb[0]] * self.TwoOverThree*Tg[:,0])) 
 
         fa_x = self.Dp @ fa
 
@@ -1056,16 +1071,19 @@ class timeDomainCollocationSolver:
 
 
         joule = xp.zeros((self.Np,1),dtype=xp.float64)
-        for i in range(0, self.Ns-1): #NOTE(malamast): Should this be a loop or just electrons?
-            if self.params.charge(i) != 0.0:
-                if self.IonEffEField and i == iion[0]:
+        for i in range(0, self.Ns-1): 
+            if self.params.charge(i) != 0:
+                if self.IonEffEField and self.params.charge(i) > 0:
                     joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(Eeff[:,0])        
                 else:
                     joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])        
 
         S = xp.zeros((self.Np,1),dtype=xp.float64)
         # NOTE(malamast): The species fluxes -fspec_x * dEps cancel out with some terms in -dq/dx
-        S[:,0] = (sOmEp[:,0] + fa_x[:,0] - joule[:,0] -Qrad[:,0])/Tg[:,0]/self.params.nAronp0
+        S[:,0] = (sOmEp[:,0] + fa_x[:,0] - joule[:,0] -Qrad[:,0]) / \
+                    (self.params.Cv[inb[0]] * self.TwoOverThree*Tg[:,0])/self.params.nAronp0
+
+
 
         # form full residual
         res = xp.zeros((self.Nv*self.Np,1))
@@ -1085,7 +1103,7 @@ class timeDomainCollocationSolver:
 
         #  Effective electric field for ions
         if self.IonEffEField:
-            res[(self.Ns+1)*self.Np:] = -dt * self.params.vmStar * (-phi_x - Eeff) / mu[:,iion]
+            res[(self.Nv-1)*self.Np:self.Nv*self.Np] = -dt * self.params.vmStar * (-phi_x - Eeff) / mu[:,[iion[0]]]
         
         
 
@@ -1107,7 +1125,7 @@ class timeDomainCollocationSolver:
 
         # solve poisson equation for phi
         # now have self.phi
-        self.solve_poisson(dens_previousTimeStep[:,iele],dens_previousTimeStep[:,iion],time)
+        self.solve_poisson(dens_previousTimeStep,time)
 
         # form fluxes at grid points
         E_previousTimeStep  = -self.Dp @ self.phi
@@ -1135,7 +1153,7 @@ class timeDomainCollocationSolver:
         self.totalCurrent[-1,0] = (displacementCurrent[-1,0] \
             + particleCurrent[-1,iion[0]] + particleCurrent[-1,iele[0]]) * self.params.eArea
             
-        self.ionCurrent[:]      = particleCurrent[:,iion] * self.params.eArea
+        self.ionCurrent[:]      = particleCurrent[:,[iion[0]]] * self.params.eArea
         self.electronCurrent[:] = particleCurrent[:,iele] * self.params.eArea
 
 
@@ -1177,7 +1195,7 @@ class timeDomainCollocationSolver:
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]
-        iion = [1]
+        iion  = list(range(1, 1 + self.Nion)) # Ions Ar+, Ar2+
 
         # pull off state for convenience
         dens = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
@@ -1198,14 +1216,15 @@ class timeDomainCollocationSolver:
 
         if (not weak_bc):
             # ion flux
-            res[self.Np]     = rstrg[2]
-            res[2*self.Np-1] = rstrg[3]
+            for i in range(0, self.Nion):
+              res[iion[i] * self.Np]     = rstrg[2 + 2*i]
+              res[(iion[i]+1)*self.Np-1] = rstrg[3 + 2*i]
 
-        # # electron temperature
-        # res[self.Ns*self.Np  ]     = rstrg[4]
-        # res[(self.Ns+1)*self.Np-1] = rstrg[5]
+        # electron temperature
+        res[self.Ns*self.Np  ]     = rstrg[6]
+        res[(self.Ns+1)*self.Np-1] = rstrg[7]
 
-        for i in range(2,self.Ns-1):
+        for i in range(self.Nion+1,self.Ns-1):
             res[i*self.Np  ] = dens[ 0,i] - 0.0
             res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
 
@@ -1225,10 +1244,10 @@ class timeDomainCollocationSolver:
             res[ self.Ns*self.Np-1 ] = dens[ -1,self.Ns-1] \
                 - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
 
-
         # electron temperature
-        res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC * dens[0,iele])
-        res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC * dens[-1,iele])
+        if (self.params.electron_energy_dirichlet):
+            res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC * dens[0,iele])
+            res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC * dens[-1,iele])
 
         # No BC for Eeff (the effective electric field for ions)
 
@@ -1246,7 +1265,7 @@ class timeDomainCollocationSolver:
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
         iele = [0]
-        iion = [1]
+        iion  = list(range(1, 1 + self.Nion)) # Ions Ar+, Ar2+
 
         # pull off state for convenience
         dens = xp.ndarray((self.Np, self.Ns),dtype=xp.float64)
@@ -1266,14 +1285,15 @@ class timeDomainCollocationSolver:
 
         if (not weak_bc):
             # ion flux
-            res[self.Np]     = rstrg[2]
-            res[2*self.Np-1] = rstrg[3]
+            for i in range(0, self.Nion):
+              res[iion[i] * self.Np]     = rstrg[2 + 2*i]
+              res[(iion[i]+1)*self.Np-1] = rstrg[3 + 2*i]
 
-        # # electron temperature
-        # res[self.Ns*self.Np  ]     = rstrg[4]
-        # res[(self.Ns+1)*self.Np-1] = rstrg[5]
+        # electron temperature
+        res[self.Ns*self.Np  ]     = rstrg[6]
+        res[(self.Ns+1)*self.Np-1] = rstrg[7]
 
-        for i in range(2,self.Ns-1):
+        for i in range(self.Nion+1,self.Ns-1):
             res[i*self.Np  ] = dens[ 0,i] - 0.0
             res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
 
@@ -1294,8 +1314,9 @@ class timeDomainCollocationSolver:
                 - ((self.params.p0 - nT[ -1]) / self.params.Tg0 - ntot[-1]) / self.params.nAronp0
 
         # electron temperature
-        res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC*dens[0,iele])
-        res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC*dens[-1,iele])
+        if (self.params.electron_energy_dirichlet):
+            res[self.Ns*self.Np  ] = (nT[ 0] - self.params.EeBC * dens[0,iele])
+            res[(self.Ns+1)*self.Np-1] = (nT[-1] - self.params.EeBC * dens[-1,iele])
 
         # No BC for Eeff (the effective electric field for ions)
 
@@ -1377,11 +1398,12 @@ class timeDomainCollocationSolver:
         xp = self.xp_module
 
         # indices of electrons/ions (in list s.t. dens[:,iele].shape = (Np,1)
-        iele = [0]              # Electrons
-        iion = [1]              # Ions
-        # inb  = [self.Ns - 1]  # Background species
-        iee  = [self.Ns]        # Electron Energy
-
+        iele  = [0]             # Electrons
+        iion  = list(range(1, 1 + self.Nion)) # Ions Ar+, Ar2+
+        iAr2m = [3]             # Molecular Argon Ar2m
+        inb   = [self.Ns-1]     # Background species
+        iee   = [self.Ns]       # Electron Energy
+        # iEeff = [self.Nv -1]    # Ion Effective Electric field
 
                 
         Imat    = self.I_Np 
@@ -1396,7 +1418,7 @@ class timeDomainCollocationSolver:
 
 
         if self.IonEffEField:
-            Eeff = Uin[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np] # Effective electric field for argon ions
+            Eeff = Uin[(self.Nv-1)*self.Np:self.Nv*self.Np] # Effective electric field for argon ions
 
 
         ntot = xp.zeros((self.Np,1),dtype=xp.float64)
@@ -1408,7 +1430,7 @@ class timeDomainCollocationSolver:
             # ntot_U[:,i] += xp.ones(self.Np)
 
         # background contribution
-        ntot[:,0] += self.params.nAronp0 * dens[:,self.Ns-1]
+        ntot[:,0] += self.params.nAronp0 * dens[:,inb[0]]
         # ntot_U[:,self.Ns-1] += self.params.nAronp0*xp.ones(self.Np)
         ntot_U = self.ntot_U
 
@@ -1423,7 +1445,7 @@ class timeDomainCollocationSolver:
         Tg_U[:,self.Ns] += -self.ones_Np/ntot[:,0]
 
         # NOTE(malamast): I clip the electron temperature when a low value occurs. 
-        # Te = np.where(Te < Tg,Tg, Te) 
+        # Te = xp.where(Te < Tg,Tg, Te) 
 
         Te_U = xp.zeros((self.Np, self.Nv),dtype=xp.float64)
         Te_U[:,0] = -Te[:,0]/dens[:,iele[0]]
@@ -1436,7 +1458,7 @@ class timeDomainCollocationSolver:
 
         # force solving poisson equation again
         if (solve_poisson):
-            self.solve_poisson(dens[:,iele],dens[:,iion],time)
+            self.solve_poisson(dens,time)
 
 
         # form flux Jacobians
@@ -1444,17 +1466,19 @@ class timeDomainCollocationSolver:
         nT_x   = self.Dp @ nT
         phi_x  = self.Dp @ self.phi
 
-        phi_x_ne = self.phi_x_ne
-        phi_x_ni = self.phi_x_ni
+        # phi_x_ne = self.phi_x_ne
+        # phi_x_ni = self.phi_x_ni
+        phi_x_n = self.phi_x_n
 
 
         # Reduced Electric field  E / N 
-        EN =  np.abs(- phi_x)  / dens[:,[self.Ns-1]] 
-        # EN_Td = 1e21 * np.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,[self.Ns-1]]) #  Electric field / N [Td]   
-        Esign = -phi_x/dens[:,[self.Ns-1]]/EN # NOTE(malamast): This is needed to get the derivatives of EN based on those of -phe_x
+        EN =  xp.abs(- phi_x)  / dens[:,inb] 
+        # EN_Td = 1e21 * xp.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,inb]) #  Electric field / N [Td]   
+        # Esign = xp.ones_like(phi_x)
+        Esign = -phi_x/dens[:,inb]/EN # NOTE(malamast): This is needed to get the derivatives of EN based on those of -phe_x
         if self.IonEffEField:
-            ENion =  np.abs(Eeff)  / dens[:,[self.Ns-1]] 
-            Eeffsign = Eeff/dens[:,[self.Ns-1]]/ENion # NOTE(malamast): This is needed to get the derivatives of EN based on those of -phe_x
+            ENion =  xp.abs(Eeff)  / dens[:,inb] 
+            Eeffsign = Eeff/dens[:,inb]/ENion 
         else:
             ENion =  EN
             Eeffsign = Esign
@@ -1465,15 +1489,22 @@ class timeDomainCollocationSolver:
         energy = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         mu     = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
         diffusivity = xp.zeros((self.Np, self.Ns+1),dtype=xp.float64)
-        energy[:,iele[0]] = EN[:,0]    # For electrons
-        energy[:,iion[0]] = ENion[:,0] # For ions
-        for i in range(2,self.Ns): 
-            energy[:,i] = Tg[:,0]
-        energy[:,iee[0]] = EN[:,0]
+
+        # Initialize all energies to heavy species...
+        for i in range(0,self.Ns):
+            energy[:,i] = Tg[:,0] # For species
+
+        # and overwrite for some
+        energy[:,iele[0]] = Te[:,0] # Electrons
+
+        for i in range(0, self.Nion):
+          energy[:,iion[i]] = ENion[:,0] # For ions
+
+        energy[:,iee[0]] = Te[:,0] # Electron energy
 
         for i in range(0,self.Ns+1):
-            mu[:,i]  = self.params.mobility(i, energy, dens[:,self.Ns-1])
-            diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,self.Ns-1],
+            mu[:,i]  = self.params.mobility(i, energy, dens[:,inb[0]])
+            diffusivity[:,i] = self.params.diffusivity(i, energy, mu, dens[:,inb[0]],
                                                        Te[:,0], Tg[:,0], self.EinsteinForm, self.EinsteinFormIon)
 
         if self.EinsteinForm:
@@ -1485,26 +1516,31 @@ class timeDomainCollocationSolver:
 
 
         energy_U = xp.zeros((self.Ns+1, self.Nv, self.Np, self.Np),dtype=xp.float64)
-        # # Use this if me is a function of Te
-        # energy_U[0,0,:,:] = Te_ne; energy_U[0,self.Ns,:,:] = Te_nT 
-        # energy_U[iee[0],0,:,:] = Te_ne; energy_U[iee[0],self.Ns,:,:] = Te_nT
-        # Use this if me is a function of EN
-        energy_U[0,0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ne)) 
-        energy_U[0,1,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ni)) 
-        energy_U[0,self.Ns-1,:,:] = -xp.multiply(EN/dens[:,[self.Ns-1]],Imat) 
-        energy_U[iee[0],0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ne))  
-        energy_U[iee[0],1,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ni))  
-        energy_U[iee[0],self.Ns-1,:,:] = -xp.multiply(EN/dens[:,[self.Ns-1]],Imat) 
+        # Use this if me is a function of Te
+        energy_U[0,0,:,:] = Te_ne; energy_U[0,self.Ns,:,:] = Te_nT 
+        energy_U[iee[0],0,:,:] = Te_ne; energy_U[iee[0],self.Ns,:,:] = Te_nT
+        # # Use this if me is a function of EN
+        # for j in range(0,self.Ns): 
+        #     if self.params.charge(j) != 0:
+        #         energy_U[iele[0],j,:,:]         = xp.diag(1/dens[:,inb[0]]) @ (Esign*(self.params.charge(j)*(-phi_x_n)))
+        #         energy_U[iee[0],j,:,:]          = xp.diag(1/dens[:,inb[0]]) @ (Esign*(self.params.charge(j)*(-phi_x_n)))
+        # energy_U[iele[0],self.Ns-1,:,:] = -xp.multiply(EN/dens[:,inb],Imat) 
+        # energy_U[iee[0],self.Ns-1,:,:]  = -xp.multiply(EN/dens[:,inb],Imat) 
 
         if not self.IonEffEField:            
-            energy_U[1,0,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ne))  
-            energy_U[1,1,:,:] = np.diag(1/dens[:,self.Ns-1]) @ (Esign*(-phi_x_ni))  
-        else:            
-            energy_U[1,self.Nv-1,:,:] = np.diag(Eeffsign[:,0]/dens[:,self.Ns-1])            
-        energy_U[1,self.Ns-1,:,:] = -xp.multiply(ENion/dens[:,[self.Ns-1]],Imat) 
-                
-        
-        for i in range(2,self.Ns): 
+            for j in range(0,self.Ns): 
+                if self.params.charge(j) != 0:
+                    for i in range(0, self.Nion):
+                        energy_U[iion[i],j,:,:]  = xp.diag(1/dens[:,inb[0]]) @ (Esign*(self.params.charge(j)*(-phi_x_n)))
+        else:
+            for i in range(0, self.Nion):
+                energy_U[iion[i],self.Nv-1,:,:] = xp.diag(Eeffsign[:,0]/dens[:,inb[0]])
+
+        for i in range(0, self.Nion):
+          energy_U[iion[i],self.Ns-1,:,:] = -xp.multiply(ENion/dens[:,inb],Imat)
+
+
+        for i in range(self.Nion+1,self.Ns): 
             for j in range(1,self.Nv):
                 energy_U[i,j,:,:] = xp.multiply(Imat,Tg_U[:,j]) # NOTE(malamast): This assumes that the diffusion coefficients of species 
                                                                 # is a function of Tg. It is not used for constant D's
@@ -1522,17 +1558,16 @@ class timeDomainCollocationSolver:
 
         if self.EinsteinForm:
             for j in range(0,self.Nv):
-                mu_U[iee[0],j,:,:] = (5./3.) * mu_U[0,j,:,:]
-                diffusivity_U[iee[0],j,:,:] = (5./3.) * diffusivity_U[0,j,:,:]
+                mu_U[iee[0],j,:,:] = (5./3.) * mu_U[iele[0],j,:,:]
+                diffusivity_U[iee[0],j,:,:] = (5./3.) * diffusivity_U[iele[0],j,:,:]
             
-
 
         
         # must have these for joule heating terms
         fspec = xp.zeros((self.Np, self.Ns),dtype=xp.float64)
         for i in range(0,self.Ns):
-            if self.params.charge(i) != 0.0:
-                if self.IonEffEField and i == iion[0]:
+            if self.params.charge(i) != 0:
+                if self.IonEffEField and self.params.charge(i) > 0:
                     fspec[:,i] += self.params.charge(i) * mu[:,i] * dens[:,i] * (Eeff[:,0])
                 else:
                     fspec[:,i] += self.params.charge(i) * mu[:,i] * dens[:,i] * (-phi_x[:,0])
@@ -1544,40 +1579,43 @@ class timeDomainCollocationSolver:
         fe[:,0] = fspec[:,0]
 
 
+        if (weak_bc):
+        # overwrite endpoints in fi (weakly impose BC)
+        # in 1D, the unit normal vector is nx = −1 on the ’left’ and nx = 1 on the ’right’ boundary
 
-        # # overwrite endpoints in fi (weakly impose BC)
-        # # in 1D, the unit normal vector is nx = −1 on the ’left’ and nx = 1 on the ’right’ boundary
-        # if self.IonEffEField:
-        #     fspec[ 0,1] = -self.params.ksion * dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * ( max(Eeff[ 0,0]*(-1),0.0) ) * (-1)
-        #     fspec[-1,1] =  self.params.ksion * dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * ( max(Eeff[-1,0],0.0) )
-        # else:
-        #     fspec[ 0,1] = -self.params.ksion * dens[ 0,iion[0]] + mu[ 0,iion[0]] * dens[ 0,iion[0]] * ( max(-phi_x[ 0,0]*(-1),0.0) ) * (-1)
-        #     fspec[-1,1] =  self.params.ksion * dens[-1,iion[0]] + mu[-1,iion[0]] * dens[-1,iion[0]] * ( max(-phi_x[-1,0],0.0) )                
+            if self.IonEffEField:
+                for i in range(0, self.Nion):
+                    fspec[ 0,iion[i]] = -self.params.ksion * dens[ 0,iion[i]] + mu[ 0,iion[i]] * dens[ 0,iion[i]] * ( max(Eeff[ 0,0]*(-1),0.0) ) * (-1)
+                    fspec[-1,iion[i]] =  self.params.ksion * dens[-1,iion[i]] + mu[-1,iion[i]] * dens[-1,iion[i]] * ( max(Eeff[-1,0],0.0) )
+            else:
+                for i in range(0, self.Nion):
+                    fspec[ 0,iion[i]] = -self.params.ksion * dens[ 0,iion[i]] + mu[ 0,iion[i]] * dens[ 0,iion[i]] * ( max(-phi_x[ 0,0]*(-1),0.0) ) * (-1)
+                    fspec[-1,iion[i]] =  self.params.ksion * dens[-1,iion[i]] + mu[-1,iion[i]] * dens[-1,iion[i]] * ( max(-phi_x[-1,0],0.0) )
+
 
         # species equations
         fspec_U = xp.zeros((self.Ns, self.Nv,self.Np, self.Np),dtype=xp.float64)
         for i in range(0,self.Ns-1): #  We do not include the background species here.
             fspec_U[i,i,:,:] -= xp.multiply(diffusivity[:,[i]], self.Dp) 
             if self.params.charge(i) != 0.0:
-                if self.IonEffEField and i == iion[0]:
+                if self.IonEffEField and self.params.charge(i) > 0:
                     fspec_U[i,i,:,:] += self.params.charge(i) \
                                     * xp.multiply(mu[:,[i]], xp.multiply(Imat,Eeff))
                     fspec_U[i,self.Nv-1,:,:] += self.params.charge(i) \
                                 * xp.multiply(mu[:,[i]], xp.multiply(Imat,dens[:,[i]]))                                    
-                else:                                
+                else:  
                     fspec_U[i,i,:,:] += self.params.charge(i) \
                                     * xp.multiply(mu[:,[i]], xp.multiply(Imat,-phi_x))
-                                
-                    fspec_U[i,0,:,:] += self.params.charge(i) \
-                                * xp.multiply(mu[:,[i]],xp.multiply(dens[:,[i]],-phi_x_ne))
-                    fspec_U[i,1,:,:] += self.params.charge(i) \
-                                * xp.multiply(mu[:,[i]], xp.multiply(dens[:,[i]],-phi_x_ni))
-   
+                    for j in range(0,self.Ns): 
+                        if self.params.charge(j) != 0:
+                            fspec_U[i,j,:,:] += self.params.charge(i) \
+                                        * xp.multiply(mu[:,[i]],xp.multiply(dens[:,[i]],(self.params.charge(j)*(-phi_x_n))))
+
                 
         for i in range(0,self.Ns-1):
             for j in range(0,self.Nv):
                 if self.params.charge(i) != 0.0:
-                    if self.IonEffEField and i == iion[0]:
+                    if self.IonEffEField and self.params.charge(i) > 0:
                         fspec_U[i,j,:,:] += self.params.charge(i) * xp.multiply(mu_U[i,j,:,:], xp.multiply(dens[:,[i]],Eeff))
                     else:
                         fspec_U[i,j,:,:] += self.params.charge(i) * xp.multiply(mu_U[i,j,:,:], xp.multiply(dens[:,[i]],-phi_x))
@@ -1587,115 +1625,123 @@ class timeDomainCollocationSolver:
         # energy equations
         fT = xp.zeros((self.Np, 1),dtype=xp.float64)
         fT[:,0] = -xp.multiply(mu[:,iee[0]],nT[:,0]) * (-phi_x[:,0]) -  xp.multiply(diffusivity[:,iee[0]], nT_x[:,0])
-
       
         fT_U = xp.zeros((self.Nv,self.Np, self.Np),dtype=xp.float64)
-        fT_U[0,:,:] = -mu[:,iee] * xp.multiply(nT,-phi_x_ne) #NOTE(malamast): Here we need to have iee instead of iee[0] to make it consistent. Why? Need to discuss with Todd.
-        fT_U[1,:,:] = -mu[:,iee] * xp.multiply(nT,-phi_x_ni)
-
+        for j in range(0,self.Ns): 
+            if self.params.charge(j) != 0:
+                fT_U[j,:,:]  = -mu[:,iee] * xp.multiply(nT,self.params.charge(j)*(-phi_x_n)) #NOTE(malamast): Here we need to have iee instead of iee[0] to make it consistent. Why? Need to discuss with Todd.
 
         for j in range(0, self.Nv):
             fT_U[j,:,:] -=  xp.multiply(mu_U[iee[0],j,:,:], xp.multiply(nT,-phi_x))
             fT_U[j,:,:] -=  xp.multiply(diffusivity_U[iee[0], j, :, :], nT_x[:,0])
 
-
         fT_U[self.Ns,:,:] +=  -xp.multiply(mu[:,iee],xp.multiply(Imat,-phi_x)) \
                               -xp.multiply(diffusivity[:,iee], self.Dp)
 
+
         if (weak_bc):
-            # overwrite endpoints in fi (weakly impose BC)
-            # in 1D, the unit normal vector is nx = −1 on the ’left’ and nx = 1 on the ’right’ boundary
-            for i in range(0,self.Nv):
-                fspec_U[1,i,0,:] = 0
-                fspec_U[1,i,-1,:] = 0
+        # overwrite endpoints in fi (weakly impose BC)
+        # in 1D, the unit normal vector is nx = −1 on the ’left’ and nx = 1 on the ’right’ boundary
 
-            if self.IonEffEField:
-                if ((Eeff[0,0] * (-1)) > 0.0):
-                    fspec_U[1,self.Nv-1,0,0] = mu[0,1] * dens[0,1] 
-                    for i in range(0,self.Nv):
-                        fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (Eeff[0,0])   
-                    fspec_U[1,1,0,0] += mu[0,1] * (Eeff[0,0])  
-            else:  
-                if ((-phi_x[0,0] * (-1)) > 0.0):
-                    fspec_U[1,0,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:])
-                    fspec_U[1,1,0,:] = mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:])
-                    for i in range(0,self.Nv):
-                        fspec_U[1,i,0,:] += mu_U[1,i,0,:] * dens[0,1] * (-phi_x[0,0])   
-                    fspec_U[1,1,0,0] += mu[0,1] * (-phi_x[0,0])                                         
-            fspec_U[1,1,0,0] += -self.params.ksion 
+            for i in range(0, self.Nion):
+                for j in range(0,self.Nv):
+                    fspec_U[iion[i],j,0,:] = 0
+                    fspec_U[iion[i],j,-1,:] = 0
 
-            if self.IonEffEField:
-                if ((Eeff[-1,0]) > 0.0):
-                    fspec_U[1,self.Nv-1,-1,-1] = mu[-1,1] * dens[-1,1]             
-                    for i in range(0,self.Nv):
-                        fspec_U[1,i,-1,:] += mu_U[1,i,-1,:] * dens[-1,1] * (Eeff[-1,0])
-                    fspec_U[1,1,-1,-1] += mu[-1,1] * (Eeff[-1,0])
-            else:
-                if ((-phi_x[-1,0]) > 0.0):
-                    fspec_U[1,0,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
-                    fspec_U[1,1,-1,:] = mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
-                    for i in range(0,self.Nv):
-                        fspec_U[1,i,-1,:] += mu_U[1,i,-1,:] * dens[-1,1] * (-phi_x[-1,0])
-                    fspec_U[1,1,-1,-1] += mu[-1,1] * (-phi_x[-1,0])                   
-            fspec_U[1,1,-1,-1] += self.params.ksion 
+                if self.IonEffEField:
+                    fspec_U[iion[i],self.Nv-1,0,0] = mu[0,iion[i]] * dens[0,iion[i]]
+                    for j in range(0,self.Nv):
+                        fspec_U[iion[i],j,0,:] += mu_U[iion[i],j,0,:] * dens[0,iion[i]] * (max(Eeff[0,0]*(-1),0.0)*(-1))
+                    fspec_U[iion[i],iion[i],0,0] += mu[0,iion[i]] * (max(Eeff[0,0]*(-1),0.0)*(-1))
+                else:
+                    for j in range(0,self.Ns):
+                        if self.params.charge(j) != 0:
+                            fspec_U[iion[i],j,0,:] = mu[0,iion[i]] * dens[0,iion[i]] * self.params.charge(j)*(-phi_x_n[ 0,:])
+                    for j in range(0,self.Nv):
+                        fspec_U[iion[i],j,0,:] += mu_U[iion[i],j,0,:] * dens[0,iion[i]] * (max(-phi_x[0,0]*(-1),0.0)*(-1))
+                    fspec_U[iion[i],iion[i],0,0] += mu[0,iion[i]] * (max(-phi_x[0,0]*(-1),0.0)*(-1))
+                fspec_U[iion[i],iion[i],0,0] += -self.params.ksion
+
+                if self.IonEffEField:
+                    fspec_U[iion[i],self.Nv-1,-1,-1] = mu[-1,iion[i]] * dens[-1,iion[i]]
+                    for j in range(0,self.Nv):
+                        fspec_U[iion[i],j,-1,:] += mu_U[iion[i],j,-1,:] * dens[-1,iion[i]] * (max(Eeff[-1,0],0.0))
+                    fspec_U[iion[i],iion[i],-1,-1] += mu[-1,iion[i]] * (max(Eeff[-1,0],0.0))
+                else:
+                    for j in range(0,self.Ns):
+                        if self.params.charge(j) != 0:
+                            fspec_U[iion[i],j,-1,:] = mu[-1,iion[i]] * dens[-1,iion[i]] * self.params.charge(j)*(-phi_x_n[-1,:])
+                    for j in range(0,self.Nv):
+                        fspec_U[iion[i],j,-1,:] += mu_U[iion[i],j,-1,:] * dens[-1,iion[i]] * (max(-phi_x[-1,0],0.0))
+                    fspec_U[iion[i],iion[i],-1,-1] += mu[-1,iion[i]] * (max(-phi_x[-1,0],0.0))
+                fspec_U[iion[i],iion[i],-1,-1] += self.params.ksion
 
 
-        rstrg_U = xp.zeros((6,self.Nv*self.Np))
+        rstrg_U = xp.zeros((8,self.Nv*self.Np))
 
         # electron flux BC
-        # rstrg_U[0,0:self.Np] = fspec_U[0,0,0,:] - (- self.params.gam*fspec_U[ 1,0,0,:])
-        # rstrg_U[0,self.Np:2*self.Np] = fspec_U[0,1,0,:] - (- self.params.gam*fspec_U[ 1,1,0,:])
-        # rstrg_U[0,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,0,:])
-        # rstrg_U[0,self.Ns*self.Np:] = fspec_U[0,self.Ns,0,:] - (- self.params.gam*fspec_U[ 1,self.Ns,0,:])
-        for i in range(0,self.Nv):
-            rstrg_U[0,i*self.Np:(i+1)*self.Np] = fspec_U[0,i,0,:] - (- self.params.gam*fspec_U[ 1,i,0,:])
-        rstrg_U[0,0] += self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,0])
-        rstrg_U[0,self.Ns*self.Np] += self.params.ks * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,0])
+        for j in range(0,self.Nv):
+            rstrg_U[0,j*self.Np:(j+1)*self.Np] = fspec_U[iele[0],j,0,:]
+            for i in range(0, self.Nion):
+                rstrg_U[0,j*self.Np:(j+1)*self.Np] += - (- self.params.gam * fspec_U[iion[i],j,0,:] )
+        rstrg_U[0,0] += self.params.ks * (Te[0,0]**0.5 + 0.5 * Te[0,0]**(-0.5) * Te_ne[0,0]* dens[0,iele[0]])
+        rstrg_U[0,self.Ns*self.Np] += self.params.ks * (0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] * dens[0,iele[0]])
 
-        # rstrg_U[1,0:self.Np] = fspec_U[0,0,-1,:] - (- self.params.gam*fspec_U[1,0,-1,:])
-        # rstrg_U[1,self.Np:2*self.Np] = fspec_U[0,1,-1,:] - (- self.params.gam*fspec_U[1,1,-1,:])
-        # rstrg_U[1,(self.Ns-1)*self.Np:self.Ns*self.Np] = fspec_U[0,self.Ns-1,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns-1,-1,:])
-        # rstrg_U[1,self.Ns*self.Np:] = fspec_U[0,self.Ns,-1,:] - (- self.params.gam*fspec_U[ 1,self.Ns,-1,:])
-        for i in range(0,self.Nv):
-            rstrg_U[1,i*self.Np:(i+1)*self.Np] = fspec_U[0,i,-1,:] - (- self.params.gam*fspec_U[1,i,-1,:])            
-        rstrg_U[1,self.Np-1] -= self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,0])
-        rstrg_U[1,(self.Ns+1)*self.Np-1] -= self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,0])
+        for j in range(0,self.Nv):
+            rstrg_U[1,j*self.Np:(j+1)*self.Np] = fspec_U[iele[0],j,-1,:]
+            for i in range(0, self.Nion):
+                rstrg_U[1,j*self.Np:(j+1)*self.Np] += - (- self.params.gam * fspec_U[iion[i],j,-1,:])
+        rstrg_U[1,self.Np-1] -= self.params.ks * (Te[-1,0]**0.5 + 0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1]* dens[-1,iele[0]])
+        rstrg_U[1,(self.Ns+1)*self.Np-1] -= self.params.ks * (0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1] * dens[-1,iele[0]])
+
 
         # ion flux BC
-        if self.IonEffEField:
-            for i in range(0,self.Nv):
-                rstrg_U[2,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,0,:] - mu_U[1,i,0,:] * dens[0,1] * (max(Eeff[0,0]*(-1),0.0) * (-1))
-            rstrg_U[2,self.Np] -= ( -self.params.ksion + mu[0,1] * (max(Eeff[0,0]*(-1),0.0) * (-1)) )
-            rstrg_U[2,(self.Nv-1)*self.Np] -= ( mu[0,1] * dens[0,1] ) # NOTE(malamast): I need to reconsider this one!
-        else:
-            for i in range(0,self.Nv):
-                rstrg_U[2,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,0,:] - mu_U[1,i,0,:] * dens[0,1] * (max(-phi_x[0,0]*(-1),0.0) * (-1))
-            rstrg_U[2,0:self.Np]          -= (mu[0,1] * dens[0,1] * (-phi_x_ne[ 0,:]))
-            rstrg_U[2,self.Np:2*self.Np]  -= (mu[0,1] * dens[0,1] * (-phi_x_ni[ 0,:]))                
-            rstrg_U[2,self.Np] -= ( -self.params.ksion + mu[0,1] * (max(-phi_x[0,0]*(-1),0.0) * (-1)) )
+        for i in range(0, self.Nion):
+            if self.IonEffEField:
+                for j in range(0,self.Nv):
+                    rstrg_U[2 + 2*i,j*self.Np:(j+1)*self.Np] = fspec_U[iion[i],j,0,:] - mu_U[iion[i],j,0,:] * dens[0,iion[i]] * (max(Eeff[0,0]*(-1),0.0) * (-1))
+                rstrg_U[2+2*i,iion[i]*self.Np] -= ( -self.params.ksion + mu[0,iion[i]] * (max(Eeff[0,0]*(-1),0.0) * (-1)) )
+                if Eeff[0,0] < 0.0:
+                    rstrg_U[2+2*i,(self.Nv-1)*self.Np] -= ( mu[0,iion[i]] * dens[0,iion[i]] ) # NOTE(malamast): I need to reconsider this one!
+            else:
+                for j in range(0,self.Nv):
+                    rstrg_U[2+2*i,j*self.Np:(j+1)*self.Np] = fspec_U[iion[i],j,0,:] - mu_U[iion[i],j,0,:] * dens[0,iion[i]] * (max(-phi_x[0,0]*(-1),0.0) * (-1))
+                if -phi_x[0,0] < 0.0:
+                    for j in range(0,self.Ns):
+                        if self.params.charge(j) != 0:
+                            rstrg_U[2+2*i,j*self.Np:(j+1)*self.Np] -= (mu[0,iion[i]] * dens[0,iion[i]] * self.params.charge(j)*(-phi_x_n[ 0,:]))
+                rstrg_U[2,iion[i]*self.Np] -= ( -self.params.ksion + mu[0,iion[i]] * (max(-phi_x[0,0]*(-1),0.0) * (-1)) )
 
-        if self.IonEffEField:
-            for i in range(0,self.Nv):
-                rstrg_U[3,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,-1,:] - mu_U[1,i,-1,:] * dens[-1,1] * (max(Eeff[-1,0],0.0))
-            rstrg_U[3,2*self.Np-1] -=  ( self.params.ksion + mu[-1,1] * (max(Eeff[-1,0],0.0)) )
-            rstrg_U[3,self.Nv*self.Np-1] -=  ( mu[-1,1] * dens[-1,1])
-        else:
-            for i in range(0,self.Nv):
-                rstrg_U[3,i*self.Np:(i+1)*self.Np] = fspec_U[1,i,-1,:] - mu_U[1,i,-1,:] * dens[-1,1] * (max(-phi_x[-1,0],0.0))
-            rstrg_U[3,0:self.Np]          -= mu[-1,1] * dens[-1,1] * (-phi_x_ne[-1,:])
-            rstrg_U[3,self.Np:2*self.Np]  -= mu[-1,1] * dens[-1,1] * (-phi_x_ni[-1,:])
-            rstrg_U[3,2*self.Np-1] -=  ( self.params.ksion + mu[-1,1] * (max(-phi_x[-1,0],0.0)) )                
+
+            if self.IonEffEField:
+                for j in range(0,self.Nv):
+                    rstrg_U[3+2*i,j*self.Np:(j+1)*self.Np] = fspec_U[iion[i],j,-1,:] - mu_U[iion[i],j,-1,:] * dens[-1,iion[i]] * (max(Eeff[-1,0],0.0))
+                rstrg_U[3+2*i,(iion[i]+1)*self.Np-1] -=  ( self.params.ksion + mu[-1,iion[i]] * (max(Eeff[-1,0],0.0)) )
+                if Eeff[-1,0] > 0.0:
+                    rstrg_U[3+2*i,self.Nv*self.Np-1] -=  ( mu[-1,iion[i]] * dens[-1,iion[i]])
+            else:
+                for j in range(0,self.Nv):
+                    rstrg_U[3+2*i,j*self.Np:(j+1)*self.Np] = fspec_U[iion[i],j,-1,:] - mu_U[iion[i],j,-1,:] * dens[-1,iion[i]] * (max(-phi_x[-1,0],0.0))
+                if -phi_x[-1,0] > 0.0:
+                    for j in range(0,self.Ns):
+                        if self.params.charge(j) != 0:
+                            rstrg_U[3+2*i,j*self.Np:(j+1)*self.Np] -= mu[-1,iion[i]] * dens[-1,iion[i]] * self.params.charge(j)*(-phi_x_n[-1,:])
+                rstrg_U[3+2*i,(iion[i]+1)*self.Np-1] -=  ( self.params.ksion + mu[-1,iion[i]] * (max(-phi_x[-1,0],0.0)) )
 
         # electron energy BC
-        for i in range(0,self.Nv):
-            rstrg_U[4,i*self.Np:(i+1)*self.Np] = fT_U[i,0,:] - ( - self.params.gam*fspec_U[ 1,i,0,:] * self.params.EeBC )
-        rstrg_U[4,0] += (5./3.)*self.params.ks * nT[0,0] * (0.5 * Te[0,0]**(-0.5) * Te_ne[0,0])
-        rstrg_U[4,self.Ns*self.Np] += (5./3.)*self.params.ks * (Te[0,0]**(0.5) + nT[0,0] * 0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] )
+        for j in range(0,self.Nv):
+            rstrg_U[6,j*self.Np:(j+1)*self.Np] = fT_U[j,0,:]
+            for i in range(0, self.Nion):
+                rstrg_U[6,j*self.Np:(j+1)*self.Np] += - ( - self.params.gam * (fspec_U[iion[i],j,0,:]) * self.params.EeBC )
+        rstrg_U[6,0] += (5./3.)*self.params.ks * nT[0,0] * (0.5 * Te[0,0]**(-0.5) * Te_ne[0,0])
+        rstrg_U[6,self.Ns*self.Np] += (5./3.)*self.params.ks * (Te[0,0]**(0.5) + nT[0,0] * 0.5 * Te[0,0]**(-0.5) * Te_nT[0,0] )
 
-        for i in range(0,self.Nv):
-            rstrg_U[5,i*self.Np:(i+1)*self.Np] = fT_U[i,-1,:] - ( - self.params.gam*fspec_U[1,i,-1,:] * self.params.EeBC )
-        rstrg_U[5,self.Np-1] -= (5./3.)*self.params.ks * nT[-1,0] * (0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1])
-        rstrg_U[5,self.Nv*self.Np-1] -= (5./3.)*self.params.ks * (Te[-1,0]**(0.5) + nT[-1,0] * 0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1])
+        for j in range(0,self.Nv):
+            rstrg_U[7,j*self.Np:(j+1)*self.Np] = fT_U[j,-1,:]
+            for i in range(0, self.Nion):
+                rstrg_U[7,j*self.Np:(j+1)*self.Np] += - ( - self.params.gam * (fspec_U[iion[i],j,-1,:]) * self.params.EeBC )
+        rstrg_U[7,self.Np-1] -= (5./3.)*self.params.ks * nT[-1,0] * (0.5 * Te[-1,0]**(-0.5) * Te_ne[-1,-1])
+        rstrg_U[7,(self.Ns+1)*self.Np-1] -= (5./3.)*self.params.ks * (Te[-1,0]**(0.5) + nT[-1,0] * 0.5 * Te[-1,0]**(-0.5) * Te_nT[-1,-1])
 
         # form Jacobians of derivatives of fluxes at collocation points
         fspec_x_U = xp.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=xp.float64)
@@ -1774,12 +1820,15 @@ class timeDomainCollocationSolver:
 
 
 
-
         # joule heating
-        SJ_ne = -self.params.qStar * ( xp.multiply(fspec_U[0,0,:,:],-phi_x) + xp.multiply(fe,-phi_x_ne))
-        SJ_ni = -self.params.qStar * ( xp.multiply(fspec_U[0,1,:,:],-phi_x) + xp.multiply(fe,-phi_x_ni))
-        SJ_nb = -self.params.qStar * xp.multiply(fspec_U[0,self.Ns-1,:,:],-phi_x)
-        SJ_nT = -self.params.qStar * xp.multiply(fspec_U[0,self.Ns,:,:],-phi_x)
+        SJ_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
+        for j in range(0, self.Nv):
+            SJ_U[j,:,:] = -self.params.qStar * xp.multiply(fspec_U[iele[0],j,:,:],-phi_x)
+
+        for j in range(0, self.Ns):
+            if self.params.charge(j) != 0:
+                SJ_U[j,:,:] -= self.params.qStar *  xp.multiply(fe , self.params.charge(j)*(-phi_x_n))           
+
 
         # elastic collisions
         SEC_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
@@ -1801,41 +1850,50 @@ class timeDomainCollocationSolver:
 
         naTg = xp.zeros((self.Np,1),dtype=xp.float64)        
         for i in range(1,self.Ns-1):
-            naTg[:,0] = dens[:,i]*Tg[:,0]
+            naTg[:,0] = dens[:,i]*Tg[:,0]*self.TwoOverThree * self.params.Cv[i]
+            CpOverCv = self.params.Cp[i]/self.params.Cv[i]
 
-            fa[:,0] -= (5./3.) * xp.multiply(diffusivity[:,i], (self.Dp @ naTg[:,0] ))
-            if self.params.charge(i) != 0.0:  
-                if self.IonEffEField and i == iion[0]:
-                    fa[:,0] += (5./3.) * self.params.charge(i)*xp.multiply(mu[:,i],xp.multiply(naTg[:,0],Eeff[:,0])) 
+            fa[:,0] -= CpOverCv * xp.multiply(diffusivity[:,i], (self.Dp @ naTg[:,0] ))
+            if self.params.charge(i) != 0:  
+                if self.IonEffEField and self.params.charge(i)>0:
+                    fa[:,0] += CpOverCv * self.params.charge(i) * \
+                                xp.multiply(mu[:,i],xp.multiply(naTg[:,0],Eeff[:,0])) 
 
-                    fa_U[self.Nv-1,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(Imat,naTg)))
-                    fa_U[i,:,:] += (5./3.) * self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(xp.diag(Tg[:,0]),Eeff))
+                    fa_U[self.Nv-1,:,:] += CpOverCv * (self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(Imat,naTg)))
+                    fa_U[i,:,:] += CpOverCv * self.params.charge(i)*xp.multiply(mu[:,[i]], 
+                                            xp.multiply(xp.diag(self.params.Cv[i] * self.TwoOverThree*Tg[:,0]),Eeff))
                 else:                              
-                    fa[:,0] += (5./3.) * self.params.charge(i)*xp.multiply(mu[:,i],xp.multiply(naTg[:,0],(-phi_x[:,0]))) 
+                    fa[:,0] += CpOverCv * self.params.charge(i) * \
+                                xp.multiply(mu[:,i],xp.multiply(naTg[:,0],(-phi_x[:,0]))) 
 
-                    fa_U[0,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(naTg,-phi_x_ne)))
-                    fa_U[1,:,:] += (5./3.)*(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(naTg,-phi_x_ni)))
+                    for j in range(0, self.Ns):
+                        if self.params.charge(j) != 0: 
+                            fa_U[j,:,:] += CpOverCv *(self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(naTg,self.params.charge(j)*(-phi_x_n))))
                 
-                    fa_U[i,:,:] += (5./3.) * self.params.charge(i)*xp.multiply(mu[:,[i]], xp.multiply(xp.diag(Tg[:,0]),-phi_x))
+                    fa_U[i,:,:] += CpOverCv * self.params.charge(i)*xp.multiply(mu[:,[i]], 
+                                            xp.multiply(xp.diag(self.params.Cv[i] * self.TwoOverThree*Tg[:,0]),-phi_x))
                 
-            fa_U[i,:,:] -= (5./3.) * xp.multiply(diffusivity[:,[i]], self.Dp @ xp.diag(Tg[:,0]))
+            fa_U[i,:,:] -= CpOverCv * xp.multiply(diffusivity[:,[i]], self.Dp @ xp.diag(self.params.Cv[i] * self.TwoOverThree*Tg[:,0]))
                                     
             for j in range(0, self.Nv):
-                fa_U[j,:,:] -= (5./3.)* xp.multiply(diffusivity[:,[i]], (self.Dp @ xp.multiply(dens[:,[i]],xp.diag(Tg_U[:,j]))))
+                fa_U[j,:,:] -= CpOverCv * xp.multiply(diffusivity[:,[i]], (self.Dp @ xp.multiply(dens[:,[i]],
+                                                xp.diag(self.params.Cv[i] * self.TwoOverThree*Tg_U[:,j]))))
                 if self.params.charge(i) != 0.0: 
-                    if self.IonEffEField and i == iion[0]:
-                        fa_U[j,:,:] += (5./3.)* self.params.charge(i) * xp.multiply(mu[:,[i]], xp.multiply(dens[:,i]*(Eeff),xp.diag(Tg_U[:,j])))  
-                        fa_U[j,:,:] += (5./3.) * self.params.charge(i)*xp.multiply(mu_U[i,j,:,:],xp.multiply(naTg[:,0],(Eeff[:,0])))
+                    if self.IonEffEField and self.params.charge(i)>0:
+                        fa_U[j,:,:] += CpOverCv * self.params.charge(i) * xp.multiply(mu[:,[i]], xp.multiply(dens[:,i]*(Eeff),
+                                                                                xp.diag(self.params.Cv[i] * self.TwoOverThree*Tg_U[:,j])))  
+                        fa_U[j,:,:] += CpOverCv * self.params.charge(i) * xp.multiply(mu_U[i,j,:,:],xp.multiply(naTg[:,0],(Eeff[:,0])))
                     else:
-                        fa_U[j,:,:] += (5./3.)* self.params.charge(i) * xp.multiply(mu[:,[i]], xp.multiply(dens[:,i]*(-phi_x),xp.diag(Tg_U[:,j]))) 
-                        fa_U[j,:,:] += (5./3.) * self.params.charge(i)*xp.multiply(mu_U[i,j,:,:],xp.multiply(naTg[:,0],(-phi_x[:,0])))
+                        fa_U[j,:,:] += CpOverCv * self.params.charge(i) * xp.multiply(mu[:,[i]], xp.multiply(dens[:,i]*(-phi_x),
+                                                                                xp.diag(self.params.Cv[i] * self.TwoOverThree*Tg_U[:,j]))) 
+                        fa_U[j,:,:] += CpOverCv * self.params.charge(i) * xp.multiply(mu_U[i,j,:,:],xp.multiply(naTg[:,0],(-phi_x[:,0])))
                     
-                fa_U[j,:,:] -= (5./3.) * xp.multiply(self.Dp @ naTg, diffusivity_U[i,j,:,:])
+                fa_U[j,:,:] -= CpOverCv * xp.multiply(self.Dp @ naTg, diffusivity_U[i,j,:,:])
 
         # background thermal conductivity contribution
-        fa[:,0] += - self.params.kappaB * (self.Dp @ Tg[:,0]) 
+        fa[:,0] += - self.params.kappaB * (self.Dp @ (self.params.Cv[inb[0]] * self.TwoOverThree*Tg[:,0])) 
         for j in range(0,self.Nv):
-            fa_U[j,:,:] += - self.params.kappaB * self.Dp @ xp.diag(Tg_U[:,j])
+            fa_U[j,:,:] += - self.params.kappaB * self.Dp @ xp.diag(self.params.Cv[inb[0]] * self.TwoOverThree*Tg_U[:,j])
 
         fa_x = self.Dp @ fa
 
@@ -1857,7 +1915,7 @@ class timeDomainCollocationSolver:
         joule_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
         for i in range(0, self.Ns-1):
             if self.params.charge(i) != 0.0:
-                if self.IonEffEField and i == iion[0]:                       
+                if self.IonEffEField and self.params.charge(i)>0:                       
                     joule[:,0] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,i],(Eeff[:,0]))
                     for j in range(0,self.Nv):
                         joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec_U[i,j,:,:],Eeff)
@@ -1866,20 +1924,20 @@ class timeDomainCollocationSolver:
                     joule[:,0] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,i],(-phi_x[:,0]))
                     for j in range(0,self.Nv):
                         joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec_U[i,j,:,:],(-phi_x))
-                    joule_U[0,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,[i]],(-phi_x_ne))
-                    joule_U[1,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,[i]],(-phi_x_ni))
-
+                    for j in range(0,self.Ns):
+                        if self.params.charge(j) != 0:
+                            joule_U[j,:,:] += self.params.qStar*self.params.charge(i)*xp.multiply(fspec[:,[i]],self.params.charge(j)*(-phi_x_n))        
 
 
         Qrad_UI = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
         for j in range(0,self.Ns+1):
             Qrad_UI[j,:,:] = xp.diag(Qrad_U[j,:]) 
         
-        S  = (sOmEp + fa_x - joule -Qrad)/Tg/self.params.nAronp0
+        S  = (sOmEp + fa_x - joule -Qrad) / (self.params.Cv[inb[0]] * self.TwoOverThree*Tg) / self.params.nAronp0
         S *= self.backgroundSpecieActivationFactor
 
         S_U = xp.zeros((self.Nv, self.Np, self.Np), dtype=xp.float64)
-        S_U = (sOmEp_U + fa_x_U - joule_U -Qrad_UI)/Tg/self.params.nAronp0
+        S_U = (sOmEp_U + fa_x_U - joule_U -Qrad_UI)/(self.params.Cv[inb[0]] * self.TwoOverThree*Tg) / self.params.nAronp0
         S_U *= self.backgroundSpecieActivationFactor
         for j in range(0,self.Nv):
             S_U[j,:,:] += xp.multiply(xp.diag( -(S/Tg)*Tg_U[:,j] ),Imat) #NOTE(malamast): But the numerator is also a function of Tg
@@ -1911,13 +1969,9 @@ class timeDomainCollocationSolver:
 
 
         # Joule heating (electron energy eqn)
-        self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,0:self.Np]         -= dt*(SJ_ne + SEC_U[0, :, :])
-        self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,self.Np:2*self.Np] -= dt*(SJ_ni + SEC_U[1, :, :])
-        self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
-        self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,self.Ns*self.Np:(self.Ns+1)*self.Np] -= dt*(SJ_nT + SEC_U[self.Ns, :, :])
-        for j in range(2,self.Ns): 
-            # NOTE(malamast): This part was missing although its contribution is probably small. 
-            self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,j*self.Np:(j+1)*self.Np] -= dt*(SEC_U[j, :, :])
+        for j in range(0,self.Nv):
+            self.jac[self.Ns*self.Np:(self.Ns+1)*self.Np,j*self.Np:(j+1)*self.Np] -= dt*(SJ_U[j, :, :] + SEC_U[j, :, :]) 
+        
         
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
@@ -1926,11 +1980,15 @@ class timeDomainCollocationSolver:
 
         #  effective electric field for ions
         if self.IonEffEField:
-            self.jac[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np,0:self.Np]          -= dt * self.params.vmStar / mu[:,iion] * (-phi_x_ne)
-            self.jac[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np,self.Np:2*self.Np]  -= dt * self.params.vmStar / mu[:,iion] * (-phi_x_ni)
-            self.jac[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np,(self.Ns+1)*self.Np:(self.Ns+2)*self.Np] -= dt * self.params.vmStar * xp.multiply(1.0/mu[:,iion] , (-Imat))
+            for j in range(0,self.Ns):
+                if self.params.charge(j) != 0:
+                    self.jac[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np,j*self.Np:(j+1)*self.Np] -= dt * self.params.vmStar / mu[:,[iion[0]]] * self.params.charge(j)*(-phi_x_n)
+            
+            self.jac[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np,(self.Ns+1)*self.Np:(self.Ns+2)*self.Np] -= dt * self.params.vmStar * \
+                                                                                                         xp.multiply(1.0/mu[:,[iion[0]]] , (-Imat))
             for j in range(0,self.Nv):
-                self.jac[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np,j*self.Np:(j+1)*self.Np] -= dt * self.params.vmStar * (-1.0 / mu[:,iion]**2) * xp.multiply(mu_U[iion[0],j,:,:],(-phi_x - Eeff))      
+                self.jac[(self.Ns+1)*self.Np:(self.Ns+2)*self.Np,j*self.Np:(j+1)*self.Np] -= dt * self.params.vmStar * \
+                                                        (-1.0 / mu[:,[iion[0]]]**2) * xp.multiply(mu_U[iion[0],j,:,:],(-phi_x - Eeff))      
 
 
         return rstrg_U
@@ -1949,6 +2007,8 @@ class timeDomainCollocationSolver:
         """
         if (self.temporal_scheme=="BE"):
             self.jacobianBE(Uin, time, dt, weak_bc, solve_poisson)
+            # self.jacobianFD(Uin, time, dt)
+            
         elif (self.temporal_scheme=="CN"):
             self.jacobianCN(Uin, time, dt, weak_bc, solve_poisson)
         else:
@@ -1962,9 +2022,11 @@ class timeDomainCollocationSolver:
         """
         xp = self.xp_module
 
-        
+        iion  = list(range(1, 1 + self.Nion)) # Ions Ar+, Ar2+
+
         # Jacobian of spatial contribution to residual
         rstrg_U = self.spatial_jacobian(Uin, time, dt, weak_bc, solve_poisson)
+
 
         # Jacobian of unsteady contribution to residual
         self.jac += self.I_Ndof
@@ -1976,14 +2038,15 @@ class timeDomainCollocationSolver:
 
         if (not weak_bc):
             # ion flux
-            self.jac[self.Np    ,:] = rstrg_U[2,:]
-            self.jac[2*self.Np-1,:] = rstrg_U[3,:]
+            for i in range(0, self.Nion):
+                self.jac[iion[i] * self.Np    ,:] = rstrg_U[2 + 2*i,:]
+                self.jac[(iion[i] + 1)*self.Np-1,:] = rstrg_U[3 + 2*i,:]
 
         # electron energy flux
-        # self.jac[self.Ns*self.Np,:] = rstrg_U[4,:]
-        # self.jac[(self.Ns+1)*self.Np-1,:] = rstrg_U[5,:]
+        self.jac[self.Ns*self.Np,:] = rstrg_U[6,:] 
+        self.jac[(self.Ns+1)*self.Np-1,:] = rstrg_U[7,:] 
 
-        for i in range(2,self.Ns-1):
+        for i in range(self.Nion+1,self.Ns-1):
             self.jac[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
             self.jac[i*self.Np,i*self.Np] = 1.0
 
@@ -2010,13 +2073,14 @@ class timeDomainCollocationSolver:
 
 
         # Dirichlet condition on electron energy
-        self.jac[self.Ns*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
-        self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
-        self.jac[self.Ns*self.Np,0] = -self.params.EeBC
+        if (self.params.electron_energy_dirichlet):
+            self.jac[self.Ns*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
+            self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
-        self.jac[(self.Ns+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
-        self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
-        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
+            self.jac[(self.Ns+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
+            self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
         # No BC for Eeff (the effective electric field for ions)
 
@@ -2026,6 +2090,8 @@ class timeDomainCollocationSolver:
         See timeDomainCollocationSolver.jacobian() for further documentaion.
         """
         xp = self.xp_module
+
+        iion  = list(range(1, 1 + self.Nion)) # Ions Ar+, Ar2+
 
         # Jacobian of spatial contribution to residual
         rstrg_U = self.spatial_jacobian(Uin, time, dt, weak_bc, solve_poisson)
@@ -2039,14 +2105,16 @@ class timeDomainCollocationSolver:
         self.jac[self.Np-1  ,:] = rstrg_U[1,:]
 
         if (not weak_bc):
-            self.jac[self.Np    ,:] = rstrg_U[2,:]
-            self.jac[2*self.Np-1,:] = rstrg_U[3,:]
+            # ion flux
+            for i in range(0, self.Nion):
+                self.jac[iion[i] * self.Np    ,:] = rstrg_U[2 + 2*i,:]
+                self.jac[(iion[i] + 1)*self.Np-1,:] = rstrg_U[3 + 2*i,:]
 
-        # # electron energy flux
-        # self.jac[self.Ns*self.Np,:] = rstrg_U[4,:]
-        # self.jac[(self.Ns+1)*self.Np-1,:] = rstrg_U[5,:]
+        # electron energy flux
+        self.jac[self.Ns*self.Np,:] = rstrg_U[6,:] 
+        self.jac[(self.Ns+1)*self.Np-1,:] = rstrg_U[7,:] 
 
-        for i in range(2,self.Ns-1):
+        for i in range(self.Nion+1,self.Ns-1):
             self.jac[i*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
             self.jac[i*self.Np,i*self.Np] = 1.0
 
@@ -2071,14 +2139,15 @@ class timeDomainCollocationSolver:
             self.jac[self.Ns*self.Np-1,self.Ns*self.Np-1] = 1.0
             self.jac[self.Ns*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0 / self.params.Tg0 / self.params.nAronp0
 
+        # Dirichlet condition on electron energy
+        if (self.params.electron_energy_dirichlet):
+            self.jac[self.Ns*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
+            self.jac[self.Ns*self.Np,0] = -self.params.EeBC
 
-        self.jac[self.Ns*self.Np,:] = xp.zeros((1,self.Nv*self.Np))
-        self.jac[self.Ns*self.Np,self.Ns*self.Np] = 1.0
-        self.jac[self.Ns*self.Np,0] = -self.params.EeBC
-
-        self.jac[(self.Ns+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
-        self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
-        self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
+            self.jac[(self.Ns+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac[(self.Ns+1)*self.Np-1,(self.Ns+1)*self.Np-1] = 1.0
+            self.jac[(self.Ns+1)*self.Np-1,self.Np-1] = -self.params.EeBC
 
         # No BC for Eeff (the effective electric field for ions)
 
@@ -2161,8 +2230,10 @@ class timeDomainCollocationSolver:
         if (not weak_bc):
             self.jac0[self.Np    ,:] = xp.zeros((1,self.Nv*self.Np))
             self.jac0[2*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
-
-        for i in range(2,self.Ns-1):
+            self.jac0[2*self.Np  ,:] = xp.zeros((1,self.Nv*self.Np))
+            self.jac0[3*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
+            
+        for i in range(self.Nion+1,self.Ns-1):
             self.jac0[i*self.Np      ,:] = xp.zeros((1,self.Nv*self.Np))
             self.jac0[(i+1)*self.Np-1,:] = xp.zeros((1,self.Nv*self.Np))
 
@@ -2209,7 +2280,7 @@ class timeDomainCollocationSolver:
             self.jac[:,k] = (rp[:,0] - r0[:,0])/dU
 
 
-    def step(self, time, dt, iter_max=20,
+    def step(self, time, dt, iter_max=25,
              rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, freeze_jacobian=False):
         """Take a single time step.
 
@@ -2292,6 +2363,17 @@ class timeDomainCollocationSolver:
             xp.save("nonconverged_U2.npy", self.U2)
             xp.save("nonconverged_U1.npy", self.U1)
             xp.save("nonconverged_U0.npy", self.U0)
+            
+            # EN_Td = 1e21 * xp.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,inb]) #  Electric field / N [Td]   
+            # pull off state for convenience
+            dens = np.zeros((self.Np, self.Ns),dtype=np.float64)
+            for i in range(0,self.Ns):
+                dens[:,i] = self.U0[i*self.Np:(i+1)*self.Np,0]                
+            self.solve_poisson(dens,time)
+            phi_x  = self.Dp @ self.phi
+            EN_Td = 1e21 * (- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,self.Ns-1])
+            xp.save("nonconverged_U0_Efield.npy", EN_Td)
+            
             print("Step did not converge")
             exit(-1)
 
@@ -2708,13 +2790,13 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==7):
         print('#   Running scenario = 7 (6 species, 34 rxn, Nominal)')
-        Ns = 6
+        Ns = 6 + 2   # E, Ar+, Ar+2, Ar2, Ar(m), Ar(r), Ar(4p), Ar(g) 
     elif(args.scenario==15):
         print('#   Running CR model = 15 (17 species, Nominal)')
-        Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        Ns = 1+14+2+1+1 # Ar(g), Ar(i), Ar+2, Ar2, E, Ar+
     elif(args.scenario==16):
         print('#   Running CR model = 16 (33 species, Nominal)')
-        Ns = 1+30+1+1 # background state + excited states + electrons + ions         
+        Ns = 1+30+2+1+1 # Ar(g), Ar(i), Ar+2, Ar2, E, Ar+       
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)
@@ -2770,12 +2852,19 @@ if __name__ == "__main__":
                                       iSample = args.iSample)
 
     # Default IC (overwritten below if we are restarting)
-    #tds.U1[0:tds.Ns*tds.Np] = 1e-4
-    tds.U1[0:(tds.Ns-1)*tds.Np] = 1e-4             # 'usual' species
+    initialCondition = np.zeros((tds.Np, 1),dtype=np.float64)
+    initialCondition[:,0] = 1e-4 - (1e-4 - 1e-6) * (tds.xp)**2  
+    for i in range(tds.Ns-1):
+        tds.U1[i*tds.Np:(i+1)*tds.Np] = initialCondition
+    # tds.U1[0:(tds.Ns-1)*tds.Np] = 1.0e-4           # 'usual' species
     tds.U1[(tds.Ns-1)*tds.Np:tds.Ns*tds.Np] = 1.0  # background specie
     tds.U1[tds.Ns*tds.Np:(tds.Ns+1)*tds.Np] = tds.params.EeBC*tds.U1[0:tds.Np] # electron energy
     if IonEffEField:
-        tds.solve_poisson(tds.U1[0:tds.Np],tds.U1[tds.Np:2*tds.Np],args.t0+args.dt)
+        # pull off state for convenience
+        dens = np.zeros((tds.Np, tds.Ns),dtype=np.float64)
+        for i in range(0,tds.Ns):
+            dens[:,i] = tds.U1[i*tds.Np:(i+1)*tds.Np,0]                
+        tds.solve_poisson(dens,args.t0+args.dt)
         tds.U1[(tds.Ns+1)*tds.Np:(tds.Ns+2)*tds.Np] = tds.phi # effective electric field for ions
 
 

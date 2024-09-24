@@ -57,6 +57,14 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
     L             = 2.54*0.005    # half-gap-width [m] (gap width is 1in)
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
+    # Chemistry parameters (charge number, Cv, Cp)
+    Ns = 3
+    Z = np.zeros(Ns+1); Cv = np.zeros(Ns+1);    Cp = np.zeros(Ns+1)
+    Z[0]    = -1;       Cv[0]    = 3.0/2.0;     Cp[0]    = 5.0/2.0;     # E
+    Z[1]    =  1;       Cv[1]    = 3.0/2.0;     Cp[1]    = 5.0/2.0;     # Ar+
+    Z[2]    =  0;       Cv[2]    = 3.0/2.0;     Cp[2]    = 5.0/2.0;     # Ar
+    Z[-1]   = -1;       Cv[-1]   = 3.0/2.0;     Cp[-1]   = 5.0/2.0;     # Ee electron energy
+
     # transport parameters
     nmue   = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
     nmui   = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
@@ -122,6 +130,10 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
     params.alfa = np.array([[1],[0],[1]], dtype=np.int64)
 
     # 4) Set values in params class
+    params.Z[:]    = Z[:]
+    params.Cv[:]   = Cv[:]
+    params.Cp[:]   = Cp[:]
+
     params.D[0]    = De
     params.D[1]    = Di
     params.D[3]    = (5./3.) * De

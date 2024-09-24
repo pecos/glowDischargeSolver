@@ -62,6 +62,8 @@ VacPermittivity = 8.8541878128e-12
 
 # Indices
 iNg = 0
+iNAr2m = -5
+iNAr2i = -4
 iNe = -3 
 iNion = -2 
 iEe = -1

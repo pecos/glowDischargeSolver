@@ -73,6 +73,16 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     L   = 2.54*0.005              # half-gap-width [m] (gap width is 2.54cm)
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
+    # Chemistry parameters (charge number, Cv, Cp)
+    Ns = 4
+    Z = np.zeros(Ns+1); Cv = np.zeros(Ns+1);    Cp = np.zeros(Ns+1)
+    Z[0]    = -1;       Cv[0]    = 3.0/2.0;     Cp[0]    = 5.0/2.0;     # E
+    Z[1]    =  1;       Cv[1]    = 3.0/2.0;     Cp[1]    = 5.0/2.0;     # Ar+
+    Z[2]    =  0;       Cv[2]    = 3.0/2.0;     Cp[2]    = 5.0/2.0;     # Ar
+    Z[3]    =  0;       Cv[3]    = 3.0/2.0;     Cp[3]    = 5.0/2.0;     # Arm
+    Z[-1]   = -1;       Cv[-1]   = 3.0/2.0;     Cp[-1]   = 5.0/2.0;     # Ee electron energy
+
+
     params.EeBC = 0.75
 
     # transport parameters
@@ -180,6 +190,10 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     params.alfa = np.array([[1,1,1,1,1,0,0,0],[0,0,0,0,0,0,0,0],[0,0,1,1,1,2,1,1],[1,1,0,0,0,0,1,2]], dtype=np.int64)
 
     # 4) Set values in params class
+    params.Z[:]    = Z[:]
+    params.Cv[:]   = Cv[:]
+    params.Cp[:]   = Cp[:]
+
     params.D[0]    = De
     params.D[1]    = Di
     params.D[2]    = Dm

@@ -16,27 +16,27 @@ isPlot = True
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
-ic = 1; c = False; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+ic = 1; c = False; f = '../nonconverged_U2.npy'; cl = 'b-'; lb = "U0"; m = "CR2"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 2; c = False; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 3; c = False; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 4; c = True; f = '../discard.npy'; cl = 'b-'; lb = "discard"; m = "6sp"
+ic = 4; c = False; f = '../discard.npy'; cl = 'b-'; lb = "discard"; m = "8sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 5; c = False; f = '../exception_U0.npy'; cl = 'b-'; lb = "U0"; m = "CR"
+ic = 5; c = False; f = '../exception_U0.npy'; cl = 'b-'; lb = "U0"; m = "8sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 6; c = False; f = '../exception_U0.npy'; cl = 'g-'; lb = "U1"; m = "6sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 7; c = False; f = '../exception_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 8; c = True; f = '../restart_6spec_CN_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
+# ic = 8; c = False; f = '../restart_8spec_CN_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "8sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 8; c = False; f = '../newton_6spec_CN_Np150.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-# ic = 8; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
-# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 8; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
 
@@ -108,11 +108,15 @@ i_mid = np.argmin(abs_diff) # Find the index of the minimum absolute difference
 dEps_6sp = np.array([0.0,15.76,11.577,11.725,13.168,0.0]) 
 g_6sp = np.array([1, 4, 6, 6, 36, 1])
 
-## E, AR+, 4 4s levels, 10 4p levels + AR
-dEps_CR = np.array([ 0.0,         15.7596119,  11.54835442, 11.62359272, 11.72316039, 11.82807116,
+# E, AR+, Ar2+, Ar2*, AR(m), AR(r), AR(4p), AR
+dEps_8sp = np.array([0.0, 15.76, 14.501, 11.564763, 11.577, 11.725, 13.168, 0.0]) # I need to check these values again
+g_8sp = np.array([1, 4, 1, 1, 6, 6, 36, 1]) # I need to check these values again
+
+## E, AR+, Ar2+, Ar2*, 4 4s levels, 10 4p levels + AR
+dEps_CR = np.array([ 0.0,         15.7596119, 14.501, 11.564763,  11.54835442, 11.62359272, 11.72316039, 11.82807116,
                      12.9070153,  13.07571571, 13.09487256, 13.15314387, 13.1717777,  13.2730381,
                      13.28263902, 13.30222747, 13.32785705, 13.47988682,  0.0]) 
-g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
+g_CR = np.array([1, 4,1,1, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
 
 
 
@@ -127,11 +131,12 @@ g_CR = np.array([1, 4, 5, 3, 1, 3, 3, 7, 5, 3, 5, 1, 3, 5, 3, 1, 1])
 #                  1, 3, 5, 9, 7, 5, 5, 3, 7, 3, 5, 5, 7, 1, 3, 3, 1])
 
 
-ne = {}; ni = {}; nb = {}; nee = {}; npop = {}; Tg = {}
-nm = {}; nr = {}; n4p = {}; Te = {}; dEps = {}; g = {}
+ne = {}; ni = {}; nb = {}; nee = {}; Te = {};  Tg = {}
+npop = {}; nm = {}; nr = {}; n4p = {}; nAr2i = {}; nAr2m = {}; 
+dEps = {}; g = {}
 FromGlowDischargeToCRIndexing = {}
 FromCRToGlowDischargeIndexing = {}
-Eeff = {}
+EN_Td = {}; Eeff = {}
 
 # if case1:
 for ic in case: 
@@ -142,13 +147,18 @@ for ic in case:
       D = np.load(file[ic].format(Np))
       D = np.transpose(D)
 
+      # E = np.load('../nonconverged_Efield.npy'.format(Np))
+      # EN_Td[ic] = E
+
       # Ns is the number of scpecies
       if model[ic] == "CR":
-         Ns = 17 # electrons + ions + 4 4s levels + 10 4p levels + background state
+         Ns = 17+2 # electrons + ions + 4 4s levels + 10 4p levels + background state
       elif model[ic] == "CR2":
-         Ns = 1+30+1+1
+         Ns = 1+30+1+1+2
       elif model[ic] == "6sp":
-         Ns = 6 #  electrons + ions + nm + nr + n4p + nb 
+         Ns = 6 #  E + Ar+ + nm + nr + n4p + nb 
+      elif model[ic] == "8sp":
+         Ns = 8 #  E + Ar+ + Ar2+ + Ar2* + nm + nr + n4p + nb 
          
       # pull solution out of D
       '''
@@ -169,8 +179,12 @@ for ic in case:
 
       '''
 
-      FromCRToGlowDischargeIndexing[ic]  = [Ns-2, Ns-1] + list(range(1,Ns-2)) + [0] # We have excluded electron energy
-      FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(2,Ns-1)) + [0, 1] # We have excluded electron energy
+      if model[ic] == "6sp":
+         FromCRToGlowDischargeIndexing[ic]  = [Ns-2, Ns-1] + list(range(1,Ns-2)) + [0] # We have excluded electron energy
+         FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(2,Ns-1)) + [0, 1] # We have excluded electron energy
+      else:         
+         FromCRToGlowDischargeIndexing[ic]  = [Ns-2, Ns-1, Ns-3, Ns-4] + list(range(1,Ns-4)) + [0] # We have excluded electron energy
+         FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(4,Ns-1)) + [3, 2, 0, 1] # We have excluded electron energy         
 
       
       D_reshaped = np.reshape(D,(Np, Ns+1+1),'F')
@@ -189,16 +203,38 @@ for ic in case:
       npop[ic][:,1:] = ne0 * D_reshaped[:,2:Ns-1]
 
       if model[ic] == "CR" or model[ic] == "CR2":
-         nm[ic] = ne0 * (D_reshaped[:,2] + D_reshaped[:,4]) 
-         nr[ic] = ne0 * (D_reshaped[:,3] + D_reshaped[:,5]) 
+
+         npop[ic] = np.ndarray((Np, Ns-4),dtype=np.float64)
+         npop[ic][:,0] = nb[ic]
+         npop[ic][:,1:] = ne0 * D_reshaped[:,4:Ns-1]         
+
+         nAr2i[ic] = ne0 * D_reshaped[:,2]
+         nAr2m[ic]  = ne0 * D_reshaped[:,3]    
+         
+         nm[ic] = ne0 * (D_reshaped[:,4] + D_reshaped[:,6]) 
+         nr[ic] = ne0 * (D_reshaped[:,5] + D_reshaped[:,7]) 
          n4p[ic] = np.zeros_like(nr[ic])
-         for i in range(6,15+1):
+         for i in range(8,17+1):
             n4p[ic] += ne0 * D_reshaped[:,i] 
+
+
+
 
       elif model[ic] == "6sp":
          nm[ic]  = ne0 * D_reshaped[:,2]
          nr[ic]  = ne0 * D_reshaped[:,3] 
          n4p[ic] = ne0 * D_reshaped[:,4] 
+         
+      elif model[ic] == "8sp":
+         nAr2i[ic] = ne0 * D_reshaped[:,2]
+         nAr2m[ic]  = ne0 * D_reshaped[:,3]          
+         nm[ic]    = ne0 * D_reshaped[:,4]
+         nr[ic]    = ne0 * D_reshaped[:,5] 
+         n4p[ic]   = ne0 * D_reshaped[:,6] 
+
+         npop[ic][:,1:-2] = ne0 * D_reshaped[:,4:Ns-1]
+         npop[ic][:,-2] = ne0 * D_reshaped[:,2]
+         npop[ic][:,-1] = ne0 * D_reshaped[:,3]
 
 
       # electron temp
@@ -215,6 +251,10 @@ for ic in case:
       elif model[ic] == "6sp":
          dEps[ic] = dEps_6sp[FromGlowDischargeToCRIndexing[ic]]
          g[ic] = g_6sp[FromGlowDischargeToCRIndexing[ic]]
+
+      elif model[ic] == "8sp":
+         dEps[ic] = dEps_8sp[FromGlowDischargeToCRIndexing[ic]]
+         g[ic] = g_8sp[FromGlowDischargeToCRIndexing[ic]]
 
       del D, D_reshaped 
 
@@ -250,6 +290,9 @@ if (isPlot):
       if case[ic]: 
          ax.semilogy(xr, ne[ic], clr[ic], lw=2, label=label[ic])
          ax.semilogy(xr, ni[ic], clr[ic]+'-', lw=2)
+         ax.semilogy(xr, nAr2i[ic], clr[ic]+'.', lw=2)
+         # ax.semilogy(xr, ni[ic]+nAr2i[ic],'r-', lw=2)
+
    ax.legend(fontsize=12)
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
@@ -267,7 +310,7 @@ if (isPlot):
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$n_{AR(m)}$ [m$^{-3}$]", fontsize=18)
+   ax.set_ylabel(r"$n_{Ar(m)}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/nm.png')
 
@@ -280,7 +323,7 @@ if (isPlot):
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$n_{AR(r)}$ [m$^{-3}$]", fontsize=18)
+   ax.set_ylabel(r"$n_{Ar(r)}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/nr.png')
 
@@ -293,7 +336,7 @@ if (isPlot):
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$n_{AR(4p)}$ [m$^{-3}$]", fontsize=18)
+   ax.set_ylabel(r"$n_{Ar(4p)}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/n4p.png')
 
@@ -306,11 +349,39 @@ if (isPlot):
    ax.set_xlim((xr[0], xr[-1]))
    ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$n_{AR}$ [m$^{-3}$]", fontsize=18)
+   ax.set_ylabel(r"$n_{Ar}$ [m$^{-3}$]", fontsize=18)
    plt.setp(ax.get_yticklabels(), fontsize=12)
    plt.savefig('./png/nb.png')
 
 
+
+   # nAr2i
+   fig,ax = plt.subplots(dpi=160)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, nAr2i[ic], clr[ic], lw=2, label=label[ic])
+         # ax.semilogy(xr, nAr2i[ic]/(ni[ic]+nAr2i[ic])*100, clr[ic], lw=2, label=label[ic])
+   ax.legend(fontsize=12)
+   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$n_{{AR_2}^{+}}$ [m$^{-3}$]", fontsize=18)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/nAr2i.png')
+
+
+   # nAr2m
+   fig,ax = plt.subplots(dpi=160)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr, nAr2m[ic], clr[ic], lw=2, label=label[ic])
+   ax.legend(fontsize=12)
+   ax.set_xlim((xr[0], xr[-1]))
+   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   plt.setp(ax.get_xticklabels(), fontsize=12)
+   ax.set_ylabel(r"$n_{{Ar_2}^{*}}$ [m$^{-3}$]", fontsize=18)
+   plt.setp(ax.get_yticklabels(), fontsize=12)
+   plt.savefig('./png/nAr2m.png')
 
    # # n4p
    # for isp in range(Ns-2): 
@@ -382,7 +453,7 @@ if (isPlot):
    # # ax.set_xlim((xr[0], xr[-1]))
    # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
    # plt.setp(ax.get_xticklabels(), fontsize=12)
-   # ax.set_ylabel(r"$n_{AR}$ [m$^{-3}$]", fontsize=18)
+   # ax.set_ylabel(r"$n_{Ar}$ [m$^{-3}$]", fontsize=18)
    # plt.setp(ax.get_yticklabels(), fontsize=12)
    # plt.savefig('./png/nb_mean.png')
 
@@ -399,5 +470,18 @@ if (isPlot):
    # ax.set_ylabel(r"$E^{ef}$ [V/m]", fontsize=18)
    # plt.setp(ax.get_yticklabels(), fontsize=12)
    # plt.savefig('./png/Eeff.png')
+
+   # # EN_Td
+   # fig,ax = plt.subplots(dpi=160)
+   # for ic in case: 
+   #    if case[ic]: 
+   #       ax.plot(xr, np.abs(EN_Td[ic][:,0]), clr[ic], lw=2, label=label[ic])
+   # ax.legend(fontsize=12)
+   # ax.set_xlim((xr[0], xr[-1]))
+   # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$EN$ [Td]", fontsize=18)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/EN.png')
 
 plt.show()

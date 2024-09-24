@@ -99,15 +99,17 @@ class CollisionalRadiativeModel:
         self.p_0 = Pressure; self.T_g0 = GasTemperature
         self.Np = Np
         
+        
         # Load/read parameters
         self.p = parameters.modelParameters(Ns)
         self.N_lvl = self.p.N_lvl
 
         # Set number of state variables 
-        if (self.p.N_lvl < Ns -2):
-            self.Ns = self.p.N_lvl +1 +1  # Number of species (ground state + excited levels + electrons + ground ion state)
-        else:
-            self.Ns = Ns    # Number of species (ground state + excited levels + ground ion state)
+        # if (self.p.N_lvl < Ns -2):
+        self.Ns = self.p.N_lvl +1 +1 + 2  # Number of species (# Ar(g), Ar(i), Ar+2, Ar2, E, Ar+)
+        # else:
+            # self.Ns = Ns    # I can't rember why I added this statement.
+        
                         
         self.backgroundSpecieActivationFactor = backgroundSpecieActivationFactor
         # if (not backgroundSpecieActivationFactor):
@@ -148,23 +150,30 @@ class CollisionalRadiativeModel:
         self.iN1s3 = self.p.DictRacah_lvl["Ar(4s'[1/2]0)"]  # metastable   
         self.iN1s2 = self.p.DictRacah_lvl["Ar(4s'[1/2]1)"]  # resonance
 
+
         ### Indexing
         # GlowDischarge Indexing 
         # i = 0       -> electrons 
-        # i = 1       -> ions        
-        # i = 2:Ns-1  -> excited levels
+        # i = 1       -> ions 
+        # i = 2       -> argon molecular ions 
+        # i = 3       -> argon excimer molecules 
+        # i = 4:Ns-1  -> excited levels
         # i = Ns - 1  -> ground state
         # i = Ns      -> electron energy
+        # i = Nv - 1  -> ion Effective Electric field
 
         # CR Indexing 
         # i = 0       -> ground state
-        # i = 1:Ns-2  -> excited levels
+        # i = 1:Ns-4  -> excited levels
+        # i = Ns - 4  -> argon excimer molecules 
+        # i = Ns - 3  -> argon molecular ions 
         # i = Ns - 2  -> electrons
         # i = Ns - 1  -> ions
         # i = Ns      -> electron energy
 
-        self.FromCRToGlowDischargeIndexing  = [self.Ns-2, self.Ns-1] + list(range(1,self.Ns-2)) + [0, self.Ns]
-        self.FromGlowDischargeToCRIndexing  = [self.Ns-1] + list(range(2,self.Ns-1)) + [0, 1, self.Ns]
+
+        self.FromCRToGlowDischargeIndexing  = [self.Ns-2, self.Ns-1, self.Ns-3, self.Ns-4] + list(range(1,self.Ns-4)) + [0, self.Ns]
+        self.FromGlowDischargeToCRIndexing  = [self.Ns-1] + list(range(4,self.Ns-1)) + [3, 2, 0, 1, self.Ns]
 
         #----------------------------------------------------------------------------------
         """
@@ -194,15 +203,15 @@ class CollisionalRadiativeModel:
 
         #----------------------------------------------------------------------------------
 
-        # charge number
-        self.Z = np.zeros(Ns)
-        self.Z[0] = -1 # electrons are always -1
-        self.Z[1] =  1 # ions are always 1
-        self.Z[2] =  0 # background specie should be 0
+        # # charge number
+        # self.Z = np.zeros(Ns)
+        # self.Z[0] = -1 # electrons are always -1
+        # self.Z[1] =  1 # ions are always 1
+        # self.Z[2] =  0 # background specie should be 0
 
         #----------------------------------------------------------------------------------
 
-        self.npop = np.zeros((self.Np,self.Ns-2), dtype=np.float64) # ground state + excited levels
+        self.npop = np.zeros((self.Np,self.N_lvl), dtype=np.float64) # ground state + excited levels
         self.dydt_saved = np.zeros((self.Np,self.Ns+1), dtype=np.float64) # ground state + excited levels + electrons + ions + Ee #+ Eh
 
         self.ElecrtonImpactIonizationRate = np.zeros((self.N_lvl,self.Np,2), dtype=np.float64)       
@@ -230,6 +239,19 @@ class CollisionalRadiativeModel:
         self.S_mr       = np.zeros(1, dtype=np.float64) 
         self.S_m        = np.zeros(1, dtype=np.float64) 
 
+        self.K_mc       = np.zeros((self.Np), dtype=np.float64) 
+        self.K_mai      = np.zeros((self.Np), dtype=np.float64) 
+        self.K_dr       = np.zeros((self.Np), dtype=np.float64) 
+        self.K_drm      = np.zeros((self.Np), dtype=np.float64) 
+        self.K_dd       = np.zeros((self.Np), dtype=np.float64) 
+
+        self.Q_ma       = np.zeros(1, dtype=np.float64) 
+        self.Q_ed       = np.zeros((self.Np), dtype=np.float64) 
+        self.Q_mmi      = np.zeros((self.Np), dtype=np.float64) 
+        self.Q_mi       = np.zeros((self.Np), dtype=np.float64) 
+        self.A_Ar2m     = np.zeros(1, dtype=np.float64) 
+
+
 
         #----------------------------------------------------------------------------------
 
@@ -245,11 +267,8 @@ class CollisionalRadiativeModel:
         self.Te_eedf, self.EEDF_list, self.EEDFinterpolator = self.readEEDFFile(filename)
 
 
-
-
-
-    def charge(self,i):
-        return self.Z[i]
+    # def charge(self,i):
+    #     return self.Z[i]
 
 
     def electronImpactIonRateIntegrand(self,Te): 
@@ -408,6 +427,18 @@ class CollisionalRadiativeModel:
 
         self.lambda_D   = cp.asarray(self.lambda_D) 
 
+        self.K_mc       = cp.asarray(self.K_mc) 
+        self.K_mai      = cp.asarray(self.K_mai) 
+        self.K_dr       = cp.asarray(self.K_dr) 
+        self.K_drm      = cp.asarray(self.K_drm) 
+        self.K_dd       = cp.asarray(self.K_dd) 
+
+        self.Q_ma       = cp.asarray(self.Q_ma) 
+        self.Q_ed       = cp.asarray(self.Q_ed) 
+        self.Q_mmi      = cp.asarray(self.Q_mmi) 
+        self.Q_mi       = cp.asarray(self.Q_mi) 
+        self.A_Ar2m     = cp.asarray(self.A_Ar2m) 
+
         
       return
     
@@ -525,18 +556,17 @@ class CollisionalRadiativeModel:
             T_e :  electron temperature in [eV] 
         """  
 
-
         xp = self.xp_module
-
         epsilon = self.epsilon
 
         # if xp == cp:
         #   cp.cuda.runtime.deviceSynchronize()
 
-    
         # Indexing 
         # i = 0       -> ground state
-        # i = 1:Ns-2  -> excited levels
+        # i = 1:Ns-4  -> excited levels
+        # i = Ns - 4  -> argon excimer molecules 
+        # i = Ns - 3  -> argon molecular ions         
         # i = Ns - 2  -> electrons
         # i = Ns - 1  -> ions
         # i = Ns      -> electron energy
@@ -545,29 +575,29 @@ class CollisionalRadiativeModel:
         # T_e -> [eV] 
 
         # Clip negative values
-        
-        # y[:,xp.where(y <= 0.0)] = 0.0
         y[y < 0.0] = 0.0
 
-        n_g = y[:,iNg]    # [#/m^3]
-        ne = y[:,iNe]     # [#/m^3]
+        # allocate arrays        
+        n_g  = y[:,iNg]    # [#/m^3]
+        ne   = y[:,iNe]     # [#/m^3]
         nion = y[:,iNion] # [#/m^3]
-        T_e = y[:,iEe]    # [eV]
+        T_e  = y[:,iEe]    # [eV]
         # Ee = y[:,iEe] # [eV/m^3] 
         # Eh = y[:,iEh] # [eV/m^3] 
         
-        npop = y[:,:self.Ns-2]  # ground state + excited levels  
+        npop      = y[:,:self.N_lvl]  # ground state + excited levels  
         npop[:,0] = n_g
+
+        nAr2m = y[:,self.Ns-4]
+        nAr2i = y[:,self.Ns-3]
 
         p_0 = self.p_0
 
-        # allocate arrays        
         # dEhdt = xp.zeros((self.Np))
-
 
         # Temperature of heavy species (from ideal gas law)
         #  Ideal gas law: p_0 = p_n + p_i + p_e
-        T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion)   # [K]
+        T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion + nAr2i + nAr2m)   # [K]
  
         # T_e = xp.where(T_e < T_g*K_eV,T_g*K_eV, T_e)       
 
@@ -632,49 +662,12 @@ class CollisionalRadiativeModel:
             Vm = self.trapz(self.p.sigma_ia_ion[i]*aVelTimesAEDF, axis=0 )   
             # Wm = self.p.g_lvl[i]/g_ion * Wm_factor * xp.exp(deltaIon/(T_g*K_eV)) * Vm # Check that I use T_g in the exponent
             Wm = Wm_factor * self.trapz(self.p.sigma_ia_Recomb[i]*aVelTimesAEDF, axis=0 )   
-
                             
             self.AtomImpactIonizationRate[i,:,0] = Vm
             self.AtomImpactIonizationRate[i,:,1] = Wm
-       
-
-        
-        ################## Ionization due to heavy particle collisions ##################
-        # !< To Do: How do we include the inverse processes here???
-        self.S_r = 1.14e-20*xp.sqrt(16.0*spc.k*T_g/(xp.pi*M_Ar))    # resonance-resonance collisions 6.47697019779516e-18
-        self.S_mr = 2.1e-15                                         # resonance-metastable collisions 
-        self.S_m = 1.2e-15                                          # metastable-metastable collisions
-        # self.S_m = 6.4e-16  # Juan uses this value                                        
-        
+                        
 
         ################## Atom impact de/excitation ##################
-        # # Ar(1) + Ar(1) <-> Ar(j) + Ar(1)
-        # i = self.iNg
-        # for itrans in self.p.itrans_Atom_ExcFromGround:
-        #     j = self.p.j_Atom_ExcFromGround[itrans]
-
-        #     eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
-
-        #     Kij = self.trapz(self.p.sigma_ij_Atom_ExcFromGround[itrans] * aVelTimesAEDF, axis=0 )            
-        #     Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV)) * Kij # Check that I use T_g in the exponent
-
-        #     self.AtomImpactExcitationGrRate[itrans,:,0] = Kij
-        #     self.AtomImpactExcitationGrRate[itrans,:,1] = Lji
-
-
-        # # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
-        # for itrans in self.p.itrans_Atom_Exc:
-        #     i = self.p.i_Atom_Exc[itrans]
-        #     j = self.p.j_Atom_Exc[itrans] 
-            
-        #     eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
-            
-        #     Kij = self.trapz(self.p.sigma_ij_Atom_Exc[itrans] * aVelTimesAEDF, axis=0 )             
-        #     Lji = self.p.g_lvl[i]/self.p.g_lvl[j]*xp.exp(eij/(T_g*K_eV)) * Kij # Check that I use T_g in the exponent
-
-        #     self.AtomImpactExcitationRate[itrans,:,0] = Kij
-        #     self.AtomImpactExcitationRate[itrans,:,1] = Lji
-
         # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
         for itrans in self.p.itrans_Atom_Exc_2:
             i = self.p.i_Atom_Exc_2[itrans]
@@ -703,6 +696,7 @@ class CollisionalRadiativeModel:
         # # ################## Bremsstrahlung emission ##################
         self.RbremsstrahlungFactor = 1.42e-40 * parameters.Zeff**2 * xp.sqrt(T_e/K_eV) /spc.e  # [eV/m^3/s * m^3 * m^3]
         
+        
         # # ################## Energy transfer between electrons and heavy particles ################## 
         ken = self.trapz(self.p.sigma_el_e1*eVelTimesEEDF, axis=0 )
             
@@ -719,6 +713,47 @@ class CollisionalRadiativeModel:
         self.Rtransfer_i_Factor = 3.0 * spc.m_e / (M_Ar - spc.m_e) * kei    
 
 
+        ################## Ionization due to heavy particle collisions ##################
+        # !< To Do: How do we include the inverse processes here???
+        self.S_r = 1.14e-20*xp.sqrt(16.0*spc.k*T_g/(xp.pi*M_Ar))    # resonance-resonance collisions 
+        self.S_mr = 2.1e-15                                         # resonance-metastable collisions 
+        self.S_m = 1.2e-15                                          # metastable-metastable collisions
+        # self.S_m = 6.4e-16  # Juan uses this value                                        
+        
+        
+        ################## Ar2+ processes ##################
+        # Ar+ + Ar(1) + Ar(1) -> Ar2+ + Ar(1)       # atomic to molecular ion conversion     
+        self.K_mc = 2.5e-43 * (T_g/300)**(-1.5)     # [m^6/s] 
+
+        # Ar(3p5 4s) + Ar(3p5 4s) -> Ar2+ + e-      # metastable- metastable associative ionization      
+        self.K_mai = 6.3e-16 * (T_g/300)**(-0.5)    # [m^3/s] 
+
+        # Ar2+ + e- -> Ar(1) + Ar(1)                # dissociative recombination
+        self.K_dr  = 8.5e-13 * (T_e/300/K_eV)**(-0.67) * (T_g/300)**(-0.58)  # [m^3/s] 
+
+        # Ar2+ + e- -> Ar(2 <= i <= 4) + Ar(1)      # dissociative recombination
+        self.K_drm = 9.1e-13 * (T_e/300/K_eV)**(-0.61) * (T_g/300)**(-0.58) # [m^3/s] 
+
+        # Ar2+ + e- -> Ar+ + Ar(1) + e-             # direct electric dissociation
+        self.K_dd = 1.36e-12 * xp.exp( -24300*K_eV / T_e)  # [m^3/s] 
+
+
+        ################## Ar2* processes ##################
+        # Ar(3p5 4s) + Ar(1) + Ar(1) -> Ar2* + Ar(1) # metastable association  
+        self.Q_ma =  1.0e-44       
+
+        # Ar2* + e- -> Ar(3p5 4s) + Ar(1) + e-      # electron impact dissociation            
+        self.Q_ed =  1.0e-14 * xp.exp( -1.0 / T_e)       
+
+        # Ar2* + Ar(3p5 4s) ->  Ar(1) + e- + Ar2+   # moleular - metastable ionization          
+        self.Q_mmi =  7.0e-16 * (T_g/300)**(0.5)
+
+        # Ar2* + Ar2*  ->  Ar(1) + Ar(1) + e- + Ar2+  # moleular ionization              
+        self.Q_mi =  7.0e-16 * (T_g/300)**(0.5)
+
+        # Ar2* ->  Ar(1) + Ar(1) + hv
+        self.A_Ar2m = 1e6      
+              
         return
 
     #----------------------------------------------------------------------------------
@@ -748,7 +783,6 @@ class CollisionalRadiativeModel:
         # if xp == cp:
         #   cp.cuda.runtime.deviceSynchronize()
         
-    
         # Indexing 
         # i = 0       -> ground state
         # i = 1:Ns-2  -> excited levels
@@ -764,15 +798,18 @@ class CollisionalRadiativeModel:
         # y[:,xp.where(y <= 0.0)] = 0.0
         y[y < 0.0] = 0.0
 
-        n_g = y[:,iNg]    # [#/m^3]
-        ne = y[:,iNe]     # [#/m^3]
+        n_g  = y[:,iNg]    # [#/m^3]
+        ne   = y[:,iNe]     # [#/m^3]
         nion = y[:,iNion] # [#/m^3]
-        T_e = y[:,iEe]    # [eV]
+        T_e  = y[:,iEe]    # [eV]
         # Ee = y[:,iEe] # [eV/m^3] 
         # Eh = y[:,iEh] # [eV/m^3] 
 
-        npop = y[:,:self.Ns-2]  # ground state + excited levels
+        npop      = y[:,:self.N_lvl]  # ground state + excited levels
         npop[:,0] = n_g        
+
+        nAr2m = y[:,self.Ns-4]
+        nAr2i = y[:,self.Ns-3]
 
         p_0 = self.p_0
 
@@ -781,11 +818,14 @@ class CollisionalRadiativeModel:
         # dEhdt = xp.zeros((self.Np))
         Qrad = xp.zeros((self.Np)) # Radiation Source Term
 
-
         # Temperature of heavy species (from ideal gas law)
         #  Ideal gas law: p_0 = p_n + p_i + p_e
-        T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion)   # [K]
- 
+        T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion + nAr2i + nAr2m)   # [K]
+
+        iN1s5 = self.iN1s5  # metastable  1          
+        iN1s4 = self.iN1s4  # resonance   2
+        iN1s3 = self.iN1s3  # metastable  3  
+        iN1s2 = self.iN1s2  # resonance   4
         
         ################## Elecrton impact Ionization ##################
         # Ar(i) + e- <-> Ar+ + e- + e-
@@ -797,11 +837,12 @@ class CollisionalRadiativeModel:
 
             Rsi = npop[:,i] * ne * Si # Electron impact ionization
             Rqi = nion * ne * ne * Qi 
-                     
-            dydt[:,i] += - Rsi + Rqi 
-            dydt[:,iNe] += + Rsi - Rqi # rate of change of ion number density
-            dydt[:,iEe] += deltaIon * (Rqi - Rsi) # rate of change of eletron energy
-
+            
+            dydt[:,i]     += - Rsi + Rqi 
+            dydt[:,iNe]   += + Rsi - Rqi # rate of change of electron number density
+            dydt[:,iNion] += + Rsi - Rqi # rate of change of ion number density
+            dydt[:,iEe]   += deltaIon * (Rqi - Rsi) # rate of change of eletron energy
+                          
 
         ################## Elecrton impact de/excitation ##################
         # Ar(i) + e- <-> Ar(j) + e- 
@@ -816,10 +857,11 @@ class CollisionalRadiativeModel:
             
             Rcij = Cij*npop[:,i]*ne
             Rfji = Fji*npop[:,j]*ne
-            dydt[:,i] += - Rcij + Rfji 
-            dydt[:,j] += + Rcij - Rfji 
-            dydt[:,iEe] +=  eij * (Rfji - Rcij) # rate of change of eletron energy
-   
+
+            dydt[:,i]   += - Rcij + Rfji 
+            dydt[:,j]   += + Rcij - Rfji 
+            dydt[:,iEe] += eij * (Rfji - Rcij) # rate of change of eletron energy
+
                 
         ################# Radiation processes ##################
         # Ar(j) -> Ar(i) + h vij 
@@ -839,17 +881,16 @@ class CollisionalRadiativeModel:
 
                 eta = self.escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],
                                           self.p.g_j[itrans],self.p.g_i[itrans],
-                                          self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L) 
+                                          self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L)             
             else:
                 eta=1.0
                 
-            Rspem =  npop[:,j] * self.p.A_ji[itrans] * eta        
-            dydt[:,i] += + Rspem # radiative transitions into lower state
-            dydt[:,j] += - Rspem # radiative transitions out of higher state
+            Rspem = npop[:,j] * self.p.A_ji[itrans] * eta        
+            dydt[:,i] += Rspem # radiative transitions into lower state
+            dydt[:,j] -= Rspem # radiative transitions out of higher state
             # dydt[:,iEh] += - eij * Rspem  # Do I need to include that???
             # dEhdt += - eij * Rspem
             Qrad -= eij * Rspem 
-
 
 
         ################## Atom impact Ionization ##################
@@ -864,119 +905,14 @@ class CollisionalRadiativeModel:
             Rvm = npop[:,i] * n_g * Vm
             Rwm = n_g * ne * nion * Wm 
                             
-            dydt[:,i] +=  - Rvm + Rwm # remove particle in particular state due to ionization
-            dydt[:,iNe] += + Rvm - Rwm # change number of ions 
+            dydt[:,i]     +=  - Rvm + Rwm # remove particle in particular state due to ionization
+            dydt[:,iNe]   += + Rvm - Rwm # change number of ions 
+            dydt[:,iNion] += + Rvm - Rwm # change number of ions 
             # dydt[:,iEh] += + deltaIon * (Rwm - Rvm) # rate of change of eletron energy
             # dEhdt += + deltaIon * (Rwm - Rvm)
 
         
-        ################## Ionization due to heavy particle collisions ##################
-        # Ar* + Ar* -> Ar+ + Ar + e  
-        # !< To Do: How do we include the inverse processes here???
-
-        S_r  = self.S_r       # resonance-resonance collisions
-        S_mr = self.S_mr      # resonance-metastable collisions 
-        S_m  = self.S_m       # metastable-metastable collisions
-
-        iN1s5 = self.iN1s5  # metastable  1          
-        iN1s4 = self.iN1s4  # resonance   2
-        iN1s3 = self.iN1s3  # metastable  3  
-        iN1s2 = self.iN1s2  # resonance   4
-                
-        # resonance-resonance  2 Ar(r) -> Ar+ + Ar + e  
-        Rkii_I = npop[:,iN1s4]*npop[:,iN1s4]*S_r              
-        dydt[:,iN1s4] += - 2.0 * Rkii_I 
-        dydt[:,iNe] += Rkii_I 
-        dydt[:,iNg] += Rkii_I         
-
-        Rkii_I = npop[:,iN1s2]*npop[:,iN1s2]*S_r 
-        dydt[:,iN1s2] += - 2.0 * Rkii_I
-        dydt[:,iNe] += Rkii_I 
-        dydt[:,iNg] += Rkii_I 
-
-        Rkii_I = npop[:,iN1s4]*npop[:,iN1s2]*S_r
-        dydt[:,iN1s4] += - Rkii_I     
-        dydt[:,iN1s2] += - Rkii_I
-        dydt[:,iNe] += Rkii_I  
-        dydt[:,iNg] += Rkii_I  
-                     
-        # metastable-resonance  Ar(r) + Ar(m) -> Ar+ + Ar + e      
-        Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s3]*S_mr
-        dydt[:,iN1s4] += - Rkii_I_1
-        dydt[:,iN1s3] += - Rkii_I_1
-        dydt[:,iNe] += Rkii_I_1 
-        dydt[:,iNg] += Rkii_I_1 
-
-        Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s3]*S_mr
-        dydt[:,iN1s2] += - Rkii_I_2 
-        dydt[:,iN1s3] += - Rkii_I_2
-        dydt[:,iNe] += Rkii_I_2 
-        dydt[:,iNg] += Rkii_I_2 
-
-        Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s5]*S_mr    
-        dydt[:,iN1s4] += - Rkii_I_1  
-        dydt[:,iN1s5] += - Rkii_I_1
-        dydt[:,iNe] += Rkii_I_1 
-        dydt[:,iNg] += Rkii_I_1 
-                
-        Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s5]*S_mr
-        dydt[:,iN1s2] += - Rkii_I_2
-        dydt[:,iN1s5] += - Rkii_I_2
-        dydt[:,iNe] += Rkii_I_2
-        dydt[:,iNg] += Rkii_I_2
-
-        # metastable-metastable  Ar(m) + Ar(m) -> Ar+ + Ar + e         
-        Rkii_I = npop[:,iN1s5]*npop[:,iN1s5]*S_m 
-        dydt[:,iN1s5] += - 2*Rkii_I           
-        dydt[:,iNe] += Rkii_I 
-        dydt[:,iNg] += Rkii_I 
-        
-        Rkii_I = npop[:,iN1s3]*npop[:,iN1s3]*S_m
-        dydt[:,iN1s3] += - 2 * Rkii_I
-        dydt[:,iNe] += Rkii_I 
-        dydt[:,iNg] += Rkii_I 
-
-        Rkii_I = npop[:,iN1s5]*npop[:,iN1s3]*S_m
-        dydt[:,iN1s5] += - Rkii_I    
-        dydt[:,iN1s3] += - Rkii_I                        
-        dydt[:,iNe] += Rkii_I 
-        dydt[:,iNg] += Rkii_I     
-        
-            
         ################## Atom impact de/excitation ##################
-        # # Ar(1) + Ar(1) <-> Ar(j) + Ar(1)
-        # i = self.p.i_Atom_ExcFromGround 
-        # for itrans in self.p.itrans_Atom_ExcFromGround:
-        #     j = self.p.j_Atom_ExcFromGround[itrans]
-        #     # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
-            
-        #     Kij = self.AtomImpactExcitationGrRate[itrans,:,0] 
-        #     Lji = self.AtomImpactExcitationGrRate[itrans,:,1] 
-
-        #     Rkij = npop[:,i] * n_g * Kij
-        #     Rlji = npop[:,j] * n_g * Lji  
-        #     dydt[:,i] += - Rkij + Rlji 
-        #     dydt[:,j] += + Rkij - Rlji
-        #     # dydt[iEh] += eij * (Rlji - Rkij)
-        #     # dEhdt += eij * (Rlji - Rkij)
- 
-        # # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
-        # for itrans in self.p.itrans_Atom_Exc:
-        #     i = self.p.i_Atom_Exc[itrans]
-        #     j = self.p.j_Atom_Exc[itrans]  
-        #     # eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
-
-        #     Kij = self.AtomImpactExcitationRate[itrans,:,0]
-        #     Lji = self.AtomImpactExcitationRate[itrans,:,1] 
-            
-        #     Rkij = npop[:,i] * n_g * Kij
-        #     Rlji = npop[:,j] * n_g * Lji  
-        #     dydt[:,i] +=  - Rkij + Rlji 
-        #     dydt[:,j] +=  + Rkij - Rlji
-        #     # dydt[:,iEh] += eij * (Rlji - Rkij)                
-        #     # dEhdt += eij * (Rlji - Rkij)
-    
-
         # Ar(i) + Ar(1) <-> Ar(j) + Ar(1)           
         for itrans in self.p.itrans_Atom_Exc_2:
             i = self.p.i_Atom_Exc_2[itrans]
@@ -993,25 +929,6 @@ class CollisionalRadiativeModel:
             # dydt[:,iEh] += eij * (Rlji - Rkij)                
             # dEhdt += eij * (Rlji - Rkij)
 
-
-
-        # ################## Wall losses ##################
-        # D_sc = 2.07e20 # [1/m*s]                           
-        # D_53 = D_sc/n_g*xp.sqrt(T_g/300.0) # [m^2/s]
-        # tau_53 = self.lambda_D/D_53 # [s] 
-        # for i in range(0,self.N_lvl):
-        #     dydt[:,i] += - npop[:,i]/tau_53    
-
-        # # for i in [iN1s3, iN1s5]:
-        # #     if i == iN1s3:
-        # #         D_sc = 1.9e20 # [1/m*s]
-        # #     elif i==iN1s5:
-        # #         D_sc = 1.8e20  # [1/m*s]                            
-        # #     D_53 = D_sc/n_g*xp.sqrt(T_g/300.0) # [m^2/s]
-        # #     tau_53 = self.lambda_D/D_53 # [s] 
-        # #     dydt[:,i] -= npop[:,i]/tau_53            
-
-
         ################# Photorecombination/photoionization ##################
         nTrans = 5
         for i in range(0,nTrans): # We include also the photoionization from ground state which has a different cross section
@@ -1021,10 +938,12 @@ class CollisionalRadiativeModel:
             Rri = ne * nion * Ri # What is the reverse process here?
             Rri_prime = ne * nion * Ri_prime
             
-            dydt[:,i] +=  Rri 
-            dydt[:,iNe] += - Rri 
-            dydt[:,iEe] += - Rri_prime # rate of change of eletron energy
-            Qrad -= Rri_prime
+            dydt[:,i]     += Rri 
+            dydt[:,iNe]   -= Rri 
+            dydt[:,iNion] -= Rri 
+            dydt[:,iEe]   -= Rri_prime # rate of change of eletron energy
+            Qrad          -= Rri_prime
+            
 
         # ################## Bremsstrahlung emission ##################
         Rbremsstrahlung = self.RbremsstrahlungFactor * ne * nion  # [eV/m^3/s]
@@ -1044,9 +963,237 @@ class CollisionalRadiativeModel:
         
         # # dEhdt += - Rtransfer_n - Rtransfer_i
 
-        dydt[:,iNion] = dydt[:,iNe] # These rates are always the same! 
-                                    # I need to think how we can exploit this to make the computation faster. 
-                                    # Especialy for the calculation of the jacobian
+
+        # ################## Wall losses ##################
+        # D_sc = 2.07e20 # [1/m*s]                           
+        # D_53 = D_sc/n_g*xp.sqrt(T_g/300.0) # [m^2/s]
+        # tau_53 = self.lambda_D/D_53 # [s] 
+        # for i in range(0,self.N_lvl):
+        #     dydt[:,i] += - npop[:,i]/tau_53    
+
+        # # for i in [iN1s3, iN1s5]:
+        # #     if i == iN1s3:
+        # #         D_sc = 1.9e20 # [1/m*s]
+        # #     elif i==iN1s5:
+        # #         D_sc = 1.8e20  # [1/m*s]                            
+        # #     D_53 = D_sc/n_g*xp.sqrt(T_g/300.0) # [m^2/s]
+        # #     tau_53 = self.lambda_D/D_53 # [s] 
+        # #     dydt[:,i] -= npop[:,i]/tau_53            
+
+
+        ################## Ionization due to heavy particle collisions ##################
+        # Ar* + Ar* -> Ar+ + Ar + e  
+        # !< To Do: How do we include the inverse processes here???
+
+        S_r  = self.S_r       # resonance-resonance collisions
+        S_mr = self.S_mr      # resonance-metastable collisions 
+        S_m  = self.S_m       # metastable-metastable collisions
+
+        # resonance-resonance  2 Ar(r) -> Ar+ + Ar + e  
+        Rkii_I = npop[:,iN1s4]*npop[:,iN1s4]*S_r              
+        dydt[:,iN1s4] -= 2.0 * Rkii_I 
+        dydt[:,iNe]   += Rkii_I 
+        dydt[:,iNion] += Rkii_I         
+        dydt[:,iNg]   += Rkii_I         
+        deltaEnergy = 2 * self.p.E_lvl[iN1s4] * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I # rate of change of eletron energy
+
+        Rkii_I = npop[:,iN1s2]*npop[:,iN1s2]*S_r 
+        dydt[:,iN1s2] -= 2.0 * Rkii_I
+        dydt[:,iNe]   += Rkii_I 
+        dydt[:,iNion] += Rkii_I 
+        dydt[:,iNg]   += Rkii_I 
+        deltaEnergy = 2 * self.p.E_lvl[iN1s2] * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I # rate of change of eletron energy
+
+        Rkii_I = npop[:,iN1s4]*npop[:,iN1s2]*S_r
+        dydt[:,iN1s4] -= Rkii_I     
+        dydt[:,iN1s2] -= Rkii_I
+        dydt[:,iNe]   += Rkii_I  
+        dydt[:,iNion] += Rkii_I 
+        dydt[:,iNg]   += Rkii_I  
+        deltaEnergy = (self.p.E_lvl[iN1s4] + self.p.E_lvl[iN1s2]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I # rate of change of eletron energy
+
+                             
+        # metastable-resonance  Ar(r) + Ar(m) -> Ar+ + Ar + e      
+        Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s3]*S_mr
+        dydt[:,iN1s4] -= Rkii_I_1
+        dydt[:,iN1s3] -= Rkii_I_1
+        dydt[:,iNe]   += Rkii_I_1 
+        dydt[:,iNion] += Rkii_I_1 
+        dydt[:,iNg]   += Rkii_I_1 
+        deltaEnergy = (self.p.E_lvl[iN1s4] + self.p.E_lvl[iN1s3]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I_1 # rate of change of eletron energy
+
+        Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s3]*S_mr
+        dydt[:,iN1s2] -= Rkii_I_2 
+        dydt[:,iN1s3] -= Rkii_I_2
+        dydt[:,iNe]   += Rkii_I_2 
+        dydt[:,iNion] += Rkii_I_2 
+        dydt[:,iNg]   += Rkii_I_2 
+        deltaEnergy = (self.p.E_lvl[iN1s2] + self.p.E_lvl[iN1s3]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I_2 # rate of change of eletron energy
+        
+        Rkii_I_1 = npop[:,iN1s4]*npop[:,iN1s5]*S_mr    
+        dydt[:,iN1s4] -= Rkii_I_1  
+        dydt[:,iN1s5] -= Rkii_I_1
+        dydt[:,iNe]   += Rkii_I_1 
+        dydt[:,iNion] += Rkii_I_1 
+        dydt[:,iNg]   += Rkii_I_1 
+        deltaEnergy = (self.p.E_lvl[iN1s4] + self.p.E_lvl[iN1s5]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I_1 # rate of change of eletron energy
+                        
+        Rkii_I_2 = npop[:,iN1s2]*npop[:,iN1s5]*S_mr
+        dydt[:,iN1s2] -= Rkii_I_2
+        dydt[:,iN1s5] -= Rkii_I_2
+        dydt[:,iNe]   += Rkii_I_2
+        dydt[:,iNion] += Rkii_I_2
+        dydt[:,iNg]   += Rkii_I_2
+        deltaEnergy = (self.p.E_lvl[iN1s2] + self.p.E_lvl[iN1s5]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I_2 # rate of change of eletron energy
+
+        # metastable-metastable  Ar(m) + Ar(m) -> Ar+ + Ar + e         
+        Rkii_I = npop[:,iN1s5]*npop[:,iN1s5]*S_m 
+        dydt[:,iN1s5] -= 2*Rkii_I           
+        dydt[:,iNe]   += Rkii_I 
+        dydt[:,iNion] += Rkii_I 
+        dydt[:,iNg]   += Rkii_I 
+        deltaEnergy = (self.p.E_lvl[iN1s5] + self.p.E_lvl[iN1s5]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I # rate of change of eletron energy
+      
+        Rkii_I = npop[:,iN1s3]*npop[:,iN1s3]*S_m
+        dydt[:,iN1s3] -= 2 * Rkii_I
+        dydt[:,iNe]   += Rkii_I 
+        dydt[:,iNion] += Rkii_I 
+        dydt[:,iNg]   += Rkii_I 
+        deltaEnergy = (self.p.E_lvl[iN1s3] + self.p.E_lvl[iN1s3]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I # rate of change of eletron energy
+        
+        Rkii_I = npop[:,iN1s5]*npop[:,iN1s3]*S_m
+        dydt[:,iN1s5] -= Rkii_I    
+        dydt[:,iN1s3] -= Rkii_I                        
+        dydt[:,iNe]   += Rkii_I 
+        dydt[:,iNion] += Rkii_I 
+        dydt[:,iNg]   += Rkii_I     
+        deltaEnergy = (self.p.E_lvl[iN1s5] + self.p.E_lvl[iN1s3]) * cm_eV - self.p.E_lvl_ArIon
+        dydt[:,iEe]   += deltaEnergy * Rkii_I # rate of change of eletron energy
+
+
+        ################## Ar2+ processes ##################
+        # Ar+ + Ar(1) + Ar(1) -> Ar2+ + Ar(1)       # atomic to molecular ion conversion        
+        Rk_ii = nion * n_g * n_g * self.K_mc              
+        dydt[:,iNAr2i]  += Rk_ii         
+        dydt[:,iNion]   -= Rk_ii         
+        dydt[:,iNg]     -= Rk_ii         
+
+        # Ar(3p5 4s) + Ar(3p5 4s) -> Ar2+ + e-      # metastable- metastable associative ionization      
+        Rk_ii = npop[:,iN1s5] * npop[:,iN1s5] * self.K_mai 
+        dydt[:,iN1s5]  -= 2 * Rk_ii           
+        dydt[:,iNe]    += Rk_ii 
+        dydt[:,iNAr2i] += Rk_ii 
+        deltaEnergy = 2 * self.p.E_lvl[iN1s5] * cm_eV - self.p.E_lvl_Ar2Ion
+        dydt[:,iEe]    += deltaEnergy * Rk_ii # rate of change of eletron energy
+
+        Rk_ii = npop[:,iN1s3] * npop[:,iN1s3] * self.K_mai 
+        dydt[:,iN1s3]  -= 2 * Rk_ii
+        dydt[:,iNe]    += Rk_ii 
+        dydt[:,iNAr2i] += Rk_ii 
+        deltaEnergy = 2 * self.p.E_lvl[iN1s3] * cm_eV - self.p.E_lvl_Ar2Ion
+        dydt[:,iEe]    += deltaEnergy * Rk_ii # rate of change of eletron energy
+
+        Rk_ii = npop[:,iN1s5] * npop[:,iN1s3] * self.K_mai 
+        dydt[:,iN1s5]  -= Rk_ii    
+        dydt[:,iN1s3]  -= Rk_ii                        
+        dydt[:,iNe]    += Rk_ii 
+        dydt[:,iNAr2i] += Rk_ii 
+        deltaEnergy = (self.p.E_lvl[iN1s5] + self.p.E_lvl[iN1s3]) * cm_eV - self.p.E_lvl_Ar2Ion
+        dydt[:,iEe]    += deltaEnergy * Rk_ii # rate of change of eletron energy
+ 
+
+        # Ar2+ + e- -> Ar(1) + Ar(1)                # dissociative recombination
+        Rk_ii = nAr2i * ne * self.K_dr 
+        dydt[:,iNg]    += 2*Rk_ii           
+        dydt[:,iNe]    -= Rk_ii 
+        dydt[:,iNAr2i] -= Rk_ii 
+        deltaEnergy = self.p.Ar2Ion_DissEn
+        dydt[:,iEe]    -= deltaEnergy * Rk_ii # rate of change of eletron energy
+
+        # Ar2+ + e- -> Ar(2 <= i <= 4) + Ar(1)      # dissociative recombination
+        Rk_ii = nAr2i * ne * self.K_drm 
+        dydt[:,iN1s5]  += Rk_ii           
+        dydt[:,iN1s4]  += Rk_ii           
+        dydt[:,iN1s3]  += Rk_ii           
+        dydt[:,iNg]    += 3 * Rk_ii           
+        dydt[:,iNe]    -= 3 * Rk_ii 
+        dydt[:,iNAr2i] -= 3 * Rk_ii 
+        deltaEnergy = self.p.Ar2Ion_DissEn
+        dydt[:,iEe]    -= deltaEnergy * 3 * Rk_ii # rate of change of eletron energy
+
+        # Ar2+ + e- -> Ar+ + Ar(1) + e-             # direct electric dissociation
+        Rk_ii = nAr2i * ne * self.K_dd 
+        dydt[:,iNion]  += Rk_ii 
+        dydt[:,iNg]    += Rk_ii           
+        dydt[:,iNAr2i] -= Rk_ii 
+        deltaEnergy = self.p.Ar2Ion_DissEn
+        dydt[:,iEe]    -= deltaEnergy * Rk_ii # rate of change of eletron energy
+
+
+        ################## Ar2* processes ##################
+
+        # Ar(3p5 4s) + Ar(1) + Ar(1) -> Ar2* + Ar(1) # metastable association  
+        Rk_ii = npop[:,iN1s5] * n_g * n_g * self.Q_ma              
+        dydt[:,iNAr2m]  += Rk_ii         
+        dydt[:,iN1s5]   -= Rk_ii         
+        dydt[:,iNg]     -= Rk_ii   
+
+        Rk_ii = npop[:,iN1s3] * n_g * n_g * self.Q_ma              
+        dydt[:,iNAr2m]  += Rk_ii         
+        dydt[:,iN1s3]   -= Rk_ii         
+        dydt[:,iNg]     -= Rk_ii   
+
+        # Ar2* + e- -> Ar(3p5 4s) + Ar(1) + e-      # electron impact dissociation            
+        Rk_ii = nAr2m * ne * self.Q_ed              
+        dydt[:,iNAr2m]  -= 2 * Rk_ii         
+        dydt[:,iN1s5]   += Rk_ii         
+        dydt[:,iN1s3]   += Rk_ii         
+        dydt[:,iNg]     += 2 * Rk_ii  
+        deltaEnergy = self.p.Ar2m_DissEn
+        dydt[:,iEe]     -= deltaEnergy * 2 * Rk_ii # rate of change of eletron energy
+        
+        # Ar2* + Ar(3p5 4s) ->  Ar(1) + e- + Ar2+   # moleular - metastable ionization          
+        Rk_ii = nAr2m * npop[:,iN1s5] * self.Q_mmi              
+        dydt[:,iNAr2m]  -= Rk_ii         
+        dydt[:,iN1s5]   -= Rk_ii         
+        dydt[:,iNg]     += Rk_ii  
+        dydt[:,iNe]     += Rk_ii         
+        dydt[:,iNAr2i]  += Rk_ii         
+        deltaEnergy = self.p.E_lvl_Ar2m + self.p.E_lvl[iN1s5]*cm_eV -self.p.E_lvl_Ar2Ion 
+        dydt[:,iEe]     += deltaEnergy * Rk_ii # rate of change of eletron energy
+
+        Rk_ii = nAr2m * npop[:,iN1s3] * self.Q_mmi              
+        dydt[:,iNAr2m]  -= Rk_ii         
+        dydt[:,iN1s3]   -= Rk_ii         
+        dydt[:,iNg]     += Rk_ii  
+        dydt[:,iNe]     += Rk_ii         
+        dydt[:,iNAr2i]  += Rk_ii         
+        deltaEnergy = self.p.E_lvl_Ar2m + self.p.E_lvl[iN1s3]*cm_eV -self.p.E_lvl_Ar2Ion 
+        dydt[:,iEe]     += deltaEnergy * Rk_ii # rate of change of eletron energy
+
+        # Ar2* + Ar2*  ->  Ar(1) + Ar(1) + e- + Ar2+  # moleular ionization              
+        Rk_ii = nAr2m * nAr2m * self.Q_mi              
+        dydt[:,iNAr2m]  -= 2 * Rk_ii         
+        dydt[:,iNg]     += 2 * Rk_ii  
+        dydt[:,iNe]     += Rk_ii         
+        dydt[:,iNAr2i]  += Rk_ii         
+        deltaEnergy = 2 * self.p.E_lvl_Ar2m -self.p.E_lvl_Ar2Ion 
+        dydt[:,iEe]     += deltaEnergy * Rk_ii # rate of change of eletron energy
+
+        # Ar2* ->  Ar(1) + Ar(1) + hv
+        self.A_Ar2m = 1e6  
+        Rk_ii = nAr2m * self.A_Ar2m              
+        dydt[:,iNAr2m]  -= Rk_ii         
+        dydt[:,iNg]     += 2 * Rk_ii  
 
 
         return dydt, Qrad

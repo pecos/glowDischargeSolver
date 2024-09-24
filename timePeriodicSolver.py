@@ -34,8 +34,13 @@ class timePeriodicSolver:
             self.tds.U1[0:(self.tds.Ns-1)*self.tds.Np] = 1.0e-4             # 'usual' species
             self.tds.U1[(self.tds.Ns-1)*self.tds.Np:self.tds.Ns*self.tds.Np] = 1.0  # background specie
             self.tds.U1[self.tds.Ns*self.tds.Np:(self.tds.Ns+1)*self.tds.Np] = self.tds.params.EeBC*self.tds.U1[0:self.tds.Np] # electron energy
-            self.tds.solve_poisson(self.tds.U1[0:self.tds.Np],self.tds.U1[self.tds.Np:2*self.tds.Np],1.0/args.Nt)
-            self.tds.U1[(self.tds.Ns+1)*self.tds.Np:(self.tds.Ns+2)*self.tds.Np] = self.tds.phi # effective electric field for ions
+            if IonEffEField:
+                # pull off state for convenience
+                dens = np.zeros((self.tds.Np, self.tds.Ns),dtype=np.float64)
+                for i in range(0,self.tds.Ns):
+                    dens[:,i] = self.tds.U1[i*self.tds.Np:(i+1)*self.tds.Np,0]                
+                self.tds.solve_poisson(dens,1.0/args.Nt)
+                self.tds.U1[(self.tds.Nv-1)*self.tds.Np:self.tds.Nv*self.tds.Np] = self.tds.phi # effective electric field for ions
 
 
         self.tds.U2 = np.copy(self.tds.U1)
@@ -263,13 +268,13 @@ if __name__ == "__main__":
         Ns = 4
     elif(args.scenario==7):
         print('#   Running scenario = 7 (6 species, 34 rxn, Nominal)')
-        Ns = 6
+        Ns = 6 + 2   # E, Ar+, Ar+2, Ar2, Ar(m), Ar(r), Ar(4p), Ar(g) 
     elif(args.scenario==15):
         print('#   Running CR model = 15 (17 species, Nominal)')
-        Ns = 1+14+1+1 # background state + 4 4s levels + 10 4p levels + electrons + ions 
+        Ns = 1+14+2+1+1 # Ar(g), Ar(i), Ar+2, Ar2, E, Ar+
     elif(args.scenario==16):
         print('#   Running CR model = 16 (33 species, Nominal)')        
-        Ns = 1+30+1+1 # background state + excited states + electrons + ions 
+        Ns = 1+30+2+1+1 # Ar(g), Ar(i), Ar+2, Ar2, E, Ar+       
     else:
         print("ERROR: Scenario = {0:d} not recognized.  Exiting.".format(args.scenario))
         exit(-1)
