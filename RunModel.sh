@@ -55,7 +55,7 @@ rm -f $screenOut
 # echo "Run 1 period ..."
 # $baseCmd --t0 0.0 --restart "${baseFile}T125.npy" --outfile "discard.npy"
 # $baseCmd --t0 0.0 --restart "discard.npy"  --verbose --outfile "discard.npy" 
-$baseCmd --t0 0.0 --outfile "discard.npy" 
+$baseCmd --t0 0.0 --outfile "discard.npy" --verbose
 # $baseCmd --t0 0.0 --restart "newton_CR_CN_Np150.npy"  --verbose --outfile "discard.npy" 
 
 

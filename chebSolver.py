@@ -2281,7 +2281,114 @@ class timeDomainCollocationSolver:
 
 
     def step(self, time, dt, iter_max=20,
-             rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, freeze_jacobian=False):
+             rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, jac_frequency=1):
+        """Take a single time step.
+
+        Inputs
+          time       : Current time
+          dt         : Time step
+          iter_max   : Maximum number of iters in nonlinear solve
+          rtol       : Relative tolerance for nonlinear solve
+          atol       : Absolute tolerance for nonlinear solve
+          verbose    : If true, print nonlinear solve info
+
+        Outputs: None (self.U2 is set to solution for this time step)
+        """
+        xp = self.xp_module
+
+        r = self.residual(self.U2, time, dt, weak_bc)
+
+        self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+        jac_inv  = xp.linalg.inv(self.jac)
+
+        normr = normr0 = xp.linalg.norm(r)
+
+        # if xp == cp:
+        #   cp.cuda.runtime.deviceSynchronize()
+
+        count = 0
+        converged = ((normr/normr0 < rtol) or (normr < atol))
+
+        if (verbose):
+            print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
+                count, normr, normr/normr0))
+        while( not converged and (count < iter_max) ):
+            #self.jacobianFD(self.U2, time, dt)
+            #xp.save("jacobian_FD.npy", self.jac)
+            #xp.save("jacobian_AN.npy", self.jac)
+
+            # self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+            if count > 0 and count % jac_frequency == 0:
+                self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+                jac_inv  = xp.linalg.inv(self.jac)   
+
+
+            # dU = xp.dot(jac_inv, -r)
+            # self.U2 += dU
+            # self.U2[self.U2<0.0] = 0.0 # NOTE(malamast): This causes the periodic solver to fail. 
+            #                              # Some small negative values can occur close to the boundaries 
+            #                              # where the number densities are zero.
+            # r = self.residual(self.U2, time, dt, weak_bc)
+            # normr = xp.linalg.norm(r)
+
+            dU = xp.dot(jac_inv, -r)
+
+            U2_new = self.U2 + dU
+
+            r = self.residual(U2_new, time, dt, weak_bc)
+            normr = xp.linalg.norm(r)
+
+
+            if not np.isfinite(normr):
+                self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+                jac_inv  = xp.linalg.inv(self.jac) 
+                dU = xp.dot(jac_inv, -r)
+                U2_new = self.U2 + dU
+                r = self.residual(U2_new, time, dt, weak_bc)
+                normr = xp.linalg.norm(r)
+
+                self.U2[:] = U2_new    
+
+            else:
+                self.U2[:] = U2_new
+
+
+            count += 1
+            if (verbose):
+                print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
+                    count, normr, normr/normr0))
+
+            converged = ((normr/normr0 < rtol) or (normr < atol))
+            if not np.isfinite(normr): 
+                break
+
+
+        if (not converged):
+            # if non-convergence encountered, save state and die
+            print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
+                count, normr, normr/normr0))
+            xp.save("nonconverged_U2.npy", self.U2)
+            xp.save("nonconverged_U1.npy", self.U1)
+            xp.save("nonconverged_U0.npy", self.U0)
+            
+            # EN_Td = 1e21 * xp.abs(- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,inb]) #  Electric field / N [Td]   
+            # pull off state for convenience
+            dens = np.zeros((self.Np, self.Ns),dtype=np.float64)
+            for i in range(0,self.Ns):
+                dens[:,i] = self.U0[i*self.Np:(i+1)*self.Np,0]                
+            self.solve_poisson(dens,time)
+            phi_x  = self.Dp @ self.phi
+            EN_Td = 1e21 * (- phi_x) * self.params.V0L  / (self.params.nAr * dens[:,self.Ns-1])
+            xp.save("nonconverged_U0_Efield.npy", EN_Td)
+            
+            print("Step did not converge")
+            exit(-1)            
+                
+        return converged, count     # count is the Newton iteration count
+
+
+    def step_fixed_dt(self, time, dt, iter_max=20,
+                      rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, freeze_jacobian=False):
         """Take a single time step.
 
         Inputs
@@ -2431,7 +2538,7 @@ class timeDomainCollocationSolver:
 
 
     def solve(self, time0, dt, Nstep, savedata=None, verbose=False,
-              rtol=1e-6, computeSensitivity=False, weak_bc=False):
+              rtol=1e-6, computeSensitivity=False, weak_bc=False, jac_frequency=1):
 
 
         if self.args.use_gpu==1:
@@ -2480,7 +2587,7 @@ class timeDomainCollocationSolver:
 
         # assume initial condition has been set in U1!
         time = time0+dt
-        self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+        self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
         print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}  {7:.6e}".format(
             0, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
             self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
@@ -2718,6 +2825,8 @@ if __name__ == "__main__":
     parser.add_argument('--gam', metavar='gam', default=0.01, type=float, help='Secondary Electron Emission Coefficient')
     parser.add_argument("-use_gpu", "--use_gpu", help="use GPUs", type=int, default=0)
     parser.add_argument("-gpu_device_id", "--gpu_device_id", help="GPU device id to use", type=int, default=0)
+    parser.add_argument('--jacfreq', metavar='J', default=1, type=int,
+                        help='Evaluate Jacobian every J Newton iterations during time step')
 
     args = parser.parse_args()
 
@@ -2897,7 +3006,8 @@ if __name__ == "__main__":
                      args.savedata, args.verbose, weak_bc=args.weakbc)
     else:
         tds.solve(args.t0, args.dt, args.Nt,
-                  args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc)
+                  args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc,
+                  jac_frequency=args.jacfreq)
 
     # profile.disable()
     # profile.print_stats(sort='tottime')

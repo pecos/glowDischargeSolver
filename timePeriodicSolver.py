@@ -74,7 +74,8 @@ class timePeriodicSolver:
         # Run from IC for 1 period
         self.tds.solve(0.0, 1.0/Nt, Nt,
                        savedata=None, verbose=True, rtol=1e-8,
-                       computeSensitivity=True, weak_bc=self.args.weakbc)
+                       computeSensitivity=True, weak_bc=self.args.weakbc,
+                       jac_frequency=self.args.jacfreq)
 
         # Compute difference between final state and Uic
         self.res = self.tds.U2 - Uic
@@ -175,6 +176,9 @@ if __name__ == "__main__":
                         type=int, help='Sample index, if BOLSIG chemistry is used.')
     parser.add_argument("-use_gpu", "--use_gpu", help="use GPUs", type=int, default=0)
     parser.add_argument("-gpu_device_id", "--gpu_device_id", help="GPU device id to use", type=int, default=0)
+    parser.add_argument('--jacfreq', metavar='J', default=1, type=int,
+                        help='Evaluate Jacobian every J Newton iterations during time step')
+
 
     args = parser.parse_args()
 
