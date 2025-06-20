@@ -79,6 +79,7 @@ def setPsaapProperties_CRModel(gam, inputV0, inputVDC, params, Ns):
     ###################################################################
 
     Pressure  = 1.0*spc.torr  # [Pa] 
+    # Pressure  = 150 # [Pa] 
     GasTemperature = 293.15 # [K]
     nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
@@ -116,6 +117,8 @@ def setPsaapProperties_CRModel(gam, inputV0, inputVDC, params, Ns):
     verticalShift = inputVDC      # DC voltage (vertical shift in driving voltage)
     tau = (1./13.56e6)             # period of driving voltage [s]
     L   = 2.00*0.005              # half-gap-width [m] (gap width is 2 cm)
+    # L   = 3.00*0.005              # half-gap-width [m] (gap width is 3 cm for Donko's case)
+
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
     # Chemistry parameters (charge number, Cv, Cp)
@@ -133,8 +136,8 @@ def setPsaapProperties_CRModel(gam, inputV0, inputVDC, params, Ns):
     nmum = 0.0
     nmur = 0.0
     nmu4p = 0.0
-    nmui = 8.0e19
-    # nmui = 4.65e19   # Transport coefficients from Lymberopoulos & Economou, 1993
+    # nmui = 8.0e19
+    nmui = 4.65e19   # Transport coefficients from Lymberopoulos & Economou, 1993
     nDe  = 3.86e22   # argon number density times electron diffusivity [1/(cm*s)]
     nDi  =  nmui * spc.k * GasTemperature / spc.e   # 2.07e18 # argon number density times ion diffusivity [1/(cm*s)]
     nDm  = 2.42e18 #2.42e18 #4.3763e18   # argon number density times AR(m) diffusivity [1/(cm*s)]

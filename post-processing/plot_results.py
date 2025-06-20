@@ -296,8 +296,13 @@ Ar_Langmuir_Exp = ReadLangmuirData()
 Ar_LAS_Exp = ReadLASAr4sData()
 Ar_Lumped4p_Exp  = ReadLumpedAr4pData()
 
-
+#Skata1
+# ExpCase = "0.5Torr-150V"
+# ExpCase = "0.5Torr-300V"
 ExpCase = "1.0Torr-150V"
+# ExpCase = "1.0Torr-300V"
+# ExpCase = "5.0Torr-150V"
+# ExpCase = "5.0Torr-300V"
 
 Ar_OES_Exp_Ei = Ar_OES_Exp["Ei"]; Ar_OES_Exp_gi = Ar_OES_Exp["gi"];
 if ExpCase in Ar_OES_Exp.keys():
@@ -618,8 +623,8 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 ic = 74; c = False; f = '../Results/CR/1Torr75V/Final/8spec_Const_mue/newton_6spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "8sp - Eef - 0.5ev - ct_mue"; m = "8sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 75; c = False; f = '../Results/CR/1Torr75V/Final/8spec_StEeBC/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "8sp - Eef - StEeBC"; m = "8sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 75; c = True; f = '../Results/CR/1Torr75V/Final/8spec_StEeBC/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "8sp - Eef - StEeBC"; m = "8sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 76; c = True; f = '../Results/CR/1Torr75V/Final/8spec/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "8sp - Eef - 0.5ev - StBCIon"; m = "8sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -631,19 +636,15 @@ ic = 78; c = False; f = '../Results/CR/1Torr75V/Final/8spec_StEeBC_2/newton_8spe
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
-
-
-
-
-ic = 79; c = False; f = '../Results/CR/1Torr75V/Final/8spec_StEeBC_3/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "8sp - Eef - StEeBC - 3"; m = "8sp"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-
-# ic = 80; c = True; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_3/BE/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Ns = 14"; m = "CR3"
+# ic = 79; c = True; f = '../Results/CR/1Torr75V/Final/8spec_StEeBC_3/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'c'; lb = "8sp - Eef - StEeBC - 3"; m = "8sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 80; c = False; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_3/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Bolsig+"; m = "CR3"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 80; c = True; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_3/BE/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Ns = 14"; m = "CR3"
+c#ase[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
+
+# ic = 80; c = False; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_3/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "CR"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 81; c = False; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_4/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "Sim - 4"; m = "CR3"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -655,16 +656,103 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 81; c = False; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_Rad/newton_CR_CN_Np150_fullsoln.npy'; cl = 'c-'; lb = "No radiation trapping"; m = "CR3"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 82; c = True; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_MaxEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "Maxwellian"; m = "CR3"
+ic = 82; c = False; f = '../Results/CR/1Torr75V/Final/Ns19_StBC_MaxEEDF/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "Maxwellian"; m = "CR3"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-# ic = 83; c = True; f = '../Results/CR/1Torr75V/Final/Ns35_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "Ns = 30"; m = "CR4"
+ic = 83; c = False; f = '../Results/CR/1Torr75V/Final/Ns35_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "Ns = 30"; m = "CR4"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 84; c = True; f = '../Results/CR/1Torr75V/Final/8spec_StBC_NewRates/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "8sp - Eef - StBC - New Rates"; m = "8sp"
+# # ic = 84; c = False; f = '../Results/CR/1Torr75V/Final/8spec_StBC_NewRates/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "6-species "; m = "8sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
+# # ic = 85; c = True; f = '../Results/CR/2.5Torr75V/Final/Ns19/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "2.5 Torr - 75 V"; m = "CR3"
+# # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+
+## ic = 86; c = True; f = '../Results/CR/L/1Torr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Bolsig+ old"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+ic = 86; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Bolsig+"; m = "CR3"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+## ic = 87; c = True; f = '../Results/CR/L/1Torr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "Druyvesteyn old"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
+# ic = 87; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "Druyvesteyn"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
+
+
+## ic = 88; c = True; f = '../Results/CR/L/1Torr75V/Ns19_StBC_Max/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "Maxwellian old"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 88; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_Max/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "Maxwellian"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+## ic = 89; c = True; f = '../Results/CR/L/1Torr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Sim old"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
+# ic = 89; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Sim"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
+
+# # ic = 89; c = True; f = '../Results/CR/L/2.5Torr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "2.5 Torr - 75 V"; m = "CR3"
+# # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m # Brakes quasi-neutrality
+
+## ic = 90; c = False; f = '../Results/CR/L/500mTorr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "0.5 Torr - 75 V"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 90; c = False; f = '../Results/CR/L/new/500mTorr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "0.5 Torr - 75 V"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+## ic = 91; c = True; f = '../Results/CR/L/500mTorr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Sim"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 91; c = True; f = '../Results/CR/L/new/500mTorr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Sim"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+## ic = 92; c = True; f = '../Results/CR/L/500mTorr150V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "0.5 Torr - 150 V - Dn"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 92; c = True; f = '../Results/CR/L/new/500mTorr150V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "0.5 Torr - 150 V - Dn"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# # ic = 92; c = True; f = '../Results/CR/L/5Torr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "5 Torr - 75 V - Dn"; m = "CR3"
+# # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m  # Brakes quasi-neutrality
+
+## ic = 93; c = False; f = '../Results/CR/L/1Torr150V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "1 Torr - 150 V - Dn"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 93; c = False; f = '../Results/CR/L/new/1Torr150V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "1 Torr - 150 V - Dn"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 94; c = True; f = '../Results/CR/L/2.5Torr75V/Ns19_StBC_Max/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "2.5 Torr - 75 V - Max"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 95; c = True; f = '../Results/CR/L/2.5Torr75V/Ns19_StBC_Max_Np300/newton_CR_CN_Np300_fullsoln.npy'; cl = 'b'; lb = "Np = 300"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 96; c = True; f = '../Results/CR/L/2.5Torr75V/Ns19_StBC_Max/newton_CR_CN_Np150_fullsoln.npy'; cl = 'r'; lb = "Np = 150"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+## ic = 97; c = True; f = '../Results/CR/L/5Torr75V/Ns19_StBC_Max_Np300/newton_CR_CN_Np300_fullsoln.npy'; cl = 'b'; lb = "5 Torr - 75 V - Max"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m  
+# ic = 97; c = True; f = '../Results/CR/L/new/5Torr75V/Ns19_StBC_Max_Np300/newton_CR_CN_Np300_fullsoln.npy'; cl = 'b'; lb = "5 Torr - 75 V - Max"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m  
+
+## ic = 98; c = True; f = '../Results/CR/L/5Torr150V/Ns19_StBC_Max_Np300/newton_CR_CN_Np300_fullsoln.npy'; cl = 'b'; lb = "5 Torr - 150 V - Max"; m = "CR3"
+## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m  
+# ic = 98; c = True; f = '../Results/CR/L/new/5Torr150V/Ns19_StBC_Max_Np300/newton_CR_CN_Np300_fullsoln.npy'; cl = 'b'; lb = "5 Torr - 150 V - Max"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m  
+
+
+# ic = 100; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_test/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "Bolsig+ (new test)"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 101; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_ecp/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "esp"; m = "CR3"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+#Skata2
+
 # these values are required to "redimensionalize" the results
 # they must be consistent with the scenario input file
-Pressure  = 1.0*spc.torr               # [Pa] 
+Pressure  = 2.5*spc.torr               # [Pa] 
 GasTemperature = 293.15                 # [K]
 nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
@@ -678,10 +766,12 @@ p_0 = Pressure
 
 # Number of Chebyshev modes
 Np=150
+# Np=300
 
 # T = number of time steps
 # T=128
 T=256
+# T=512
 
 # indices to plot (0, 0.25, 0.5, 0.75)*period
 t0 = 0
@@ -704,6 +794,7 @@ i_mid = np.argmin(abs_diff) # Find the index of the minimum absolute difference
 
 ne = {}; ni = {}; nb = {}; nee = {}; Te = {}; Tg = {}
 npop = {}; nm = {}; nr = {}; n4p = {}; nAr2i = {}; nAr2m = {};  
+n1s5 = {}; 
 dEps = {}; g = {}
 FromGlowDischargeToCRIndexing = {}
 FromCRToGlowDischargeIndexing = {}
@@ -720,6 +811,10 @@ for ic in case:
    if case[ic]: 
       print("Loading case ",ic, " from file :", file[ic])
 
+      if ic == 95 or ic == 97 or ic == 98:
+         Np = 300
+      else:
+         Np = 150
 
       # spatial grid
       xp = -np.cos(np.pi*np.linspace(0,Np-1,Np)/(Np-1))
@@ -836,12 +931,14 @@ for ic in case:
 
 
       if model[ic] == "CR" or model[ic] == "CR2":
+         n1s5[ic] = ne0 * D_reshaped[:,2,:]
          nm[ic] = ne0 * (D_reshaped[:,2,:] + D_reshaped[:,4,:]) 
          nr[ic] = ne0 * (D_reshaped[:,3,:] + D_reshaped[:,5,:]) 
          n4p[ic] = np.zeros_like(nr[ic])
          for i in range(6,15+1):
             n4p[ic] += ne0 * D_reshaped[:,i,:] 
       elif model[ic] == "6sp":
+         n1s5[ic] = ne0 * D_reshaped[:,2,:] # Not exactly correct. The reduced order model compines the together the two 4s metastable states.
          nm[ic]  = ne0 * D_reshaped[:,2,:]
          nr[ic]  = ne0 * D_reshaped[:,3,:] 
          n4p[ic] = ne0 * D_reshaped[:,4,:] 
@@ -851,6 +948,7 @@ for ic in case:
          nm[ic]    = ne0 * D_reshaped[:,4,:]
          nr[ic]    = ne0 * D_reshaped[:,5,:] 
          n4p[ic]   = ne0 * D_reshaped[:,6,:] 
+         n1s5[ic] = ne0 * D_reshaped[:,4,:] # Not exactly correct. The reduced order model compines the together the two 4s metastable states.
 
 
          npop[ic] = np.ndarray((Np, Ns-4, np.shape(D)[1]),dtype=np.float64)
@@ -866,6 +964,7 @@ for ic in case:
          nAr2m[ic]  = ne0 * D_reshaped[:,3,:]  
          nm[ic] = ne0 * (D_reshaped[:,4,:] + D_reshaped[:,6,:]) 
          nr[ic] = ne0 * (D_reshaped[:,5,:] + D_reshaped[:,7,:]) 
+         n1s5[ic] = ne0 * D_reshaped[:,4,:]
          n4p[ic] = np.zeros_like(nr[ic])
          for i in range(8,17+1):
             n4p[ic] += ne0 * D_reshaped[:,i,:] 
@@ -959,51 +1058,51 @@ if (isReportingCurrents):
          print('ElectronCurrent = ', np.mean(ElectronCurrent[ic][1:,:],axis=0))
 
 
-   # TotalCurrent
-   fig,ax = plt.subplots(dpi=160)
-   plt.title("TotalCurrent")
-   for ic in case: 
-      if case[ic]: 
-         ax.plot(tr[1:], TotalCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
-         ax.plot(tr[1:], TotalCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
-   ax.set_xlim((tr[0], tr[-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$t$ [s]", fontsize=16)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$I$ [A]", fontsize=16)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/TotalCurrent_electrodes.png')
+   # # TotalCurrent
+   # fig,ax = plt.subplots(dpi=160)
+   # plt.title("TotalCurrent")
+   # for ic in case: 
+   #    if case[ic]: 
+   #       ax.plot(tr[1:], TotalCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+   #       ax.plot(tr[1:], TotalCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
+   # ax.set_xlim((tr[0], tr[-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$I$ [A]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/TotalCurrent_electrodes.png')
 
 
-   # IonCurrent
-   fig,ax = plt.subplots(dpi=160)
-   plt.title("IonCurrent")
-   for ic in case: 
-      if case[ic]: 
-         ax.plot(tr[1:], IonCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
-         ax.plot(tr[1:], IonCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
-   ax.set_xlim((tr[0], tr[-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$t$ [s]", fontsize=16)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$I$ [A]", fontsize=16)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/IonCurrent_electrodes.png')
+   # # IonCurrent
+   # fig,ax = plt.subplots(dpi=160)
+   # plt.title("IonCurrent")
+   # for ic in case: 
+   #    if case[ic]: 
+   #       ax.plot(tr[1:], IonCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+   #       ax.plot(tr[1:], IonCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
+   # ax.set_xlim((tr[0], tr[-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$I$ [A]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/IonCurrent_electrodes.png')
 
-   # ElectronCurrent
-   fig,ax = plt.subplots(dpi=160)
-   plt.title("ElectronCurrent")
-   for ic in case: 
-      if case[ic]: 
-         ax.plot(tr[1:], ElectronCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
-         ax.plot(tr[1:], ElectronCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
-   ax.set_xlim((tr[0], tr[-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$t$ [s]", fontsize=16)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$I$ [A]", fontsize=16)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/ElectronCurrent_electrodes.png')
+   # # ElectronCurrent
+   # fig,ax = plt.subplots(dpi=160)
+   # plt.title("ElectronCurrent")
+   # for ic in case: 
+   #    if case[ic]: 
+   #       ax.plot(tr[1:], ElectronCurrent[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+   #       ax.plot(tr[1:], ElectronCurrent[ic][1:,1], lw=2, label=label[ic]+" (x=L)")
+   # ax.set_xlim((tr[0], tr[-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$I$ [A]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/ElectronCurrent_electrodes.png')
 
 
    # Electron number density
@@ -1024,67 +1123,67 @@ if (isReportingCurrents):
 
 
 
-   # Electric Field - Electrodes
-   fig,ax = plt.subplots(dpi=160)
-   plt.title("E(t)")
-   for ic in case: 
-      if case[ic]:               
-         ax.plot(tr[1:], ElectricField[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
-         ax.plot(tr[1:], ElectricField[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
-   ax.set_xlim((tr[0], tr[-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$t$ [s]", fontsize=16)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$E$ [V/m]", fontsize=16)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/EField_electrodes.png')
+   # # Electric Field - Electrodes
+   # fig,ax = plt.subplots(dpi=160)
+   # plt.title("E(t)")
+   # for ic in case: 
+   #    if case[ic]:               
+   #       ax.plot(tr[1:], ElectricField[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+   #       ax.plot(tr[1:], ElectricField[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   # ax.set_xlim((tr[0], tr[-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$E$ [V/m]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/EField_electrodes.png')
 
 
-   # Effective Electric Field - Electrodes
-   fig,ax = plt.subplots(dpi=160)
-   plt.title("Eeff(t)")
-   for ic in case: 
-      if case[ic]:               
-         ax.plot(tr[1:], EffElectricField[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
-         ax.plot(tr[1:], EffElectricField[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
-   ax.set_xlim((tr[0], tr[-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$t$ [s]", fontsize=16)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$E^{ef}$ [V/m]", fontsize=16)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/EffEField_electrodes.png')
+   # # Effective Electric Field - Electrodes
+   # fig,ax = plt.subplots(dpi=160)
+   # plt.title("Eeff(t)")
+   # for ic in case: 
+   #    if case[ic]:               
+   #       ax.plot(tr[1:], EffElectricField[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+   #       ax.plot(tr[1:], EffElectricField[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   # ax.set_xlim((tr[0], tr[-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$E^{ef}$ [V/m]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/EffEField_electrodes.png')
 
-   # Electric Potential - Electrodes
-   fig,ax = plt.subplots(dpi=160)
-   # plt.title("ne(t)")
-   for ic in case: 
-      if case[ic]:               
-         ax.plot(tr[1:], ElectricPotential[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
-         ax.plot(tr[1:], ElectricPotential[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
-   ax.set_xlim((tr[0], tr[-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$t$ [s]", fontsize=16)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$\phi$ [V]", fontsize=16)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/EPotential_electrodes.png')
+   # # Electric Potential - Electrodes
+   # fig,ax = plt.subplots(dpi=160)
+   # # plt.title("ne(t)")
+   # for ic in case: 
+   #    if case[ic]:               
+   #       ax.plot(tr[1:], ElectricPotential[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+   #       ax.plot(tr[1:], ElectricPotential[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   # ax.set_xlim((tr[0], tr[-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$\phi$ [V]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/EPotential_electrodes.png')
 
 
-   # Electric Power - Electrodes
-   fig,ax = plt.subplots(dpi=160)
-   # plt.title("ne(t)")
-   for ic in case: 
-      if case[ic]:               
-         ax.plot(tr[1:], TotalCurrent[ic][1:,0]*ElectricPotential[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
-         ax.plot(tr[1:], TotalCurrent[ic][1:,1]*ElectricPotential[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
-   ax.set_xlim((tr[0], tr[-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$t$ [s]", fontsize=16)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$P$ [W]", fontsize=16)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/EPower_electrodes.png')
+   # # Electric Power - Electrodes
+   # fig,ax = plt.subplots(dpi=160)
+   # # plt.title("ne(t)")
+   # for ic in case: 
+   #    if case[ic]:               
+   #       ax.plot(tr[1:], TotalCurrent[ic][1:,0]*ElectricPotential[ic][1:,0], lw=2, label=label[ic]+" (x=0)")
+   #       ax.plot(tr[1:], TotalCurrent[ic][1:,1]*ElectricPotential[ic][1:,-1], lw=2, label=label[ic]+" (x=L)")
+   # ax.set_xlim((tr[0], tr[-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$t$ [s]", fontsize=16)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$P$ [W]", fontsize=16)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/EPower_electrodes.png')
 
 
 
@@ -1167,7 +1266,10 @@ if (isReportingCurrents):
    plt.text(-0.25, 1.10, '(b)', transform=plt.gca().transAxes, fontsize=11, fontweight='normal', va='top', ha='left')   
    for ic in case: 
       if case[ic]: 
-         ax1.plot(xr[ic], np.mean(ElectricPotential[ic],axis=0), c=clr[ic], lw=1.5, label=label[ic])
+         if ic == 96:
+            ax1.plot(xr[ic], np.mean(ElectricPotential[ic],axis=0), c=clr[ic],ls='--', lw=1.5, label=label[ic])
+         else:
+            ax1.plot(xr[ic], np.mean(ElectricPotential[ic],axis=0), c=clr[ic], lw=1.5, label=label[ic])
          ax1.set_xlim((xr[ic][0], xr[ic][-1]))
    ax1.set_xlabel(r"$x$ [cm]", fontsize=11)
    plt.setp(ax1.get_xticklabels(), fontsize=9)
@@ -1178,12 +1280,7 @@ if (isReportingCurrents):
    fig.legend(loc='center', bbox_to_anchor=(0.56,0.33) ,fontsize=8)
    plt.tight_layout()
    plt.savefig('./png/Potential_mean_MaxEEDF.png', dpi=300, bbox_inches='tight')
-
-
-
-
-
-
+   # plt.savefig('./png/Potential_mean_Grid.png', dpi=300, bbox_inches='tight')
 
 
 
@@ -1288,8 +1385,8 @@ if (isPlotLines):
 if (isPlotMeans):
    print("Plotting means...")
    
-   # # ic1 = 34; ic2 = 39 
-   # ic1 = 80; ic2 = 83 
+   # # # ic1 = 34; ic2 = 39 
+   # ic1 = 80; ic2 = 84 
    # print("Realative differences [%]:")
    # x1 = (np.mean(ne[ic1],axis=1))[i_mid[ic1]]
    # x2 = (np.mean(ne[ic2],axis=1))[i_mid[ic2]]
@@ -1390,6 +1487,79 @@ if (isPlotMeans):
    # print(np.mean(lambda_D,axis=1)[75])
    # exit(-1)
 
+   # #skata
+   # for ic in case: 
+   #    if case[ic]: 
+   #       print(ic, i_mid[ic] )
+   #       number = np.mean(ne[ic],axis=1)[i_mid[ic]]
+   #       print('n_e = ', f"{number:.2e}")
+
+   #       number = np.mean(nAr2i[ic],axis=1)[i_mid[ic]]/np.mean(ni[ic],axis=1)[i_mid[ic]]*100
+   #       print('nAr2i / n_i = ', f"{number:.2e}")
+
+   #       number = np.mean(npop[ic][i_mid[ic],1,:],axis=0)
+   #       print('n_s5 = ', f"{number:.2e}")
+
+   #       number =  np.mean(nAr2m[ic],axis=1)[i_mid[ic]]
+   #       print('nAr2m = ', f"{number:.2e}")
+
+
+   # exit(0)
+
+
+
+   # ne
+   # Set the desired width in cm
+   width_cm = 9  # Width in cm
+   aspect_ratio = 0.85  # Example aspect ratio (height/width)
+   height_cm = width_cm * aspect_ratio
+   fig,ax = plt.subplots(figsize=(cm_to_inch(width_cm), cm_to_inch(height_cm)))
+   plt.text(-0.25, 1.10, '(a)', transform=plt.gca().transAxes, fontsize=11, fontweight='normal', va='top', ha='left')   
+   for ic in case: 
+      if case[ic]: 
+         if ic == 96:
+            ax.semilogy(xr[ic], np.mean(ne[ic],axis=1), c=clr[ic], ls='--' , lw=1.5, label=r"$e^{-}$")
+         else:
+            ax.semilogy(xr[ic], np.mean(ne[ic],axis=1), c=clr[ic], ls='-' , lw=1.5, label=r"$e^{-}$")
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   # ax.legend(fontsize=8)
+   ax.set_xlabel(r"$x$ [cm]", fontsize=11)
+   plt.setp(ax.get_xticklabels(), fontsize=9)
+   ax.set_ylabel(r"$n_e$ [#/m$^{3}$]", fontsize=11)
+   plt.setp(ax.get_yticklabels(), fontsize=9)
+   plt.tight_layout()
+   plt.grid(True)
+   plt.savefig('./png/ne_mean_Grid.png', dpi=300, bbox_inches='tight')
+
+
+
+
+   # n1s5
+   # width_cm = 13  # Width in cm
+   width_cm = 9  # Width in cm
+   aspect_ratio = 0.85  # Example aspect ratio (height/width)
+   height_cm = width_cm * aspect_ratio
+   fig,ax = plt.subplots(figsize=(cm_to_inch(width_cm), cm_to_inch(height_cm)))
+   # plt.text(-0.25, 1.10, '(a)', transform=plt.gca().transAxes, fontsize=11, fontweight='normal', va='top', ha='left')   
+   # plt.title("(150 Pa, 150 V)",fontsize=12)
+   for ic in case: 
+      if case[ic]: 
+         ax.plot(xr[ic], np.mean(n1s5[ic],axis=1), lw=2, color=clr[ic] , label="Current (Sim)")
+         # ax.semilogy(xr[ic], np.mean(n1s5[ic],axis=1), lw=2, color=clr[ic] , label="Current (Sim)")
+
+         ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   ax.legend(fontsize=8)
+   ax.set_xlabel(r"$x$ [cm]", fontsize=11)
+   plt.setp(ax.get_xticklabels(), fontsize=9)
+   ax.set_ylabel(r"$n_{AR(1s5)}$ [m$^{-3}$]", fontsize=11)
+   plt.setp(ax.get_yticklabels(), fontsize=9)
+   plt.tight_layout()
+   plt.grid(True)
+   plt.savefig('./png/n1s5_mean.png', dpi=300, bbox_inches='tight')
+
+
+   plt.show()
+   exit(0)
 
 
    # nm
@@ -1527,9 +1697,10 @@ if (isPlotMeans):
    plt.text(-0.15, 1.10, '(c)', transform=plt.gca().transAxes, fontsize=11, fontweight='normal', va='top', ha='left')
    for ic in case: 
       if case[ic]: 
-         if ic == 82:
-            ax.plot(xr[ic], uniform_filter1d(np.mean(Te[ic],axis=1), size=3),lw=1.5, c=clr[ic])
-            # ax.plot(xr[ic], np.mean(Te[ic],axis=1),lw=1.0,ls='--', c='k')
+         # if ic == 82:
+            # ax.plot(xr[ic], uniform_filter1d(np.mean(Te[ic],axis=1), size=3),lw=1.5, c=clr[ic])
+         if ic == 96:
+            ax.plot(xr[ic], np.mean(Te[ic],axis=1),lw=1.5,ls='--', c=clr[ic])
          else:
             ax.plot(xr[ic], np.mean(Te[ic],axis=1),lw=1.5, c=clr[ic])
          ax.set_xlim((xr[ic][0]-0.05, xr[ic][-1]+0.05))
@@ -1542,7 +1713,9 @@ if (isPlotMeans):
    plt.tight_layout()
    plt.grid(True)
    # plt.savefig('./png/Te_mean_c.png', dpi=300, bbox_inches='tight')
-   plt.savefig('./png/Te_mean_MaxEEDF.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Te_mean_MaxEEDF.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Te_mean_EEDF.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Te_mean_Grid.png', dpi=300, bbox_inches='tight')
 
 
 
@@ -1617,9 +1790,10 @@ if (isPlotMeans):
 
    # Distribution of population
    # Set the desired width in cm
-   # width_cm = 13  # Width in cm
-   width_cm = 9  # Width in cm
+   width_cm = 13  # Width in cm
+   # width_cm = 9  # Width in cm
    aspect_ratio = 0.85  # Example aspect ratio (height/width)
+   # aspect_ratio = 0.85  # Example aspect ratio (height/width)
    height_cm = width_cm * aspect_ratio
 
    fig,ax = plt.subplots(figsize=(cm_to_inch(width_cm), cm_to_inch(height_cm)))
@@ -1635,11 +1809,51 @@ if (isPlotMeans):
    # plt.errorbar(Ar_OES_Exp_Ei, Ar_OES_Exp_ni[:,0]/Ar_OES_Exp_gi, 
    #             yerr=(lolims, uplims), c='k', marker='+' ,linestyle=ls, lw=1.0, label="Exp (OES)")
    # ax.legend(fontsize=7,loc=4)
-   ax.legend(fontsize=8,loc=9)
+   ax.legend(fontsize=11,loc=9)
    # ax.loglog()
    ax.semilogy()
    ax.set_xlim((dEps[ic][1]-0.2, Eion+0.2))
    ax.set_ylim((7e11, 1e17))
+   ax.set_xlabel(r"$E_i$ [eV]", fontsize=12)
+   plt.setp(ax.get_xticklabels(), fontsize=10)
+   ax.set_ylabel(r"$n_i / g_i$ [#/m$^3$]", fontsize=12)
+   plt.setp(ax.get_yticklabels(), fontsize=10)
+   plt.tight_layout()
+   plt.grid(True)
+   # plt.savefig('./png/Distribution_a.png', dpi=300, bbox_inches='tight')
+   plt.savefig('./png/Distribution_EEDF.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Distribution_ExcitedStates.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Distribution_Comparison_CR.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Distribution_OP_a.png', dpi=300, bbox_inches='tight')
+
+
+
+
+   # Distribution of population
+   # Set the desired width in cm
+   # width_cm = 13  # Width in cm
+   width_cm = 9  # Width in cm
+   aspect_ratio = 0.85  # Example aspect ratio (height/width)
+   height_cm = width_cm * aspect_ratio
+
+   fig,ax = plt.subplots(figsize=(cm_to_inch(width_cm), cm_to_inch(height_cm)))
+   # plt.title("(1 Torr, 150 V)")
+   # plt.text(-0.25, 1.10, '(a)', transform=plt.gca().transAxes, fontsize=11, fontweight='normal', va='top', ha='left')
+   for ic in case: 
+      if case[ic]: 
+         ax.scatter(dEps[ic][0:-2], np.mean(npop[ic][i_mid[ic],:,:],axis=1)/g[ic][0:-2], marker='.',c=clr[ic], lw=1.0, label=label[ic])
+         ax.plot(Eion, np.mean(ne[ic][i_mid[ic],:],axis=0),marker='*',c=clr[ic], lw=1.0)    
+   # ax.scatter(Ar_LAS_Exp_Ei, Ar_LAS_Exp_ni/Ar_LAS_Exp_gi, c='k', marker='x', lw=1.5, label="Exp (LAS)")        
+   # ax.plot(Eion, Ar_Exp_Ne,'k*', lw=1, label="Exp (Langmuir)")
+   # ls = ''; uplims =  Ar_OES_Exp_ni[:,1]/Ar_OES_Exp_gi; lolims =  Ar_OES_Exp_ni[:,2]/Ar_OES_Exp_gi
+   # plt.errorbar(Ar_OES_Exp_Ei, Ar_OES_Exp_ni[:,0]/Ar_OES_Exp_gi, 
+   #             yerr=(lolims, uplims), c='k', marker='+' ,linestyle=ls, lw=1.0, label="Exp (OES)")
+   # ax.legend(fontsize=7,loc=4)
+   ax.legend(fontsize=11,loc=9)
+   # ax.loglog()
+   ax.semilogy()
+   ax.set_xlim((dEps[ic][1]-0.2, Eion+0.2))
+   ax.set_ylim((1e11, 1e17))
    ax.set_xlabel(r"$E_i$ [eV]", fontsize=11)
    plt.setp(ax.get_xticklabels(), fontsize=9)
    ax.set_ylabel(r"$n_i / g_i$ [#/m$^3$]", fontsize=11)
@@ -1647,8 +1861,16 @@ if (isPlotMeans):
    plt.tight_layout()
    plt.grid(True)
    # plt.savefig('./png/Distribution_a.png', dpi=300, bbox_inches='tight')
-   plt.savefig('./png/Distribution_MaxEEDF.png', dpi=300, bbox_inches='tight')
-   # plt.savefig('./png/Distribution_ExcitedStates.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Distribution_EEDF.png', dpi=300, bbox_inches='tight')
+   plt.savefig('./png/Distribution_ExcitedStates.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Distribution_Comparison_CR.png', dpi=300, bbox_inches='tight')
+   # plt.savefig('./png/Distribution_OP_a.png', dpi=300, bbox_inches='tight')
+
+
+
+
+
+
 
 
    fig,ax = plt.subplots(figsize=(cm_to_inch(width_cm), cm_to_inch(height_cm)))
@@ -1679,6 +1901,60 @@ if (isPlotMeans):
    ellipse = patches.Ellipse(ellipse_center, ellipse_width, ellipse_height, transform=ax.transAxes, color='red', fill=False, linestyle='--', linewidth=1)
    ax.add_patch(ellipse)
    plt.savefig('./png/Distribution_b.png', dpi=300, bbox_inches='tight')
+   plt.savefig('./png/Distribution_OP_a.png', dpi=300, bbox_inches='tight')
+
+
+
+
+   # Set the desired width in cm
+   # width_cm = 13  # Width in cm
+   width_cm = 9  # Width in cm
+   aspect_ratio = 0.85  # Example aspect ratio (height/width)
+   height_cm = width_cm * aspect_ratio
+
+   #Skata3
+   ### Parameters you want to describe
+   # params_text = (
+   #    "Druyvesteyn \n"
+   #    r"$\gamma = 0.12$"
+   # )
+
+   fig,ax = plt.subplots(figsize=(cm_to_inch(width_cm), cm_to_inch(height_cm)))
+   plt.title("(0.5 Torr, 150 V)",fontsize=12)
+   plt.text(-0.25, 1.10, '(a)', transform=plt.gca().transAxes, fontsize=11, fontweight='normal', va='top', ha='left')
+   # ax.text(0.6, 0.89, params_text,
+   #      transform=ax.transAxes,          # transform coordinates to Axes coordinates
+   #      fontsize=10,
+   #      verticalalignment='center',
+      #   bbox=dict(boxstyle="round", facecolor="white", alpha=0.4))
+   for ic in case: 
+      if case[ic]: 
+         ax.scatter(dEps[ic][5:-2], np.mean(npop[ic][i_mid[ic],5:,:],axis=1)/g[ic][5:-2], marker='.',c='b', lw=1.0, label=label[ic])
+
+   ls = ''; uplims =  Ar_OES_Exp_ni[:,1]/Ar_OES_Exp_gi; lolims =  Ar_OES_Exp_ni[:,2]/Ar_OES_Exp_gi
+   plt.errorbar(Ar_OES_Exp_Ei, Ar_OES_Exp_ni[:,0]/Ar_OES_Exp_gi, 
+               yerr=(lolims, uplims), c='k', marker='+' ,linestyle=ls, lw=1.0, label="Exp (OES)")
+   ax.semilogy()
+   ax.set_xlim((dEps[ic][5]-0.1, dEps[ic][14]+0.1))
+   ax.set_ylim((1e10, 1e15))
+   ax.set_xlabel(r"$E_i$ [eV]", fontsize=11)
+   plt.setp(ax.get_xticklabels(), fontsize=9)
+   ax.set_ylabel(r"$n_i / g_i$ [#/m$^3$]", fontsize=11)
+   plt.setp(ax.get_yticklabels(), fontsize=9)
+   plt.tight_layout()
+   plt.grid(True)
+   # ax.legend(fontsize=10,loc=1)
+   # ellipse_center = (0.64, 0.475)  # Center of the ellipse
+   # ellipse_width = 0.175  # Width of the ellipse (horizontal diameter)
+   # ellipse_height = 0.78  # Height of the ellipse (vertical diameter)
+   # ellipse = patches.Ellipse(ellipse_center, ellipse_width, ellipse_height, transform=ax.transAxes, color='red', fill=False, linestyle='--', linewidth=1)
+   # ax.add_patch(ellipse)
+   plt.savefig('./png/Distribution_0.5T150V.png', dpi=300, bbox_inches='tight')
+
+
+
+
+
 
 
 
@@ -1711,21 +1987,21 @@ if (isPlotMeans):
    plt.savefig('./png/Distribution_lumped_mean.png')
 
 
-   # ni
-   fig,ax = plt.subplots(dpi=160)
-   for ic in case: 
-      if case[ic]: 
-         ax.plot(xr[ic], np.mean(npop[ic][:,1,:],axis=1), lw=2, label=r'$1s5$')
-         ax.plot(xr[ic], np.mean(npop[ic][:,2,:],axis=1), lw=2, label=r'$1s4$')
-         ax.plot(xr[ic], np.mean(npop[ic][:,3,:],axis=1), lw=2, label=r'$1s3$')
-         ax.plot(xr[ic], np.mean(npop[ic][:,4,:],axis=1), lw=2, label=r'$1s2$')
-         ax.set_xlim((xr[ic][0], xr[ic][-1]))
-   ax.legend(fontsize=12)
-   ax.set_xlabel(r"$x$ [cm]", fontsize=18)
-   plt.setp(ax.get_xticklabels(), fontsize=12)
-   ax.set_ylabel(r"$n_i$ [m$^{-3}$]", fontsize=18)
-   plt.setp(ax.get_yticklabels(), fontsize=12)
-   plt.savefig('./png/n4s_mean.png')
+   # # ni
+   # fig,ax = plt.subplots(dpi=160)
+   # for ic in case: 
+   #    if case[ic]: 
+   #       ax.plot(xr[ic], np.mean(npop[ic][:,1,:],axis=1), lw=2, label=r'$1s5$')
+   #       ax.plot(xr[ic], np.mean(npop[ic][:,2,:],axis=1), lw=2, label=r'$1s4$')
+   #       ax.plot(xr[ic], np.mean(npop[ic][:,3,:],axis=1), lw=2, label=r'$1s3$')
+   #       ax.plot(xr[ic], np.mean(npop[ic][:,4,:],axis=1), lw=2, label=r'$1s2$')
+   #       ax.set_xlim((xr[ic][0], xr[ic][-1]))
+   # ax.legend(fontsize=12)
+   # ax.set_xlabel(r"$x$ [cm]", fontsize=18)
+   # plt.setp(ax.get_xticklabels(), fontsize=12)
+   # ax.set_ylabel(r"$n_i$ [m$^{-3}$]", fontsize=18)
+   # plt.setp(ax.get_yticklabels(), fontsize=12)
+   # plt.savefig('./png/n4s_mean.png')
 
 
 

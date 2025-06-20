@@ -16,9 +16,9 @@ isPlot = True
 # Cases
 case = {}; file = {}; clr = {}; label = {}; model = {}
 
-ic = 1; c = False; f = '../nonconverged_U2.npy'; cl = 'b-'; lb = "U0"; m = "CR2"
+ic = 1; c = False; f = '../nonconverged_U0.npy'; cl = 'b-'; lb = "U1"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 2; c = False; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "6sp"
+ic = 2; c = False; f = '../nonconverged_U1.npy'; cl = 'g-'; lb = "U1"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 ic = 3; c = False; f = '../nonconverged_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -31,17 +31,35 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 ic = 7; c = False; f = '../exception_U2.npy'; cl = 'k-'; lb = "U2"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
+
+
+ic = 8; c = True; f = '../restart_0.npy'; cl = 'b-'; lb = "fixed"; m = "8sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 9; c = True; f = '../restart_1.npy'; cl = 'r-'; lb = "adaptive"; m = "8sp"
+case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
 # ic = 8; c = False; f = '../restart_8spec_CN_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "8sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 # ic = 8; c = False; f = '../newton_6spec_CN_Np150.npy'; cl = 'r-'; lb = "restart"; m = "6sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 8; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = True; f = '../restart_CR_BE_Np150_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = True; f = '../restart_CR_BE_Np300_T125.npy'; cl = 'r-'; lb = "restart"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
+# ic = 8; c = True; f = '../restart_CR_BE_Np300_T125_0.npy'; cl = 'r-'; lb = "restart"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 9; c = False; f = '../Results/CR/1Torr75V/Ns17_EnergyTransport_BSR/2/nonconverged_U1.npy'; cl = 'b-'; lb = "U1"; m = "CR"
-case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+# ic = 8; c = True; f = '../restart_8spec_CN_Np225_T125.npy'; cl = 'r-'; lb = "restart"; m = "8sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+# ic = 9; c = False; f = '../Results/CR/1Torr75V/Ns17_EnergyTransport_BSR/2/nonconverged_U1.npy'; cl = 'b-'; lb = "U1"; m = "CR"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 # ic = 10; c = True; f = '../restart_CR_BE_Np150_T125_Dirichlet.npy'; cl = 'b-'; lb = "Dirichlet"; m = "CR"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
@@ -81,18 +99,20 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 
 # these values are required to "redimensionalize" the results
 # they must be consistent with the scenario input file
-Pressure  = 5.0*spc.torr               # [Pa] 
+Pressure  = 1.0*spc.torr               # [Pa] 
 GasTemperature = 293.15                 # [K]
 nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
 ne0 = 8e16           # "nominal" electron density [1/m^3]
 L   = 2.00*0.005     # half-gap-width [m] (gap width is 2 cm)
 tau = (1./13.56e6)   # period of driving voltage [s]
-V0  = 150.0          # amplitude of driving voltage [V]
+V0  = 75.0          # amplitude of driving voltage [V]
 p_0 = Pressure
 
 # Number of Chebyshev modes
 Np=150
+# Np=225
+# Np=300
 
 
 # spatial grid
@@ -187,8 +207,8 @@ for ic in case:
          FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(4,Ns-1)) + [3, 2, 0, 1] # We have excluded electron energy         
 
       
-      D_reshaped = np.reshape(D,(Np, Ns+1+1),'F')
-      # D_reshaped = np.reshape(D,(Np, Ns+1),'F')
+      # D_reshaped = np.reshape(D,(Np, Ns+1+1),'F')
+      D_reshaped = np.reshape(D,(Np, Ns+1),'F')
 
       ne[ic]  = ne0 * D_reshaped[:,0]              # electron density
       ni[ic]  = ne0 * D_reshaped[:,1]              # ion density

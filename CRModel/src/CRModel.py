@@ -300,6 +300,29 @@ class CollisionalRadiativeModel:
 
 
 
+    def DruyvesteynDistribution_vec(self, eRange,T):
+        xp = self.xp_module
+
+        # T -> [eV]
+        # eRange -> [eV]
+        """
+        Compute Electron Energy Distribution Function (EEDF) based on a Maxwellian distribution:
+        """
+        # alpha = gamma(1/4)**4 / (72 * np.pi**2)
+        # sigma = 6 * np.sqrt(3) * 2**(3/4) * np.sqrt(np.pi)**3
+        # zeta = 1/sigma * gamma(1/4)**3 / gamma(3/4)
+
+        alpha = 0.24315995724738626 
+        # sigma = 97.32158728665537 
+        zeta = 0.3996227886847373
+
+
+        # compute EEDF
+        EEDF = xp.sqrt(2) * zeta * xp.sqrt(eRange) * (T[:] ** (-1.5)) * xp.exp(-alpha*(eRange / T[:])**2)
+
+        return EEDF
+
+
     def escapeFactCalc_vec(self,n_i,E_j,E_i,g_j,g_i,A_ji,Mspecies,T_g,R,L):
         # Calculations for escape factor
         xp = self.xp_module
@@ -605,16 +628,20 @@ class CollisionalRadiativeModel:
         Compute Electron Energy Distribution Function (EEDF) based on a Maxwellian distribution:
         """  
 
-        # EEDF= self.MaxwellianDistribution_vec(self.eRange,T_e) # xp.shape(EEDF) -> (1000, 150)
+        # EEDF = self.MaxwellianDistribution_vec(self.eRange,T_e) # xp.shape(EEDF) -> (1000, 150)
         # EEDFnorm = self.trapz(EEDF, axis=0 )
         # eVelTimesEEDF =  self.eVel*EEDF/EEDFnorm 
 
-        EEDF = xp.zeros((self.NeRange,self.Np), dtype=xp.float64)        
-        for ip in range(self.Np): 
-            points = xp.column_stack((self.ones_eRange * T_e[ip], self.eRange[:,0]))
-            EEDF[:,ip] = self.EEDFinterpolator(points)
-        EEDF[EEDF<0.0] = 0.0
-        eVelTimesEEDF =  self.eVel*EEDF # xp.shape(eVelTimesEEDF) -> (1000, 150)
+        EEDF = self.DruyvesteynDistribution_vec(self.eRange,T_e) # xp.shape(EEDF) -> (1000, 150)
+        EEDFnorm = self.trapz(EEDF, axis=0 )
+        eVelTimesEEDF =  self.eVel*EEDF/EEDFnorm 
+
+        # EEDF = xp.zeros((self.NeRange,self.Np), dtype=xp.float64)        
+        # for ip in range(self.Np): 
+        #     points = xp.column_stack((self.ones_eRange * T_e[ip], self.eRange[:,0]))
+        #     EEDF[:,ip] = self.EEDFinterpolator(points)
+        # EEDF[EEDF<0.0] = 0.0
+        # eVelTimesEEDF =  self.eVel*EEDF # xp.shape(eVelTimesEEDF) -> (1000, 150)
   
         AEDF= self.MaxwellianDistribution_vec(self.eRange,T_g*K_eV)
         AEDFnorm = self.trapz(AEDF, axis=0 )
@@ -844,6 +871,17 @@ class CollisionalRadiativeModel:
             dydt[:,iEe]   += deltaIon * (Rqi - Rsi) # rate of change of eletron energy
                           
 
+        ################## Background electron source ##################
+        # We add a small background electron source to prevent the electron density 
+        # from becoming too small at the sheaths. This is to prevent "pump out" of low density points.
+        Si_g = self.ElecrtonImpactIonizationRate[0,:,0]
+        nuiz =  n_g * Si_g
+        ne_backg = 1e8; Te_backg = 0.5
+        ne_backg_source =  nuiz * ne_backg * (0.9 + 0.1 * (ne_backg / ne)**2 )
+        dydt[:,iNe]   += ne_backg_source
+        dydt[:,iEe] += 3.0 / 2.0 * Te_backg * ne_backg_source
+
+
         ################## Elecrton impact de/excitation ##################
         # Ar(i) + e- <-> Ar(j) + e- 
         for iCollTrans in range(self.p.NCollTrans):
@@ -877,13 +915,13 @@ class CollisionalRadiativeModel:
             eij = (self.p.E_lvl[j] - self.p.E_lvl[i])*cm_eV
             
             # Calculations for escape factor
-            if (i == 0):  # For now, we only calculate the escape factors for the reasonance lines. 
+            # if (i == 0):  # For now, we only calculate the escape factors for the reasonance lines. 
 
-                eta = self.escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],
-                                          self.p.g_j[itrans],self.p.g_i[itrans],
-                                          self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L)             
-            else:
-                eta=1.0
+            eta = self.escapeFactCalc_vec(npop[:,i],self.p.E_j[itrans],self.p.E_i[itrans],
+                                        self.p.g_j[itrans],self.p.g_i[itrans],
+                                        self.p.A_ji[itrans],M_Ar,T_g,self.R,self.L)             
+            # else:
+            #     eta=1.0
                 
             Rspem = npop[:,j] * self.p.A_ji[itrans] * eta        
             dydt[:,i] += Rspem # radiative transitions into lower state

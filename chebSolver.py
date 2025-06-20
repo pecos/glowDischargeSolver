@@ -2280,7 +2280,7 @@ class timeDomainCollocationSolver:
             self.jac[:,k] = (rp[:,0] - r0[:,0])/dU
 
 
-    def step(self, time, dt, iter_max=25,
+    def step(self, time, dt, iter_max=20,
              rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, freeze_jacobian=False):
         """Take a single time step.
 
