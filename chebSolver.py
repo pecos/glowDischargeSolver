@@ -31,6 +31,7 @@ import numpy.polynomial.chebyshev as cheb
 # from scipy.sparse.linalg import cg
 # from scipy.linalg import solve
 # from scipy.sparse.linalg import gmres
+from scipy.linalg import lu_factor, lu_solve   # CPU
 
 import time as cpu_time
 import cProfile
@@ -40,6 +41,7 @@ CUDA_NUM_DEVICES      = 0
 try:
   import cupy as cp
   #CUDA_NUM_DEVICES=cp.cuda.runtime.getDeviceCount()
+  # from cupyx.scipy.linalg import lu_factor, lu_solve
 except ImportError:
   print("Please install CuPy for GPU use")
   #sys.exit(0)
@@ -2297,9 +2299,9 @@ class timeDomainCollocationSolver:
         xp = self.xp_module
 
         r = self.residual(self.U2, time, dt, weak_bc)
-
-        self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
-        jac_inv  = xp.linalg.inv(self.jac)
+        self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True) #NOTE(malamast): Comment out if you want to use xp.linalg.solve in the loop
+        # jac_inv  = xp.linalg.inv(self.jac)       
+        lu, piv = lu_factor(self.jac)            # one O(N^3) factorisation
 
         normr = normr0 = xp.linalg.norm(r)
 
@@ -2320,9 +2322,9 @@ class timeDomainCollocationSolver:
             # self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
             if count > 0 and count % jac_frequency == 0:
                 self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
-                jac_inv  = xp.linalg.inv(self.jac)   
-
-
+                # jac_inv  = xp.linalg.inv(self.jac)   
+                lu, piv = lu_factor(self.jac)            # one O(N^3) factorisation
+            
             # dU = xp.dot(jac_inv, -r)
             # self.U2 += dU
             # self.U2[self.U2<0.0] = 0.0 # NOTE(malamast): This causes the periodic solver to fail. 
@@ -2331,7 +2333,9 @@ class timeDomainCollocationSolver:
             # r = self.residual(self.U2, time, dt, weak_bc)
             # normr = xp.linalg.norm(r)
 
-            dU = xp.dot(jac_inv, -r)
+            # dU = xp.dot(jac_inv, -r)
+            dU = lu_solve((lu, piv), -r)
+
 
             U2_new = self.U2 + dU
 
@@ -2341,8 +2345,11 @@ class timeDomainCollocationSolver:
 
             if not np.isfinite(normr):
                 self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
-                jac_inv  = xp.linalg.inv(self.jac) 
-                dU = xp.dot(jac_inv, -r)
+                # jac_inv  = xp.linalg.inv(self.jac) 
+                # dU = xp.dot(jac_inv, -r)
+                lu, piv = lu_factor(self.jac)            # one O(N^3) factorisation
+                dU = lu_solve((lu, piv), -r)
+
                 U2_new = self.U2 + dU
                 r = self.residual(U2_new, time, dt, weak_bc)
                 normr = xp.linalg.norm(r)
@@ -2387,8 +2394,8 @@ class timeDomainCollocationSolver:
         return converged, count     # count is the Newton iteration count
 
 
-    def step_fixed_dt(self, time, dt, iter_max=20,
-                      rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, freeze_jacobian=False):
+    def step_old(self, time, dt, iter_max=20,
+                 rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, freeze_jacobian=False):
         """Take a single time step.
 
         Inputs
