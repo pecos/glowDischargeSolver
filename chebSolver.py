@@ -2282,6 +2282,8 @@ class timeDomainCollocationSolver:
             self.jac[:,k] = (rp[:,0] - r0[:,0])/dU
 
 
+
+
     def step(self, time, dt, iter_max=20,
              rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, jac_frequency=1):
         """Take a single time step.
@@ -2315,9 +2317,6 @@ class timeDomainCollocationSolver:
             print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
                 count, normr, normr/normr0))
         while( not converged and (count < iter_max) ):
-            #self.jacobianFD(self.U2, time, dt)
-            #xp.save("jacobian_FD.npy", self.jac)
-            #xp.save("jacobian_AN.npy", self.jac)
 
             # self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
             if count > 0 and count % jac_frequency == 0:
@@ -2326,16 +2325,139 @@ class timeDomainCollocationSolver:
                 lu, piv = lu_factor(self.jac)            # one O(N^3) factorisation
             
             # dU = xp.dot(jac_inv, -r)
-            # self.U2 += dU
-            # self.U2[self.U2<0.0] = 0.0 # NOTE(malamast): This causes the periodic solver to fail. 
-            #                              # Some small negative values can occur close to the boundaries 
-            #                              # where the number densities are zero.
-            # r = self.residual(self.U2, time, dt, weak_bc)
-            # normr = xp.linalg.norm(r)
-
-            # dU = xp.dot(jac_inv, -r)
             dU = lu_solve((lu, piv), -r)
 
+            U2_new = self.U2 + dU
+
+            r = self.residual(U2_new, time, dt, weak_bc)
+            normr = xp.linalg.norm(r)
+
+            if not np.isfinite(normr):
+                self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+                # jac_inv  = xp.linalg.inv(self.jac) 
+                # dU = xp.dot(jac_inv, -r)
+                lu, piv = lu_factor(self.jac)            # one O(N^3) factorisation
+                dU = lu_solve((lu, piv), -r)
+
+                U2_new = self.U2 + dU
+                r = self.residual(U2_new, time, dt, weak_bc)
+                normr = xp.linalg.norm(r)
+
+            self.U2[:] = U2_new
+
+
+            count += 1
+            if (verbose):
+                print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
+                    count, normr, normr/normr0))
+
+            converged = ((normr/normr0 < rtol) or (normr < atol))
+            if not np.isfinite(normr): 
+                break
+                         
+        return converged, count     # count is the Newton iteration count
+
+
+
+    def step_adaptive(self, time, dt,                # outer (large) step
+                    dt_init=None, dt_min=1e-4, dt_max=None,
+                    iter_target=6,                    # desired Newton iterations
+                    verbose=True, **step_kwargs):
+        """
+        Integrates from time to time + dt using variable sub-steps.
+        """
+        xp = self.xp_module
+        if dt_init is None:
+            dt_init = dt / 64        # safe heuristic
+        if dt_max is None:
+            dt_max = dt
+
+        dt_sub  = min(dt_init, dt_max)
+        t_local = 0.0                    # time elapsed *inside* this outer step
+
+        while t_local < dt - 1e-15:
+            if dt_sub > dt - t_local:
+                dt_sub = dt - t_local   # final sliver closes the gap
+
+            # save state in case we must reject
+            U0_save, U1_save, U2_save = self.U0.copy(), self.U1.copy(), self.U2.copy()
+
+            # try the sub-step
+            converged, newt_iters = self.step(time + t_local + dt_sub, dt_sub, iter_max=20,
+                                    rtol=1e-6, atol=1e-12, verbose=False, weak_bc=False)
+
+            if converged: # accept
+                t_local += dt_sub
+                if verbose:
+                    print(f" dt = {dt_sub:.2e}  iters = {newt_iters:2d}  "
+                        f"(t = {t_local:.2e}/{dt:.2e})")
+
+                # adapt dt_sub for the *next* trial
+                safety = 0.9
+                grow   = 1 + safety * max(0, (iter_target - newt_iters)/iter_target)
+                shrink = 1 / (1 + safety * max(0, (newt_iters - iter_target)/iter_target))
+
+                if newt_iters <= iter_target: 
+                    grow   = 1 + safety * max(0, (iter_target - newt_iters)/iter_target)
+                    dt_sub *= grow
+                else:
+                    shrink = 1 / (1 + safety * max(0, (newt_iters - iter_target)/iter_target))
+                    dt_sub *= shrink
+
+                dt_sub = max(min(dt_sub, dt_max), dt_min)
+
+            else: # reject, roll back
+                self.U0, self.U1, self.U2 = U0_save, U1_save, U2_save
+                dt_sub *= 0.5
+                if verbose:
+                    print(f" Step failed — reducing dt to {dt_sub:.2e}")
+                if dt_sub < dt_min:
+                    raise RuntimeError("step_adaptive: dt dropped below dt_min")
+
+
+
+    def step_fixed_dt(self, time, dt, iter_max=20,
+                      rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, jac_frequency=1):
+        """Take a single time step.
+
+        Inputs
+          time       : Current time
+          dt         : Time step
+          iter_max   : Maximum number of iters in nonlinear solve
+          rtol       : Relative tolerance for nonlinear solve
+          atol       : Absolute tolerance for nonlinear solve
+          verbose    : If true, print nonlinear solve info
+
+        Outputs: None (self.U2 is set to solution for this time step)
+        """
+        xp = self.xp_module
+
+        r = self.residual(self.U2, time, dt, weak_bc)
+        self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True) #NOTE(malamast): Comment out if you want to use xp.linalg.solve in the loop
+        # jac_inv  = xp.linalg.inv(self.jac)       
+        lu, piv = lu_factor(self.jac)            # one O(N^3) factorisation
+
+        normr = normr0 = xp.linalg.norm(r)
+
+        # if xp == cp:
+        #   cp.cuda.runtime.deviceSynchronize()
+
+        count = 0
+        converged = ((normr/normr0 < rtol) or (normr < atol))
+
+        if (verbose):
+            print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
+                count, normr, normr/normr0))
+        while( not converged and (count < iter_max) ):
+
+            # self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+            if count > 0 and count % jac_frequency == 0:
+                self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
+                # jac_inv  = xp.linalg.inv(self.jac)   
+                lu, piv = lu_factor(self.jac)            # one O(N^3) factorisation
+            
+            # dU = xp.dot(jac_inv, -r)
+            dU = lu_solve((lu, piv), -r)
 
             U2_new = self.U2 + dU
 
@@ -2354,11 +2476,7 @@ class timeDomainCollocationSolver:
                 r = self.residual(U2_new, time, dt, weak_bc)
                 normr = xp.linalg.norm(r)
 
-                self.U2[:] = U2_new    
-
-            else:
-                self.U2[:] = U2_new
-
+            self.U2[:] = U2_new
 
             count += 1
             if (verbose):
@@ -2542,6 +2660,154 @@ class timeDomainCollocationSolver:
 
         if (verbose):
             print("# Advancing sensitivity system.")
+
+
+
+    def solve_one_period(self, time0, dt, Nstep, savedata=None, verbose=True,
+                         rtol=1e-6, weak_bc=False, jac_frequency=1):
+        
+        xp = self.xp_module
+        # xp = np
+
+        Usave=xp.ndarray((Nstep+1,self.U2.shape[0]),dtype=xp.float64)
+        TotalCurrentSave=xp.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=xp.float64)
+        IonCurrentSave=xp.ndarray((Nstep+1,self.ionCurrent.shape[0]),dtype=xp.float64)
+        ElectronCurrentSave=xp.ndarray((Nstep+1,self.electronCurrent.shape[0]),dtype=xp.float64)
+        electricFieldSave=xp.ndarray((Nstep+1,self.electricField.shape[0]),dtype=xp.float64)
+        electricPotentialSave=xp.ndarray((Nstep+1,self.electricPotential.shape[0]),dtype=xp.float64)
+        if IonEffEField:
+            effElectricFieldSave=xp.ndarray((Nstep+1,self.effElectricField.shape[0]),dtype=xp.float64)
+
+        Usave[0,:] = self.U2[:,0]
+        TotalCurrentSave[0,:] = self.totalCurrent[:,0]
+        IonCurrentSave[0,:] = self.ionCurrent[:,0]
+        ElectronCurrentSave[0,:] = self.electronCurrent[:,0]
+        electricFieldSave[0,:] = self.electricField[:,0]
+        electricPotentialSave[0,:] = self.electricPotential[:,0]
+        if IonEffEField:
+            effElectricFieldSave[0,:] = self.effElectricField[:,0]
+
+
+        # assume initial condition has been set in U1!
+        time = time0+dt
+        self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
+        print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}  {7:.6e}".format(
+            0, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+            self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
+
+
+        Usave[1,:] = self.U2[:,0]
+        TotalCurrentSave[1,:] = self.totalCurrent[:,0]
+        IonCurrentSave[1,:] = self.ionCurrent[:,0]
+        ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
+        electricFieldSave[1,:] = self.electricField[:,0]
+        electricPotentialSave[1,:] = self.electricPotential[:,0]
+        if IonEffEField:
+            effElectricFieldSave[1,:] = self.effElectricField[:,0]
+
+        for istep in range(1, Nstep):
+            
+            # prepare for next step
+            self.U0 = xp.copy(self.U1)
+            self.U1 = xp.copy(self.U2)
+            time += dt
+
+            # advance
+            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+            #self.filter()
+            print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
+                istep, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+                self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
+                self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+                self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()), flush=True)
+
+            Usave[istep+1,:] = self.U2[:,0]
+            TotalCurrentSave[istep+1,:] = self.totalCurrent[:,0]
+            IonCurrentSave[istep+1,:] = self.ionCurrent[:,0]
+            ElectronCurrentSave[istep+1,:] = self.electronCurrent[:,0]
+            electricFieldSave[istep+1,:] = self.electricField[:,0]
+            electricPotentialSave[istep+1,:] = self.electricPotential[:,0]
+            if IonEffEField:
+                effElectricFieldSave[istep+1,:] = self.effElectricField[:,0]
+
+        
+        xp.save(savedata,Usave)
+        xp.save("TotalCurrent_" + savedata, TotalCurrentSave)
+        xp.save("IonCurrent_" + savedata, IonCurrentSave)
+        xp.save("ElectronCurrent_" + savedata, ElectronCurrentSave)
+        xp.save("ElectricField_" + savedata, electricFieldSave)
+        xp.save("ElectricPotential_" + savedata, electricPotentialSave)
+        if IonEffEField:
+            xp.save("EffElectricField_" + savedata, effElectricFieldSave)
+
+
+
+
+    def solve_adaptive(self, time0, dt, Nstep, savedata=None, verbose=False,
+              rtol=1e-6, computeSensitivity=False, weak_bc=False):
+
+
+        if self.args.use_gpu==1:
+            self.copy_operators_H2D(self.args.gpu_device_id)
+            self.xp_module = cp
+            self.params.xp_module = cp
+            if (self.solveCRModel):
+                self.cr.xp_module = cp
+                self.cr.copy_operators_Host2Device(self.args.gpu_device_id)
+        else:
+            self.xp_module = np
+        
+        xp = self.xp_module
+        # xp = np
+
+
+        print("#")
+        print("# {0:8s} {1:10s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s} {7:12s}".format(
+            "Iter", "Time", "min ne", "max ne", "min Te", "max Te", "min nb", "max nb"))
+        print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
+            -1, time0, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+            self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
+
+        # assume initial condition has been set in U1!
+        time = time0+dt
+        self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+        print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}  {7:.6e}".format(
+            0, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+            self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
+
+        if(computeSensitivity):
+            self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
+
+
+        for istep in range(1, Nstep):
+            # start_time = cpu_time.time()
+            
+            # prepare for next step
+            self.U0 = xp.copy(self.U1)
+            self.U1 = xp.copy(self.U2)
+            time += dt
+
+            if (computeSensitivity):
+                self.A0 = xp.copy(self.A1)
+
+            # advance
+            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+            #self.filter()
+            print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
+                istep, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
+                self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
+                self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
+                self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()), flush=True)
+
+            # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
+        
+
 
 
     def solve(self, time0, dt, Nstep, savedata=None, verbose=False,
@@ -2835,6 +3101,9 @@ if __name__ == "__main__":
     parser.add_argument('--jacfreq', metavar='J', default=1, type=int,
                         help='Evaluate Jacobian every J Newton iterations during time step')
 
+    parser.add_argument('--adaptive', default=False,
+                        action='store_true', help="Use adaptive time-steping for time integration.")
+
     args = parser.parse_args()
 
     # Dump inputs to the screen for posterity
@@ -3012,9 +3281,19 @@ if __name__ == "__main__":
         tds.solveLCN(args.t0, args.dt, args.Nt,
                      args.savedata, args.verbose, weak_bc=args.weakbc)
     else:
-        tds.solve(args.t0, args.dt, args.Nt,
-                  args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc,
-                  jac_frequency=args.jacfreq)
+        if(args.savedata!=None):
+            tds.solve_one_period(args.t0, args.dt, args.Nt,
+                                 args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc,
+                                 jac_frequency=args.jacfreq)
+
+        elif (args.adaptive):
+            tds.solve_adaptive(args.t0, args.dt, args.Nt,
+                               args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc,
+                               jac_frequency=args.jacfreq)
+        else:
+            tds.solve(args.t0, args.dt, args.Nt,
+                      args.savedata, args.verbose, args.rtol, weak_bc=args.weakbc,
+                      jac_frequency=args.jacfreq)
 
     # profile.disable()
     # profile.print_stats(sort='tottime')
