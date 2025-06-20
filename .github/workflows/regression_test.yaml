@@ -1,0 +1,35 @@
+name: Test glow disharge time periodic shooting solver
+
+# Run upon push to main and PR
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    name: Run regression tests
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
+    - name: Set up Python 3.13 environment
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.13.5"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install numpy scipy matplotlib
+    - name: Run Liu case test
+      run: ./testRunBase.sh
+    - name: Run constant background CN test
+      run: ./testRunCN.sh
+    - name: Run constant background CN test (interpolated electron transport)
+      run: ./testInterpTrans.sh
+    - name: Run variable background CN test
+      run: ./testRunBackground.sh
