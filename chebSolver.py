@@ -216,6 +216,7 @@ class modelClosures:
         self.reactionsList =[]
         self.diffusivityList =[]
         self.mobilityList =[]
+
       
 
     def copy_operators_H2D(self, dev_id):
@@ -742,6 +743,9 @@ class timeDomainCollocationSolver:
         self.TwoOverThree = 2.0/3.0     
         self.ThreeOverTwo = 3.0/2.0  
 
+        self.dt_adaptive = 0.0
+
+
         
     
 
@@ -898,7 +902,7 @@ class timeDomainCollocationSolver:
         Tg = (self.params.p0 - nT)/ntot
 
         # NOTE(malamast): I clip the electron temperature when a low value occurs.
-        # Te = np.where(Te < Tg,Tg, Te) 
+        Te = np.where(Te < Tg,Tg, Te) 
 
           
         # solve poisson equation for phi
@@ -1447,7 +1451,7 @@ class timeDomainCollocationSolver:
         Tg_U[:,self.Ns] += -self.ones_Np/ntot[:,0]
 
         # NOTE(malamast): I clip the electron temperature when a low value occurs. 
-        # Te = xp.where(Te < Tg,Tg, Te) 
+        Te = xp.where(Te < Tg,Tg, Te) 
 
         Te_U = xp.zeros((self.Np, self.Nv),dtype=xp.float64)
         Te_U[:,0] = -Te[:,0]/dens[:,iele[0]]
@@ -2282,8 +2286,6 @@ class timeDomainCollocationSolver:
             self.jac[:,k] = (rp[:,0] - r0[:,0])/dU
 
 
-
-
     def step(self, time, dt, iter_max=20,
              rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False, jac_frequency=1):
         """Take a single time step.
@@ -2359,41 +2361,55 @@ class timeDomainCollocationSolver:
 
 
 
-    def step_adaptive(self, time, dt,                # outer (large) step
-                    dt_init=None, dt_min=1e-4, dt_max=None,
-                    iter_target=6,                    # desired Newton iterations
-                    verbose=True, **step_kwargs):
+        
+    def step_adaptive(self, time, dt, verbose=True, rtol=1e-8, weak_bc=False,               
+                     dt_init=None, dt_min=1e-5, dt_max=0.0625,
+                     iter_target=6, iter_max=14, safety=0.3):
+
         """
         Integrates from time to time + dt using variable sub-steps.
         """
         xp = self.xp_module
         if dt_init is None:
-            dt_init = dt / 64        # safe heuristic
-        if dt_max is None:
-            dt_max = dt
+            dt_init = float(dt / 128)        # safe heuristic
 
-        dt_sub  = min(dt_init, dt_max)
+
+        if self.dt_adaptive > 0.0:
+            dt_sub = self.dt_adaptive
+        else:
+            dt_sub  = min(dt_init, dt_max)
+
+        dt_sub = max(min(dt_sub, dt_max), dt_min)
+
+
+
         t_local = 0.0                    # time elapsed *inside* this outer step
 
         while t_local < dt - 1e-15:
             if dt_sub > dt - t_local:
+                self.dt_adaptive = dt_sub
                 dt_sub = dt - t_local   # final sliver closes the gap
 
+
+            # prepare for next step
+            self.U0 = xp.copy(self.U1)
+            self.U1 = xp.copy(self.U2)
+
             # save state in case we must reject
-            U0_save, U1_save, U2_save = self.U0.copy(), self.U1.copy(), self.U2.copy()
+            U0_save = self.U0.copy() 
+            U1_save = self.U1.copy() 
+            U2_save = self.U2.copy()
 
             # try the sub-step
-            converged, newt_iters = self.step(time + t_local + dt_sub, dt_sub, iter_max=20,
-                                    rtol=1e-6, atol=1e-12, verbose=False, weak_bc=False)
+            converged, newt_iters = self.step(time + t_local + dt_sub, dt_sub, iter_max=iter_max,
+                                    rtol=1e-8, atol=1e-12, verbose=False, weak_bc=False)
 
             if converged: # accept
                 t_local += dt_sub
                 if verbose:
-                    print(f" dt = {dt_sub:.2e}  iters = {newt_iters:2d}  "
-                        f"(t = {t_local:.2e}/{dt:.2e})")
+                    print(f" 1/dt = {int(1/dt_sub):2d},  iters = {newt_iters:2d},  time = {time+t_local:.2e}")
 
                 # adapt dt_sub for the *next* trial
-                safety = 0.9
                 grow   = 1 + safety * max(0, (iter_target - newt_iters)/iter_target)
                 shrink = 1 / (1 + safety * max(0, (newt_iters - iter_target)/iter_target))
 
@@ -2407,7 +2423,9 @@ class timeDomainCollocationSolver:
                 dt_sub = max(min(dt_sub, dt_max), dt_min)
 
             else: # reject, roll back
-                self.U0, self.U1, self.U2 = U0_save, U1_save, U2_save
+                self.U0 = U0_save
+                self.U1 = U1_save
+                self.U2 = U2_save
                 dt_sub *= 0.5
                 if verbose:
                     print(f" Step failed — reducing dt to {dt_sub:.2e}")
@@ -2762,6 +2780,28 @@ class timeDomainCollocationSolver:
         xp = self.xp_module
         # xp = np
 
+        assert dt == 1.0 , "dt must be exactly 1.0"
+
+        # Restart parameters
+        save_every_cycles = 20          # <-- change to whatever you like
+        steps_per_cycle = int(round(1.0 / dt))      # number of fixed-dt steps per RF cycle
+        cycle_idx       = 0                         # which RF cycle we are in
+
+
+        # Adaptive solver parameters
+        dt_init = None 
+        dt_min = 1e-5 
+        dt_max = float(1/8) 
+        iter_target = 6           # desired Newton iterations
+        iter_max = 14             # Maximum number of nonlinear iteration before it reduces the timestep
+        safety = 0.5              # How fast the timestep grows (default was 0.9)
+
+        dt_init = None
+        if dt_init is None:
+            dt_init = float(dt / 128)  # safe heuristic
+        if dt_max is None:
+            dt_max = dt
+
 
         print("#")
         print("# {0:8s} {1:10s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s} {7:12s}".format(
@@ -2773,37 +2813,47 @@ class timeDomainCollocationSolver:
             self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
 
         # assume initial condition has been set in U1!
-        time = time0+dt
-        self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
-        print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}  {7:.6e}".format(
-            0, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
-            self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
-            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
-            self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()))
+        time = time0
 
-        if(computeSensitivity):
-            self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
-
-
-        for istep in range(1, Nstep):
+        for istep in range(0, Nstep): # RF steps
             # start_time = cpu_time.time()
             
             # prepare for next step
             self.U0 = xp.copy(self.U1)
             self.U1 = xp.copy(self.U2)
-            time += dt
-
-            if (computeSensitivity):
-                self.A0 = xp.copy(self.A1)
 
             # advance
-            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+            # self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+            self.step_adaptive(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc,                
+                               dt_init=dt_init, dt_min=dt_min, dt_max=dt_max, 
+                               iter_target=iter_target, iter_max=iter_max, safety=safety)
+
+            time += dt # dt = 1 ->  a RF period
+
             #self.filter()
             print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
                 istep, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
                 self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
                 self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
                 self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()), flush=True)
+
+
+            # ---------------------------------------------------------------
+            # SAVE only when an RF period is complete
+            # ---------------------------------------------------------------
+            if (istep + 1) % steps_per_cycle == 0:        # +1 because istep starts at 0
+                cycle_idx += 1
+
+                # Update restart file
+                np.save('restart.npy', self.U2)
+
+                if cycle_idx % save_every_cycles == 0:
+                    np.save(f"restart_cycle_{cycle_idx:04d}.npy", self.U2)
+
+
+            # Update restart file
+            np.save('restart.npy', self.U2)
+
 
             # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
@@ -2827,27 +2877,10 @@ class timeDomainCollocationSolver:
         xp = self.xp_module
         # xp = np
 
-
-
-
-        if(savedata!=None):
-            Usave=xp.ndarray((Nstep+1,self.U2.shape[0]),dtype=xp.float64)
-            TotalCurrentSave=xp.ndarray((Nstep+1,self.totalCurrent.shape[0]),dtype=xp.float64)
-            IonCurrentSave=xp.ndarray((Nstep+1,self.ionCurrent.shape[0]),dtype=xp.float64)
-            ElectronCurrentSave=xp.ndarray((Nstep+1,self.electronCurrent.shape[0]),dtype=xp.float64)
-            electricFieldSave=xp.ndarray((Nstep+1,self.electricField.shape[0]),dtype=xp.float64)
-            electricPotentialSave=xp.ndarray((Nstep+1,self.electricPotential.shape[0]),dtype=xp.float64)
-            if IonEffEField:
-                effElectricFieldSave=xp.ndarray((Nstep+1,self.effElectricField.shape[0]),dtype=xp.float64)
-
-            Usave[0,:] = self.U2[:,0]
-            TotalCurrentSave[0,:] = self.totalCurrent[:,0]
-            IonCurrentSave[0,:] = self.ionCurrent[:,0]
-            ElectronCurrentSave[0,:] = self.electronCurrent[:,0]
-            electricFieldSave[0,:] = self.electricField[:,0]
-            electricPotentialSave[0,:] = self.electricPotential[:,0]
-            if IonEffEField:
-                effElectricFieldSave[0,:] = self.effElectricField[:,0]
+        # Restart parameters
+        save_every_cycles = 20          # <-- change to whatever you like
+        steps_per_cycle = int(round(1.0 / dt))      # number of fixed-dt steps per RF cycle
+        cycle_idx       = 0                         # which RF cycle we are in
 
         print("#")
         print("# {0:8s} {1:10s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s} {7:12s}".format(
@@ -2860,7 +2893,7 @@ class timeDomainCollocationSolver:
 
         # assume initial condition has been set in U1!
         time = time0+dt
-        self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
+        self.step_fixed_dt(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
         print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e}  {7:.6e}".format(
             0, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
             self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
@@ -2870,16 +2903,6 @@ class timeDomainCollocationSolver:
         if(computeSensitivity):
             self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
 
-
-        if(savedata!=None):
-            Usave[1,:] = self.U2[:,0]
-            TotalCurrentSave[1,:] = self.totalCurrent[:,0]
-            IonCurrentSave[1,:] = self.ionCurrent[:,0]
-            ElectronCurrentSave[1,:] = self.electronCurrent[:,0]
-            electricFieldSave[1,:] = self.electricField[:,0]
-            electricPotentialSave[1,:] = self.electricPotential[:,0]
-            if IonEffEField:
-                effElectricFieldSave[1,:] = self.effElectricField[:,0]
 
         for istep in range(1, Nstep):
             # start_time = cpu_time.time()
@@ -2900,31 +2923,26 @@ class timeDomainCollocationSolver:
                 self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].min(), self.U2[self.Ns*self.Np:(self.Ns+1)*self.Np].max(),
                 self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].min(),
                 self.U2[(self.Ns-1)*self.Np:self.Ns*self.Np].max()), flush=True)
-
-            if(savedata!=None):
-                Usave[istep+1,:] = self.U2[:,0]
-                TotalCurrentSave[istep+1,:] = self.totalCurrent[:,0]
-                IonCurrentSave[istep+1,:] = self.ionCurrent[:,0]
-                ElectronCurrentSave[istep+1,:] = self.electronCurrent[:,0]
-                electricFieldSave[istep+1,:] = self.electricField[:,0]
-                electricPotentialSave[istep+1,:] = self.electricPotential[:,0]
-                if IonEffEField:
-                    effElectricFieldSave[istep+1,:] = self.effElectricField[:,0]
                             
             if(computeSensitivity):
                 self.stepSensitivity(time, dt, verbose=verbose, weak_bc=weak_bc)
-            
+
+
+            # ---------------------------------------------------------------
+            # SAVE only when an RF period is complete
+            # ---------------------------------------------------------------
+            if (istep + 1) % steps_per_cycle == 0:        # +1 because istep starts at 0
+                cycle_idx += 1
+
+                # Update restart file
+                np.save('restart.npy', self.U2)
+
+                if cycle_idx % save_every_cycles == 0:
+                    np.save(f"restart_cycle_{cycle_idx:04d}.npy", self.U2)
+
+
             # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")
         
-        if(savedata!=None):
-            xp.save(savedata,Usave)
-            xp.save("TotalCurrent_" + savedata, TotalCurrentSave)
-            xp.save("IonCurrent_" + savedata, IonCurrentSave)
-            xp.save("ElectronCurrent_" + savedata, ElectronCurrentSave)
-            xp.save("ElectricField_" + savedata, electricFieldSave)
-            xp.save("ElectricPotential_" + savedata, electricPotentialSave)
-            if IonEffEField:
-                xp.save("EffElectricField_" + savedata, effElectricFieldSave)
 
 
     def solveLCN(self, time0, dt, Nstep, savedata=None, verbose=False,

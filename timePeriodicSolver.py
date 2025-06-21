@@ -49,6 +49,29 @@ class timePeriodicSolver:
         self.increaseFac = increaseFac
 
 
+
+    def line_search(self, U_old, dU, r_old, normr_old, time, dt, weak_bc,
+                    c1=1e-4, max_ls_iter=10):
+        """
+        Backtracking line search to find alpha that reduces residual norm.
+        Returns (U_new, r_new, normr_new, alpha, success).
+        """
+        xp = self.xp_module
+        alpha = 1.0
+
+        for ls_iter in range(max_ls_iter):
+            U_trial = U_old + alpha * dU
+            r_trial = self.residual(U_trial, time, dt, weak_bc)
+            normr_trial = xp.linalg.norm(r_trial)
+
+            if normr_trial <= (1 - c1 * alpha) * normr_old:
+                return U_trial, r_trial, normr_trial, alpha, True
+
+            alpha *= 0.5
+
+        return U_old, r_old, normr_old, alpha, False
+
+
     def periodicityResidual(self, Uic, Nt):
         '''
         Compute the "periodicity residual"---i.e., the difference between
@@ -105,6 +128,17 @@ class timePeriodicSolver:
 
     def solveNewtonStep(self, Uic, Nt):
         # solve for newton update
+        
+        # # line-search / damping step
+        # alpha = 1.0
+        # c1 = 1e-4
+        # U2_old = self.U2.copy()
+
+        # # Line search
+        # U2_old = self.U2.copy()
+        # U2_new, r, normr, alpha, success = self.line_search(U2_old, dU, r, normr, time, dt, weak_bc)
+
+
         #Uic += np.linalg.solve(self.jac, -self.res)
         print("Solving sensitivity system...")
         Uic += self.alpha * np.linalg.solve(self.jac, -self.res)
