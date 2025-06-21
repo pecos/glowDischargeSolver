@@ -744,8 +744,14 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 100; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_test/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "Bolsig+ (new test)"; m = "CR3"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 101; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_ecp/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "esp"; m = "CR3"
+# ic = 101; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC_ecp/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "esp"; m = "CR3"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+
+
+ic = 101; c = True; f = '../newton_8spec_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "8 species"; m = "8sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 #Skata2

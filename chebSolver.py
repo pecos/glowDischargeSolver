@@ -2318,6 +2318,7 @@ class timeDomainCollocationSolver:
         if (verbose):
             print("  {0:d}: ||res|| = {1:.6e}, ||res||/||res0|| = {2:.6e}".format(
                 count, normr, normr/normr0))
+
         while( not converged and (count < iter_max) ):
 
             # self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True)
@@ -2354,7 +2355,8 @@ class timeDomainCollocationSolver:
                     count, normr, normr/normr0))
 
             converged = ((normr/normr0 < rtol) or (normr < atol))
-            if not np.isfinite(normr): 
+            if not np.isfinite(normr) or (not (normr < 0.9 * normr0)): 
+                converged = False
                 break
                          
         return converged, count     # count is the Newton iteration count
@@ -2362,9 +2364,10 @@ class timeDomainCollocationSolver:
 
 
         
-    def step_adaptive(self, time, dt, verbose=True, rtol=1e-8, weak_bc=False,               
-                     dt_init=None, dt_min=1e-5, dt_max=0.0625,
-                     iter_target=6, iter_max=14, safety=0.3):
+    def step_adaptive(self, time, dt, verbose=True, rtol=1e-8, 
+                      weak_bc=False, computeSensitivity=False,              
+                      dt_init=None, dt_min=1e-5, dt_max=0.0625,
+                      iter_target=6, iter_max=14, safety=0.3):
 
         """
         Integrates from time to time + dt using variable sub-steps.
@@ -2396,15 +2399,24 @@ class timeDomainCollocationSolver:
             self.U1 = xp.copy(self.U2)
 
             # save state in case we must reject
-            U0_save = self.U0.copy() 
-            U1_save = self.U1.copy() 
-            U2_save = self.U2.copy()
+            U0_save, U1_save, U2_save = self.U0.copy(), self.U1.copy(), self.U2.copy()
+
+            if computeSensitivity:
+                A0_save, A1_save = self.A0.copy(), self.A1.copy()
 
             # try the sub-step
             converged, newt_iters = self.step(time + t_local + dt_sub, dt_sub, iter_max=iter_max,
-                                    rtol=1e-8, atol=1e-12, verbose=False, weak_bc=False)
+                                    rtol=1e-8, atol=1e-12, verbose=True, weak_bc=False)
 
             if converged: # accept
+
+                # propagate sensitivity for this accepted sub-step
+                if computeSensitivity:
+                    self.A0 = xp.copy(self.A1)
+                    self.stepSensitivity(time + t_local + dt_sub, dt_sub,
+                                        verbose=False, weak_bc=weak_bc)
+
+
                 t_local += dt_sub
                 if verbose:
                     print(f" 1/dt = {int(1/dt_sub):2d},  iters = {newt_iters:2d},  time = {time+t_local:.2e}")
@@ -2423,9 +2435,11 @@ class timeDomainCollocationSolver:
                 dt_sub = max(min(dt_sub, dt_max), dt_min)
 
             else: # reject, roll back
-                self.U0 = U0_save
-                self.U1 = U1_save
-                self.U2 = U2_save
+                self.U0, self.U1, self.U2 = U0_save, U1_save, U2_save
+
+                if computeSensitivity:
+                    self.A0, self.A1 = A0_save, A1_save
+
                 dt_sub *= 0.5
                 if verbose:
                     print(f" Step failed — reducing dt to {dt_sub:.2e}")
@@ -2824,7 +2838,7 @@ class timeDomainCollocationSolver:
 
             # advance
             # self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
-            self.step_adaptive(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc,                
+            self.step_adaptive(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, computeSensitivity=computeSensitivity,              
                                dt_init=dt_init, dt_min=dt_min, dt_max=dt_max, 
                                iter_target=iter_target, iter_max=iter_max, safety=safety)
 
@@ -2848,7 +2862,7 @@ class timeDomainCollocationSolver:
                 np.save('restart.npy', self.U2)
 
                 if cycle_idx % save_every_cycles == 0:
-                    np.save(f"restart_cycle_{cycle_idx:04d}.npy", self.U2)
+                    np.save(f"restart_cycle_{int(time0)+cycle_idx:04d}.npy", self.U2)
 
 
             # Update restart file

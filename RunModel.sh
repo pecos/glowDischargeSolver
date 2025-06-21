@@ -50,7 +50,7 @@ FLAGS="--V0 75 --VDC 0.0 --gam 0.1 --scenario $scenario --EinsteinForm --elastic
 # --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField
 
 baseCmd="$EXE $FLAGS --Np $Np --Nt $Nt --dt $dt --tscheme BE"
-newtCmd="$NEWTEXE $FLAGS --Np $Np --Nt $Nt1 --Nn 20 --tscheme CN --alpha0 0.1 --increaseFac 1.5"
+newtCmd="$NEWTEXE $FLAGS --Np $Np --Nt $Nt1 --Nn 20 --tscheme CN --alpha0 0.1 --increaseFac 1.5 --lineSearch --adaptive"
 saveCmd="$EXE $FLAGS --Np $Np --Nt $Nt1 --dt $dt1 --tscheme CN"
 
 
@@ -61,7 +61,7 @@ rm -f $screenOut
 # echo "Run 1 period ..."
 # $baseCmd --t0 0.0 --restart "${baseFile}T125.npy" --outfile "discard.npy"
 # $baseCmd --t0 0.0 --restart "discard.npy"  --verbose --outfile "discard.npy"  --adaptive
-$baseCmd --rtol 1e-6 --t0 0.0 --outfile "discard_adaptive.npy" --verbose --adaptive
+# $baseCmd --rtol 1e-6 --t0 200.0 --restart "restart_cycle_0200.npy" --outfile "discard_adaptive.npy" --verbose --adaptive
 # $baseCmd --t0 0.0 --restart "newton_CR_CN_Np150.npy"  --verbose --outfile "discard.npy" 
 
 
@@ -72,8 +72,8 @@ $baseCmd --rtol 1e-6 --t0 0.0 --outfile "discard_adaptive.npy" --verbose --adapt
 # $newtCmd --rtol 1e-6 --restart "${baseFile}T125.npy" \
 #                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
-# $newtCmd --rtol 1e-6 --restart $newtFile \
-#                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
+$newtCmd --rtol 1e-6 --restart "restart_cycle_0200.npy" \
+                                --outfile $newtFile || error_exit "Shooting failed"
 
 
 # echo "Saving one period...${saveFile}"

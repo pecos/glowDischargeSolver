@@ -33,10 +33,16 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 
 
 
-ic = 8; c = True; f = '../restart_0.npy'; cl = 'b-'; lb = "fixed"; m = "8sp"
+# ic = 8; c = True; f = '../discard_0.npy'; cl = 'b-'; lb = "fixed"; m = "8sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+# ic = 9; c = True; f = '../discard_1.npy'; cl = 'r-'; lb = "adaptive"; m = "8sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
+ic = 9; c = True; f = '../restart.npy'; cl = 'r-'; lb = "adaptive"; m = "8sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 9; c = True; f = '../restart_1.npy'; cl = 'r-'; lb = "adaptive"; m = "8sp"
+ic = 10; c = True; f = '../restart_cycle_0080.npy'; cl = 'b-'; lb = "adaptive"; m = "8sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 
@@ -207,8 +213,8 @@ for ic in case:
          FromGlowDischargeToCRIndexing[ic]  = [Ns-1] + list(range(4,Ns-1)) + [3, 2, 0, 1] # We have excluded electron energy         
 
       
-      # D_reshaped = np.reshape(D,(Np, Ns+1+1),'F')
-      D_reshaped = np.reshape(D,(Np, Ns+1),'F')
+      D_reshaped = np.reshape(D,(Np, Ns+1+1),'F')
+      # D_reshaped = np.reshape(D,(Np, Ns+1),'F')
 
       ne[ic]  = ne0 * D_reshaped[:,0]              # electron density
       ni[ic]  = ne0 * D_reshaped[:,1]              # ion density

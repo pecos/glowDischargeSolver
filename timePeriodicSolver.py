@@ -49,29 +49,6 @@ class timePeriodicSolver:
         self.increaseFac = increaseFac
 
 
-
-    def line_search(self, U_old, dU, r_old, normr_old, time, dt, weak_bc,
-                    c1=1e-4, max_ls_iter=10):
-        """
-        Backtracking line search to find alpha that reduces residual norm.
-        Returns (U_new, r_new, normr_new, alpha, success).
-        """
-        xp = self.xp_module
-        alpha = 1.0
-
-        for ls_iter in range(max_ls_iter):
-            U_trial = U_old + alpha * dU
-            r_trial = self.residual(U_trial, time, dt, weak_bc)
-            normr_trial = xp.linalg.norm(r_trial)
-
-            if normr_trial <= (1 - c1 * alpha) * normr_old:
-                return U_trial, r_trial, normr_trial, alpha, True
-
-            alpha *= 0.5
-
-        return U_old, r_old, normr_old, alpha, False
-
-
     def periodicityResidual(self, Uic, Nt):
         '''
         Compute the "periodicity residual"---i.e., the difference between
@@ -128,7 +105,7 @@ class timePeriodicSolver:
 
     def solveNewtonStep(self, Uic, Nt):
         # solve for newton update
-        
+
         # # line-search / damping step
         # alpha = 1.0
         # c1 = 1e-4
@@ -147,6 +124,64 @@ class timePeriodicSolver:
         if (self.alpha < 1):
             self.alpha *= self.increaseFac
             self.alpha = min(self.alpha, 1)
+
+
+    def residual_only(self, Uguess, Nt):
+        """
+        Returns (residual_vector, residual_norm).
+        Uses the existing periodicityResidual; skips Jacobian to save time.
+        """
+        res_norm = self.periodicityResidual(Uguess, Nt, build_jac=False)
+        # self.periodicityResidual already stores the residual vector
+        return self.res, res_norm
+
+    def solveNewtonStep_lineSearch(self, Uic, Nt,
+                        c1=1e-4, tau=0.5, max_ls=6):
+        """
+        One Newton step for the shooting problem with Armijo line search.
+        - c1      -sufficient-decrease parameter (1e-4 is standard)
+        - tau     -back-tracking factor (0.5 halves alpha each retry)
+        - max_ls  -maximum back-tracking trials
+        """
+
+        # -----------------------------------------------------------
+        # (A) Compute Newton direction:  dU  =  –J⁻¹ r
+        #     self.jac   and self.res  were built in the last call to
+        #     periodicityResidual(build_jac=True)
+        # -----------------------------------------------------------
+        dU   = np.linalg.solve(self.jac, -self.res)
+        rnorm0   = np.linalg.norm(self.res)
+
+        # -----------------------------------------------------------
+        # (B) Back-tracking line search
+        # -----------------------------------------------------------
+        alpha = getattr(self, "alpha", 1.0)        # reuse if it exists
+
+        for ls_iter in range(max_ls + 1):
+            U_trial = Uic + alpha * dU
+            res_trial, rnorm_trial = self.residual_only(U_trial, Nt)
+
+            # Armijo / sufficient-decrease condition
+            if rnorm_trial <= (1.0 - c1 * alpha) * rnorm0:
+                # Accept the step
+                Uic[:]      = U_trial
+                self.res[:] = res_trial       # cache for next Newton iter
+                if ls_iter == 0:              # full step succeeded -> try grow α
+                    self.alpha = min(self.alpha * self.increaseFac, 1.0)
+                else:                         # cut step → keep α smaller
+                    self.alpha = alpha
+                break
+
+            # Back-track
+            alpha *= tau
+
+        else:
+            # FAILED even after max_ls trials
+            raise RuntimeError("Outer Newton line search failed to find decrease")
+
+        # Optionally rebuild Jacobian here for the next Newton iteration
+        # (up to you whether to do it now or in the next periodicityResidual call)
+
 
 
 if __name__ == "__main__":
@@ -213,6 +248,9 @@ if __name__ == "__main__":
     parser.add_argument('--jacfreq', metavar='J', default=1, type=int,
                         help='Evaluate Jacobian every J Newton iterations during time step')
 
+
+    parser.add_argument('--lineSearch', default=False,
+                        action='store_true', help="Use linear line search to find a good starting point.")
 
     args = parser.parse_args()
 
@@ -380,8 +418,11 @@ if __name__ == "__main__":
     niter = 0
     while ( (rnorm/rnorm0 > args.rtol) and (rnorm > args.atol) and (niter<args.Nn) ):
         tic = cpu_time.time()
-        
-        tps.solveNewtonStep(Uic, args.Nt)
+
+        if args.backgroundSpecieActivation==True:
+            tps.solveNewtonStep_lineSearch(Uic, args.Nt, c1=1e-4, tau=0.5, max_ls=6)
+        else:
+            tps.solveNewtonStep(Uic, args.Nt)
 
         if (args.plot):
             tps.tds.U2 = np.copy(Uic)
