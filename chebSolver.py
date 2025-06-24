@@ -2,20 +2,15 @@ import numpy as np
 import numpy.polynomial.chebyshev as cheb
 import time
 
+
 from Liu2014Properties import setLiu2014Properties
-from psaapProperties import setPsaapProperties
 from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
-from psaapPropertiesCurrentTestCase import setPsaapPropertiesCurrentTestCase
-from psaapPropertiesCurrentTestCase100mTorr import setPsaapPropertiesCurrentTestCase100mTorr
-from psaapPropertiesWithSampling import setPsaapPropertiesWithSampling
-from psaapPropertiesTestJP import setPsaapPropertiesTestJP
-from psaapPropertiesTestJP_Nominal import setPsaapPropertiesTestJP_Nominal
-from psaapPropertiesTestJP_Arrhenius import setPsaapPropertiesTestJP_Arrhenius
-from psaapProperties_6Species import setPsaapProperties_6Species
-from psaapProperties_6Species_Sampling import setPsaapProperties_6Species_Sampling
+
+from psaapProperties_4Species_Nominal import setPsaapProperties_4Species_Nominal
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
-from psaapProperties_6Species_500mTorr import setPsaapProperties_6Species_500mTorr
+from psaapProperties_6Species_Sampling import setPsaapProperties_6Species_Sampling
+from psaapProperties_6Species_Sampling_500mTorr import setPsaapProperties_6Species_Sampling_500mTorr
 
 class modelClosures:
     """Class providing model parameters."""
@@ -198,16 +193,6 @@ class modelClosures:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
 
-        # Einstein for electrons only (for testing purposes)
-        # if EinsteinForm:
-        #     #V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-        #     #DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
-        #     if self.Z[i] == -1:   ## Added this to use Einstein Relation only with electrons and constant values for heavies
-        #         V0 = self.qStar * 1.0
-        #         DEf = 2.0 / 3.0 * np.multiply(energy[:,[i]], mu[:,[i]]) / V0
-        #     else:
-        #         DEf[:,0] = self.D[i] / nb
-
         else:
             DEf[:,0] = self.D[i] / nb
 
@@ -229,18 +214,12 @@ class modelClosures:
             D_U_tmp = D_ee * np.diag(energy_U[i,j,:,:])
             D_U[:,:] = np.diag(D_U_tmp)
 
-        elif EinsteinForm:
+        elif EinsteinForm and self.Z[i] == -1:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
 
         if (j == self.Ns - 1):
             D_U[:,:] -= np.diag(D[:,i] / nb)
-
-        # Einstein for electrons only (for testing purposes)
-        # if EinsteinForm:
-        #     if self.Z[i] == -1:
-        #         V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
-        #         D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
 
         return D_U
 
@@ -432,11 +411,11 @@ class timeDomainCollocationSolver:
         elif(scenario==5):
             Nr = 7
         elif(scenario==6):
-            Nr = 9
+            Nr = 23
         elif(scenario==7):
-            Nr = 9
+            Nr = 23
         elif(scenario==8):
-            Nr = 9
+            Nr = 23
         elif(scenario==9):
             Nr = 23
         elif(scenario==10):
@@ -444,6 +423,12 @@ class timeDomainCollocationSolver:
         elif(scenario==12):
             Nr = 23
         elif(scenario==13):
+            Nr = 23
+        elif(scenario==14):
+            Nr = 23
+        elif(scenario==15):
+            Nr = 23
+        elif(scenario==16):
             Nr = 23
         elif(scenario==21):
             Nr = 8
@@ -456,6 +441,7 @@ class timeDomainCollocationSolver:
         self.EinsteinForm = EinsteinForm
 
         self.params = modelClosures(self.Ns, Nr)
+
 
         if(scenario==0):
             setLiu2014Properties(gam, V0, VDC, self.params, Nr, iSample)
@@ -470,11 +456,11 @@ class timeDomainCollocationSolver:
         elif(scenario==5):
             setPsaapPropertiesWithSampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==6):
-            setPsaapPropertiesTestJP(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_Sampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==7):
-            setPsaapPropertiesTestJP_Nominal(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_Sampling_250mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==8):
-            setPsaapPropertiesTestJP_Arrhenius(gam, V0, VDC, self.params, Nr, iSample)
+            setPsaapProperties_6Species_Sampling_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==9):
             setPsaapProperties_6Species(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==10):
@@ -483,6 +469,12 @@ class timeDomainCollocationSolver:
             setPsaapProperties_6Species_Nominal(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==13):
             setPsaapProperties_6Species_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==14):
+            setPsaapProperties_6Species_100mTorr(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==15):
+            setPsaapProperties_6Species_250mTorr(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==16):
+            setPsaapProperties_6Species_5Torr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
@@ -1918,21 +1910,30 @@ if __name__ == "__main__":
         print("#   Running scenario = 5 (4 species, 7 rxn, Bolsing and Lay, Moss et al, 2003)")
         Ns = 4
     elif(args.scenario==6):
-        print("#   Running scenario = 6 (4 species, 9 rxn, Juan's mechanism)")
-        Ns = 4
+        print('#   Running scenario = 6 (6 species, 23 rxn, 1Torr, 100V, Sampling)')
+        Ns = 6
     elif(args.scenario==7):
-        print("#   Running scenario = 7 (4 species, 9 rxn, Nominal reaction rates)")
-        Ns = 4
+        print('#   Running scenario = 7 (6 species, 23 rxn, 250mTorr, 100V, Sampling)')
+        Ns = 6
     elif(args.scenario==8):
-        Ns = 4
+        print('#   Running scenario = 8 (6 species, 23 rxn, 500mTorr, 100V, Sampling)')
+        Ns = 6
     elif(args.scenario==9):
         print("#   Running scenario = 9 (6 species, 23 rxn)")
         Ns = 6
     elif(args.scenario==10):
         Ns = 6
     elif(args.scenario==12):
+        print('#   Running scenario = 12 (6 species, 23 rxn, 1Torr, 100V, Nominal)')
         Ns = 6
     elif(args.scenario==13):
+        print('#   Running scenario = 13 (6 species, 23 rxn, 500mTorr, 100V, Nominal)')
+        Ns = 6
+    elif(args.scenario==14):
+        Ns = 6
+    elif(args.scenario==15):
+        Ns = 6
+    elif(args.scenario==16):
         Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")

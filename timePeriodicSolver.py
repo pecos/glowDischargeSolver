@@ -186,21 +186,30 @@ if __name__ == "__main__":
         print("#   Running scenario = 5 (4 species, 7 rxn, Bolsing and Lay, Moss et al, 2003)")
         Ns = 4
     elif(args.scenario==6):
-        print("#   Running scenario = 6 (4 species, 9 rxn, Juan's Mechanism)")
-        Ns = 4
+        print('#   Running scenario = 6 (6 species, 23 rxn, 1Torr, 100V, Sampling)')
+        Ns = 6
     elif(args.scenario==7):
-        print("#   Running scenario = 7 (4 species, 9 rxn, Nominal Reaction Rates)")
-        Ns = 4
+        print('#   Running scenario = 7 (6 species, 23 rxn, 250mTorr, 100V, Sampling)')
+        Ns = 6
     elif(args.scenario==8):
-        Ns = 4
+        print("#   Running scenario = 9 (6 species, 23 rxn, 500mTorr, 100V, Sampling)")
+        Ns = 6
     elif(args.scenario==9):
         print("#   Running scenario = 9 (6 species, 23 rxn)")
         Ns = 6
     elif(args.scenario==10):
         Ns = 6
     elif(args.scenario==12):
+        print('#   Running scenario = 12 (6 species, 23 rxn, 1Torr, 100V, Nominal)')
         Ns = 6
     elif(args.scenario==13):
+        print('#   Running scenario = 13 (6 species, 23 rxn, 500mTorr, 100V, Nominal)')
+        Ns = 6
+    elif(args.scenario==14):
+        Ns = 6
+    elif(args.scenario==15):
+        Ns = 6
+    elif(args.scenario==16):
         Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
