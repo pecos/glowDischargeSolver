@@ -6,8 +6,6 @@ error_exit()
   exit 1
 }
 
-#module load python/3.8.2
-
 tmp_dir=$(mktemp -d -t tmp-test-XXXXXXXXXX --tmpdir=.)
 echo "Running 6 species test in $tmp_dir"
 cd $tmp_dir
@@ -40,4 +38,5 @@ $newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "../reference_solns
 $diffCmd --solution $newtFile >> $screenOut || error_exit "Solution differs from reference"
 
 # if test passed, delete tmp dir
+cd ..
 rm -rf $tmp_dir

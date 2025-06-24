@@ -33,3 +33,5 @@ jobs:
       run: ./testInterpTrans.sh
     - name: Run variable background CN test
       run: ./testRunBackground.sh
+    - name: Run six species test
+      run: ./test6Species.sh
