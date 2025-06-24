@@ -308,15 +308,6 @@ def setPsaapPropertiesTestArmInterpTrans(gam, inputV0, inputVDC, params, Nr, iSa
     diffList.append(diffusivity)
 
     Tplt = np.linspace(-0.5, 5, 1025)
-    import matplotlib.pyplot as plt
-
-    plt.figure()
-    plt.plot(Tplt, De_spline(Tplt), 'b-')
-    plt.plot(Tplt, De * np.ones(Tplt.shape), 'k--')
-    plt.plot(Te, De_interp, 'rx')
-    #plt.plot(Tplt, De_Te_spline(Tplt), 'g--')
-    plt.xlim(-1, 5)
-    plt.show()
 
     Ns = 4
     for i in range(1, Ns):

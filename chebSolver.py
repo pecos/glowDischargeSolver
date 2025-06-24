@@ -15,6 +15,7 @@ from psaapPropertiesTestJP_Arrhenius import setPsaapPropertiesTestJP_Arrhenius
 from psaapProperties_6Species import setPsaapProperties_6Species
 from psaapProperties_6Species_Sampling import setPsaapProperties_6Species_Sampling
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
+from psaapProperties_6Species_500mTorr import setPsaapProperties_6Species_500mTorr
 
 class modelClosures:
     """Class providing model parameters."""
@@ -442,6 +443,8 @@ class timeDomainCollocationSolver:
             Nr = 23
         elif(scenario==12):
             Nr = 23
+        elif(scenario==13):
+            Nr = 23
         elif(scenario==21):
             Nr = 8
         else:
@@ -478,6 +481,8 @@ class timeDomainCollocationSolver:
             setPsaapProperties_6Species_Sampling(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==12):
             setPsaapProperties_6Species_Nominal(gam, V0, VDC, self.params, Nr, iSample)
+        elif(scenario==13):
+            setPsaapProperties_6Species_500mTorr(gam, V0, VDC, self.params, Nr, iSample)
         elif(scenario==21):
             setPsaapPropertiesTestArmInterpTrans(gam, V0, VDC, self.params, Nr, iSample)
 
@@ -1926,6 +1931,8 @@ if __name__ == "__main__":
     elif(args.scenario==10):
         Ns = 6
     elif(args.scenario==12):
+        Ns = 6
+    elif(args.scenario==13):
         Ns = 6
     elif(args.scenario==21):
         print("#   Running scenario = 21 (4 species, 8 rxn, Liu 2017, interpolated transport)")
