@@ -78,7 +78,7 @@ class modelClosures:
         self.Z[0] = -1 # electrons are always -1
         self.Z[1] =  1 # ions are always 1
         self.Z[2] =  0 # background specie should be 0
-
+        
         # Ion Species Indices
         self.posIonIdx = np.where(self.Z == 1)[0]
         self.iele = [0]
@@ -88,6 +88,9 @@ class modelClosures:
 
         # diffusivity
         self.D = np.zeros(Ns)
+
+        # EC momentum transfer frequency
+        self.nu = np.zeros(1)
 
         # reaction rate data
 
@@ -259,6 +262,27 @@ class modelClosures:
 
         return D_U
 
+
+    def momFrequency(self, energy, nb):
+        nu = np.zeros((nb.shape[0],1),dtype=np.float64)
+
+        if (self.EC.interpolate):
+            nu = self.EC.nu_expression((2./3)*energy[:,[0]]) * nb
+
+        return nu[:,0]
+
+    def momFrequency_U(self, j, energy, energy_U, nu, nb):
+        nu_U = np.zeros((nb.shape[0],nb.shape[0]),dtype=np.float64)
+
+        if (self.EC.interpolate):
+            nu_ee = (2./3)*self.EC.nu_T_expression((2./3)*energy[:,0]) * nb
+            nu_U_tmp = nu_ee * np.diag(energy_U[0,j,:,:])
+            nu_U[:,:] = np.diag(nu_U_tmp)
+
+        if (j == self.Ns - 1):
+            nu_U += np.diag(nu[:,0])
+
+        return nu_U
 
     def rxnSourceTerm(self, energy, density):
         G = self.progressRate(energy,density)
@@ -722,6 +746,7 @@ class timeDomainCollocationSolver:
         energy = np.zeros((self.Np, self.Ns),dtype=np.float64)
         mu     = np.zeros((self.Np, self.Ns),dtype=np.float64)
         diffusivity = np.zeros((self.Np, self.Ns),dtype=np.float64)
+        nu = np.zeros((self.Np, 1), dtype = np.float64)
         energy[:,0] = Te[:,0]
         for i in range(1,self.Ns):
             energy[:,i] = Tg[:,0]
@@ -731,6 +756,9 @@ class timeDomainCollocationSolver:
             diffusivity[:,i] = self.params.diffusivity(i, energy, mu,
                                                        dens[:,self.Ns-1],
                                                        self.EinsteinForm)
+        nu[:,0] = self.params.momFrequency(energy, dens[:,self.Ns-1])
+        ## Ambipolar diffusion coefficient for electrons:
+        #diffusivity[:,0] = (diffusivity[:,0] + np.multiply(np.divide(diffusivity[:,1], mu[:,1]), mu[:,0])) / (1 + (Te[:,0] / Tg[:,0]))
 
         fspec = np.ndarray((self.Np, self.Ns),dtype=np.float64)
         for i in range(0,self.Ns):
@@ -798,7 +826,8 @@ class timeDomainCollocationSolver:
         SJ = -self.params.qStar*fspec[:,self.params.iele]*(-phi_x)
 
         # elastic collision term at collocation points
-        SEC  = -self.params.EC * (nT - np.multiply(dens[0, self.params.iele], Tg))
+        SEC  = nu[:,] * (nT - np.multiply(dens[0, self.params.iele], Tg))
+        #SEC = -self.params.EC * (nT - np.multiply(dens[0, self.params.iele], Tg)) * np.sqrt(Te)
         SEC *= self.elasticCollisionActivationFactor
 
         ## Radial difussion source term (all heavy species)
@@ -1188,6 +1217,7 @@ class timeDomainCollocationSolver:
 
         energy = np.zeros((self.Np, self.Ns),dtype=np.float64)
         mu     = np.zeros((self.Np, self.Ns),dtype=np.float64)
+        nu     = np.zeros((self.Np, 1), dtype=np.float64)
         diffusivity = np.zeros((self.Np, self.Ns),dtype=np.float64)
         energy[:,0] = Te[:,0]
         for i in range(1,self.Ns):
@@ -1198,6 +1228,7 @@ class timeDomainCollocationSolver:
             diffusivity[:,i] = self.params.diffusivity(i, energy, mu,
                                                        dens[:,self.Ns-1],
                                                        self.EinsteinForm)
+        nu[:,0] = self.params.momFrequency(energy, dens[:,self.Ns-1])
 
         energy_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
         energy_U[0,0,:,:] = Te_ne
@@ -1208,6 +1239,7 @@ class timeDomainCollocationSolver:
 
         diffusivity_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
         mu_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
+        nu_U = np.zeros((self.Nv, self.Np, self.Np), dtype = np.float64)
         for i in range(0,self.Ns):
             for j in range(0,self.Nv):
                 diffusivity_U[i,j,:,:] = self.params.diffusivity_U(i, j,
@@ -1215,6 +1247,18 @@ class timeDomainCollocationSolver:
                                                                    mu, diffusivity, dens[:,self.Ns-1],
                                                                    self.EinsteinForm)
                 mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, mu, dens[:,self.Ns-1])
+
+        for j in range(0, self.Nv):
+            nu_U[j,:,:] = self.params.momFrequency_U(j, energy, energy_U, nu, dens[:,self.Ns-1])
+        ## Ambipolar diffusion coefficient for electrons:
+        #diffusivity[:,0] = (diffusivity[:,0] + np.multiply(np.divide(diffusivity[:,1], mu[:,1]), mu[:,0])) / (1 + (Te[:,0] / Tg[:,0]))
+        #for i in range(0, self.Nv):
+        #    diffusivity_U[0,i,:,:] = np.multiply((1 + np.divide(Te[:,0],Tg[:,0])), (diffusivity_U[0,i,:,:] +
+        #        np.multiply(np.divide(diffusivity[:,1], mu[:,1]), mu_U[0,i,:,:]) + np.multiply(mu[:,0],
+        #            np.divide((np.multiply(mu[:,1], diffusivity_U[1,i,:,:]) - np.multiply(diffusivity[:,1],
+        #                mu_U[1,i,:,:])), np.multiply(mu[:,1], mu[:,1]))))) \
+        #            - np.multiply((diffusivity[:,0] + np.multiply(np.divide(diffusivity[:,1], mu[:,1]), mu[:,0])), np.divide((np.multiply(Tg[:,0],
+        #                energy_U[0,i,:,:]) - np.multiply(Te[:,0], energy_U[1,i,:,:])), np.multiply(Tg[:,0], Tg[:,0])))
 
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
@@ -1514,14 +1558,12 @@ class timeDomainCollocationSolver:
         # elastic collisions
         SEC_U = np.zeros((self.Ns + 1, self.Np, self.Np), dtype=np.float64)
         for j in range(0, self.Nv):
-            SEC_U[j, :, :] = self.params.EC \
-                * dens[:, self.params.iele] \
-                * np.multiply(np.identity(self.Np),
-                              np.diag(Tg_U[:, j]))
-        SEC_U[self.Ns, :, :] -= self.params.EC * np.identity(self.Np)
-        SEC_U[      0, :, :] += self.params.EC \
-                              * np.multiply(np.identity(self.Np), Tg)
+            SEC_U[j, :, :] = -nu_U[j,:,:] * (nT - np.multiply(dens[:,self.params.iele], Tg)) \
+                             -nu[:,] * dens[:, self.params.iele] * energy_U[0,j,:,:] \
+                             -nu[:,] * dens[:, self.params.iele] * np.multiply(np.identity(self.Np), np.diag(Tg_U[:,j]))
 
+        #SEC_U[self.Ns+1, :, :] -= 
+        SEC_U[        0, :, :] -= np.multiply(np.identity(self.Np), (nu[:,] * energy[:,0])) + np.multiply(np.identity(self.Np), (nu[:,0] * Tg[:,0]))
         SEC_U *= self.elasticCollisionActivationFactor
 
         ## Radial Diffusion Source Term
@@ -1658,14 +1700,14 @@ class timeDomainCollocationSolver:
                 jac_diag -= dt*omega_U[i,j,:]
 
         # Joule heating (electron energy eqn)
-        self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*(SJ_ne + SEC_U[0, :, :])
+        self.jac[self.Ns*self.Np:,0:self.Np]         -= dt*(SJ_ne - SEC_U[0, :, :])
         #self.jac[self.Ns*self.Np:,self.Np:2*self.Np] -= dt*(SJ_ni + SEC_U[1, :, :])
         #if self.Ns == 5:
         #    self.jac[self.Ns*self.Np:,2*self.Np:3*self.Np] -= dt*(SJ_ni2 + SEC_U[2, :, :])
         for ionIdx in self.params.posIonIdx:
-            self.jac[self.Ns*self.Np:,ionIdx*self.Np:(ionIdx+1)*self.Np] -= dt*(SJ_ni[:,:,ionIdx-1] + SEC_U[ionIdx, :, :])
+            self.jac[self.Ns*self.Np:,ionIdx*self.Np:(ionIdx+1)*self.Np] -= dt*(SJ_ni[:,:,ionIdx-1] - SEC_U[ionIdx, :, :])
         self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
-        self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*(SJ_nT + SEC_U[self.Ns, :, :])
+        self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*(SJ_nT - SEC_U[self.Ns, :, :])
 
         for j in range(0, self.Nv):
             self.jac[self.Ns*self.Np:,j*self.Np:(j+1)*self.Np] -= dt*SERD_U[j,:,:]
