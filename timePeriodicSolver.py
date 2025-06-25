@@ -6,12 +6,14 @@ class timePeriodicSolver:
 
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
                  backgroundSpecieActivationFactor, EinsteinForm,
+                 radialDiffusionActivationFactor,
                  gam, V0, VDC, restart=None, scenario=0, scheme='BE',
                  alpha0 = 1.0, increaseFac = 1.0, iSample = 0):
         self.tds = cs.timeDomainCollocationSolver(Ns, NT, Np,
                                                   elasticCollisionActivationFactor,
                                                   backgroundSpecieActivationFactor,
                                                   EinsteinForm,
+                                                  radialDiffusionActivationFactor,
                                                   gam, V0,
                                                   VDC, scenario, scheme, iSample)
         self.res = np.zeros((self.tds.Ndof,1))
@@ -54,7 +56,7 @@ class timePeriodicSolver:
 
         # Run from IC for 1 period
         self.tds.solve(0.0, 1.0/Nt, Nt,
-                       verbose=True, rtol=1e-7,
+                       verbose=False, rtol=1e-7,
                        computeSensitivity=True, weak_bc=False)
 
         # Compute difference between final state and Uic
@@ -137,6 +139,8 @@ if __name__ == "__main__":
                         action='store_true', help="Activate the background specie density equation.")
     parser.add_argument('--EinsteinForm', default=False,
                         action='store_true', help="Activate Einstein's form for diffusion coefficient.")
+    parser.add_argument('--radialDiffusion', default=False,
+                        action='store_true', help="Activate radial diffusion loss source term.")
     parser.add_argument('--alpha0', metavar='alpha0', default=1.0,
                         type=float, help='Newton step under-relaxation factor')
     parser.add_argument('--increaseFac', metavar='increaseFac', default=1.0,
@@ -267,9 +271,17 @@ if __name__ == "__main__":
         print("#   The Einstein's form for diffusion coefficient is not used.")
         EinsteinForm = False
 
+    radialDiffusionActivationFactor = 1.0
+    if(args.radialDiffusion==True):
+        print('#   Radial Diffusion Losses activated.')
+        radialDiffusionActivationFactor = 1.0
+    else:
+        radialDiffusionActivationFactor = 0.0
+
     tps = timePeriodicSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
                              backgroundSpecieActivationFactor,
                              EinsteinForm,
+                             radialDiffusionActivationFactor,
                              args.gam, args.V0, args.VDC,
                              restart=args.restart, scenario=args.scenario,
                              scheme=args.tscheme,

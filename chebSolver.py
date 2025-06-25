@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
 import time
+from scipy.interpolate import interp1d
 
 from os import environ
 N_THREADS = '1'
@@ -15,22 +16,14 @@ from psaapPropertiesTestArm import setPsaapPropertiesTestArm
 from psaapPropertiesTestArmInterpTrans import setPsaapPropertiesTestArmInterpTrans
 from psaapProperties_6Species_Nominal import setPsaapProperties_6Species_Nominal
 
-from psaapProperties_6Species_100mTorr_Expanded import setPsaapProperties_6Species_100mTorr_Expanded
-from psaapProperties_6Species_250mTorr_Expanded import setPsaapProperties_6Species_250mTorr_Expanded
-from psaapProperties_6Species_500mTorr_Expanded import setPsaapProperties_6Species_500mTorr_Expanded
-from psaapProperties_6Species_1Torr_Expanded import setPsaapProperties_6Species_1Torr_Expanded
-from psaapProperties_6Species_2Torr_Expanded import setPsaapProperties_6Species_2Torr_Expanded
-from psaapProperties_6Species_5Torr_Expanded import setPsaapProperties_6Species_5Torr_Expanded
-from psaapProperties_6Species_10Torr_Expanded import setPsaapProperties_6Species_10Torr_Expanded
-from psaapProperties_6Species_Sampling_100mTorr_Expanded import setPsaapProperties_6Species_Sampling_100mTorr_Expanded
-from psaapProperties_6Species_Sampling_250mTorr_Expanded import setPsaapProperties_6Species_Sampling_250mTorr_Expanded
-from psaapProperties_6Species_Sampling_500mTorr_Expanded import setPsaapProperties_6Species_Sampling_500mTorr_Expanded
-from psaapProperties_6Species_Sampling_1Torr_Expanded import setPsaapProperties_6Species_Sampling_1Torr_Expanded
-from psaapProperties_6Species_Sampling_2Torr_Expanded import setPsaapProperties_6Species_Sampling_2Torr_Expanded
-from psaapProperties_6Species_Sampling_5Torr_Expanded import setPsaapProperties_6Species_Sampling_5Torr_Expanded
-from psaapProperties_6Species_Sampling_10Torr_Expanded import setPsaapProperties_6Species_Sampling_10Torr_Expanded
-from psaapProperties_6Species_Sampling_500mTorr_Sandia import setPsaapProperties_6Species_Sampling_500mTorr_Sandia
-from psaapProperties_6Species_Sampling_375mTorr_Sandia import setPsaapProperties_6Species_Sampling_375mTorr_Sandia
+from psaapProperties_8Species_1Torr_EC import setPsaapProperties_8Species_1Torr_EC
+from psaapProperties_8Species_Sampling_1Torr_EC import setPsaapProperties_8Species_Sampling_1Torr_EC
+from psaapProperties_8Species_250mTorr_EC import setPsaapProperties_8Species_250mTorr_EC
+from psaapProperties_8Species_Sampling_250mTorr_EC import setPsaapProperties_8Species_Sampling_250mTorr_EC
+from psaapProperties_8Species_500mTorr_EC import setPsaapProperties_8Species_500mTorr_EC
+from psaapProperties_8Species_Sampling_500mTorr_EC import setPsaapProperties_8Species_Sampling_500mTorr_EC
+from psaapProperties_8Species_5Torr_EC import setPsaapProperties_8Species_5Torr_EC
+from psaapProperties_8Species_Sampling_5Torr_EC import setPsaapProperties_8Species_Sampling_5Torr_EC
 
 class modelClosures:
     """Class providing model parameters."""
@@ -85,7 +78,7 @@ class modelClosures:
         self.Z[0] = -1 # electrons are always -1
         self.Z[1] =  1 # ions are always 1
         self.Z[2] =  0 # background specie should be 0
-        
+
         # Ion Species Indices
         self.posIonIdx = np.where(self.Z == 1)[0]
         self.iele = [0]
@@ -145,8 +138,8 @@ class modelClosures:
         self.verticalShift = 0.0
 
         # electron energy Dirichlet BC
+        #self.EeBC = 0.5
         self.EeBC = 0.75
-        #self.EeBC = 0.75
 
         # Parameters needed to compute the current with dimensions
         self.V0Ltau  = 100 / (2.54 * 0.005 * (1./13.6e6))
@@ -157,6 +150,11 @@ class modelClosures:
         self.qe      = 1.6e-19          # unit charge [C]
         self.eps0    = 8.86e-12         # unit charge [C]
         self.eArea   = np.pi * 0.05**2  # electrode area [m^2]
+
+        ## Added parameters for radial diffusion
+        self.R       = 0.05 # electrode radius [m]
+        self.L       = 0.02 # electrode gap [m]
+        self.R_loss  = 0.05  # radial diffusion loss characteristic length in the range (0, R]
 
         self.reactionsList =[]
         self.diffusivityList =[]
@@ -249,6 +247,12 @@ class modelClosures:
         elif EinsteinForm and self.Z[i] == -1:
             V0 =  self.qStar * 1.0 # V0 = qStar * 1eV
             D_U = 2.0 / 3.0 * np.multiply(mu[:,[i]], energy_U[i,j,:,:]) / V0
+            
+            if (len(self.mobilityList) > i and self.mobilityList[i].interpolate):
+                mu_ee = (2./3)*self.mobilityList[i].mu_T_expression((2./3)*energy[:,i]) / nb
+                mu_U_tmp = mu_ee * np.diag(energy_U[i,j,:,:]) * 2.0/3.0 * energy[:,i] / V0
+                D_U[:,:] += np.diag(mu_U_tmp)
+
 
         if (j == self.Ns - 1):
             D_U[:,:] -= np.diag(D[:,i] / nb)
@@ -288,7 +292,7 @@ class modelClosures:
             kf = self.rxnRateCoefficient(energy, i)
             G[:,i] = kf[:,0]
             for j in range(0,self.Ns):
-                #print('Species #: {}'.format(j+1))
+                #print('Species #: {}'.formatg(j+1))
                 if (self.reactionsList[i].rxnAlfa[j,0]>0):
                     #print('Density:')
                     #print(density[:,j])
@@ -367,6 +371,25 @@ class modelClosures:
         return kf_T #a * (energy**(b-1)) * np.exp(-Ea/energy) * (b + Ea/energy)
 
 
+    def radialDiffSourceTerm(self, i, density, D):
+        s_dot = np.zeros((density.shape[0], 1), dtype = np.float64)
+
+        s_dot[:,0] = (-2.0 / (self.R * self.R_loss)) * np.multiply(D[:,i], density[:,i])
+
+        return s_dot[:,0]
+
+    def radialDiffSourceTermJac(self, i, j, density, D, D_U):
+        s_dot_U = np.zeros((density.shape[0], density.shape[0]), dtype = np.float64)
+
+        s_dot_U_tmp = (-2.0 / (self.R * self.R_loss)) * np.multiply(density[:,i], np.diag(D_U[i,j,:,:]))
+        if i == j:
+            s_dot_U_tmp += (-2.0 / (self.R * self.R_loss)) * D[:,i]
+
+        s_dot_U[:,:] = np.diag(s_dot_U_tmp)
+
+        return s_dot_U
+
+
     def print(self):
         """Print parameters to the screen"""
         print("# The non-dimensional transport and chemstry properties are")
@@ -383,12 +406,13 @@ class modelClosures:
         print("#   qStar = {0:.6e}".format(self.qStar))
         print("#   alpha = {0:.6e}".format(self.alpha))
         print("#   ks    = {0:.6e}".format(self.ks))
+        print("#   ksion = {0:.6e}".format(self.ksion))
+        print("#   Te BC = {0:.6e}".format(self.EeBC*(2./3.)))
         print("#   gam   = {0:.6e}".format(self.gam))
         print('#   Z     = ', self.Z)
+        print('#   Lloss = ', self.R_loss)
         if len(self.posIonIdx) > 1:
             print('#   MULTIPLE Ion Species Detected! \n')
-            print(self.posIonIdx)
-            print('\n')
         else:
             print('#   SINGLE Ion Species: ', self.posIonIdx, '\n')
 
@@ -422,6 +446,7 @@ class timeDomainCollocationSolver:
 
     def __init__(self, Ns, NT, Np, elasticCollisionActivationFactor,
                  backgroundSpecieActivationFactor, EinsteinForm,
+                 radialDiffusionActivationFactor,
                  gam=0.01, V0 = 100.0, VDC = 0.0,
                  scenario=0, scheme="BE", iSample = 0):
         """Initializes storage and operaters required for solve."""
@@ -493,6 +518,7 @@ class timeDomainCollocationSolver:
         self.elasticCollisionActivationFactor = elasticCollisionActivationFactor
         self.backgroundSpecieActivationFactor = backgroundSpecieActivationFactor
         self.EinsteinForm = EinsteinForm
+        self.radialDiffusionActivationFactor = radialDiffusionActivationFactor
 
         self.params = modelClosures(self.Ns, Nr)
 
@@ -775,6 +801,20 @@ class timeDomainCollocationSolver:
         SEC  = -self.params.EC * (nT - np.multiply(dens[0, self.params.iele], Tg))
         SEC *= self.elasticCollisionActivationFactor
 
+        ## Radial difussion source term (all heavy species)
+        s_dot_RD = np.zeros((self.Np, self.Ns), dtype = np.float64)
+        for i in range(1, self.Ns-1):
+            s_dot_RD[:,i] = self.params.radialDiffSourceTerm(i, dens, diffusivity)
+
+        # Electron radial fluxes should be equal to the sum of positive ion fluxes
+        for ionIdx in self.params.posIonIdx:
+            s_dot_RD[:,0] += s_dot_RD[:,ionIdx]
+        
+        s_dot_RD *= self.radialDiffusionActivationFactor
+
+        ## Radial Diffusion Electron Energy source term
+        SERD = np.multiply(s_dot_RD[:,self.params.iele], energy[:,self.params.iele])
+        
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
         fa = np.copy(fT)
@@ -797,7 +837,12 @@ class timeDomainCollocationSolver:
             joule[:,0] += self.params.qStar*self.params.charge(i)*fspec[:,i]*(-phi_x[:,0])
 
         S = np.zeros((self.Np,1),dtype=np.float64)
+        S_RD = np.zeros((self.Np,1), dtype=np.float64)
         S[:,0] = (sOmEp[:,0] + fa_x[:,0] - joule[:,0])/Tg[:,0]/self.params.nAronp0
+
+        ## All heavy species that diffuse to side-wall are quenched and converted to Ar
+        for i in range(1, self.Ns-1):
+            S_RD[:,0] -= s_dot_RD[:,i] / Tg[:,0] / self.params.nAronp0
 
         # form full residual
         res = np.zeros((self.Nv*self.Np,1))
@@ -805,14 +850,14 @@ class timeDomainCollocationSolver:
         # spatial part
         # standard species
         for i in range(0,self.Ns-1):
-            res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i])
+            res[i*self.Np:(i+1)*self.Np,0] = dt*(fspec_x[:,i] - omega[:,i] - s_dot_RD[:,i])
         
         # background specie (fixed at IC for now)
-        res[(self.Ns-1)*self.Np:self.Ns*self.Np] = -dt*S
+        res[(self.Ns-1)*self.Np:self.Ns*self.Np] = -dt*(S + S_RD)
         res[(self.Ns-1)*self.Np:self.Ns*self.Np,0] *= self.backgroundSpecieActivationFactor
 
         # energy
-        res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ  - SEC)
+        res[self.Ns*self.Np:]        = dt*(fT_x - omega[:,[self.Ns]] - SJ  - SEC - SERD)
 
         ############################################################
         # Computation of total, displacement, and particle current #
@@ -1153,6 +1198,7 @@ class timeDomainCollocationSolver:
             diffusivity[:,i] = self.params.diffusivity(i, energy, mu,
                                                        dens[:,self.Ns-1],
                                                        self.EinsteinForm)
+
         energy_U = np.zeros((self.Ns, self.Nv, self.Np, self.Np),dtype=np.float64)
         energy_U[0,0,:,:] = Te_ne
         energy_U[0,self.Ns,:,:] = Te_nT
@@ -1169,7 +1215,6 @@ class timeDomainCollocationSolver:
                                                                    mu, diffusivity, dens[:,self.Ns-1],
                                                                    self.EinsteinForm)
                 mu_U[i,j,:,:] = self.params.mobility_U(i, j, energy, energy_U, mu, dens[:,self.Ns-1])
-
 
         # solve poisson equation for phi_ne
         ident0 = np.identity(self.Np)
@@ -1470,14 +1515,38 @@ class timeDomainCollocationSolver:
         SEC_U = np.zeros((self.Ns + 1, self.Np, self.Np), dtype=np.float64)
         for j in range(0, self.Nv):
             SEC_U[j, :, :] = self.params.EC \
-                           * dens[:, self.params.iele] \
-                           * np.multiply(np.identity(self.Np),
-                                         np.diag(Tg_U[:, j]))
+                * dens[:, self.params.iele] \
+                * np.multiply(np.identity(self.Np),
+                              np.diag(Tg_U[:, j]))
         SEC_U[self.Ns, :, :] -= self.params.EC * np.identity(self.Np)
         SEC_U[      0, :, :] += self.params.EC \
                               * np.multiply(np.identity(self.Np), Tg)
+
         SEC_U *= self.elasticCollisionActivationFactor
 
+        ## Radial Diffusion Source Term
+        s_dot_RD = np.zeros((self.Np, self.Ns), dtype = np.float64)
+        s_dot_RD_U = np.zeros((self.Ns, self.Ns+1, self.Np, self.Np), dtype = np.float64)
+
+        #s_dot_RD[:,:] = self.params.radialDiffSourceTerm(self.xp, dens, diffusivity)
+        for i in range(1, self.Ns-1):
+            s_dot_RD[:,i] = self.params.radialDiffSourceTerm(i, dens, diffusivity)
+
+        for ionIdx in self.params.posIonIdx:
+            s_dot_RD[:,0] += s_dot_RD[:,ionIdx]
+
+        s_dot_RD *= self.radialDiffusionActivationFactor
+
+        #s_dot_RD_U = self.params.radialDiffSourceTermJac(dens, diffusivity, diffusivity_U)
+        for i in range(1, self.Ns-1):
+            for j in range(0, self.Nv):
+                s_dot_RD_U[i,j,:,:] = self.params.radialDiffSourceTermJac(i, j, dens, diffusivity, diffusivity_U)
+
+        for ionIdx in self.params.posIonIdx:
+            s_dot_RD_U[0,:,:,:] += s_dot_RD_U[ionIdx,:,:,:]
+
+        s_dot_RD_U *= self.radialDiffusionActivationFactor
+        
         # evaluate S---the source term required in the background
         # specie evolution to ensure constant pressure
         fa = np.zeros((self.Np,1),dtype=np.float64)
@@ -1541,11 +1610,27 @@ class timeDomainCollocationSolver:
         S  = (sOmEp + fa_x - joule)/Tg/self.params.nAronp0
         S *= self.backgroundSpecieActivationFactor
 
+        S_RD = np.zeros((self.Np,1), dtype=np.float64)
+        S_RD_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
+        SERD_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
+        for i in range(1, self.Ns-1):
+            S_RD[:,0] -= s_dot_RD[:,i] / self.params.nAronp0
+        S_RD *= self.radialDiffusionActivationFactor
+        for j in range(0, self.Nv):
+            for i in range(1, self.Ns-1):
+                S_RD_U[j,:,:] -= s_dot_RD_U[i,j,:,:] / self.params.nAronp0
+        #S_RD_U *= self.radialDiffusionActivationFactor
+
+        for j in range(0, self.Nv):
+            SERD_U[j,:,:] = np.multiply(np.diag(energy[:,0]), s_dot_RD_U[0,j,:,:]) + np.multiply(np.diag(s_dot_RD[:,0]),
+                    energy_U[0,j,:,:])
+
         S_U = np.zeros((self.Nv, self.Np, self.Np), dtype=np.float64)
         S_U = (sOmEp_U + fa_x_U - joule_U)/Tg/self.params.nAronp0
         S_U *= self.backgroundSpecieActivationFactor
         for j in range(0,self.Nv):
             S_U[j,:,:] += np.multiply(np.diag( -(S/Tg)*Tg_U[:,j] ),np.identity(self.Np))
+            #S_RD_U[j, :, :] += np.multiply(np.diag( -(S_RD/Tg)*Tg_U[:,j] ), np.identity(self.Np))
 
         # form the full jacobian
         self.jac = np.zeros((self.Ndof,self.Ndof))
@@ -1558,6 +1643,7 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns-1):
             for j in range(0,self.Nv):
                 self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] = dt*(fspec_x_U[i,j,:,:])
+                self.jac[i*self.Np:(i+1)*self.Np,j*self.Np:(j+1)*self.Np] -= dt*(s_dot_RD_U[i,j,:,:])
 
         # electron energy eqn
         for j in range(0,self.Ns+1):
@@ -1581,9 +1667,12 @@ class timeDomainCollocationSolver:
         self.jac[self.Ns*self.Np:,(self.Ns-1)*self.Np:self.Ns*self.Np] -= dt*SJ_nb
         self.jac[self.Ns*self.Np:,self.Ns*self.Np:] -= dt*(SJ_nT + SEC_U[self.Ns, :, :])
 
+        for j in range(0, self.Nv):
+            self.jac[self.Ns*self.Np:,j*self.Np:(j+1)*self.Np] -= dt*SERD_U[j,:,:]
+
         # overwrite the background (wrt all variables)
         for j in range(0,self.Nv):
-            self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*(S_U[j,:,:])
+            self.jac[(self.Ns-1)*self.Np:self.Ns*self.Np,j*self.Np:(j+1)*self.Np] = -dt*(S_U[j,:,:] + S_RD_U[j,:,:])
 
         return rstrg_U
 
@@ -1827,8 +1916,8 @@ class timeDomainCollocationSolver:
             self.jac[:,k] = (rp[:,0] - r0[:,0])/dU
 
 
-    def step(self, time, dt, iter_max=20,
-             rtol=1e-6, atol=1e-12, verbose=True, weak_bc=False):
+    def step(self, time, dt, iter_max=100,
+             rtol=1e-6, atol=1e-12, verbose=False, weak_bc=False):
         """Take a single time step.
 
         Inputs
@@ -1853,8 +1942,10 @@ class timeDomainCollocationSolver:
                 count, normr, normr/normr0))
         while( not converged and (count < iter_max) ):
             #self.jacobianFD(self.U2, time, dt)
+            #if count % 2 == 0:
+            #    self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True) # <- Commented out
+            #    jac_inv = np.linalg.inv(self.jac)
             self.jacobian(self.U2, time, dt, weak_bc, solve_poisson=True) # <- Commented out
-
             try:
                 dU = np.linalg.solve(self.jac, -r) # <- Commented out
                 #dU = np.dot(jac_inv, -r) # <- Added
@@ -2198,6 +2289,8 @@ if __name__ == "__main__":
                         action='store_true', help="Activate the background specie density equation.")
     parser.add_argument('--EinsteinForm', default=False,
                         action='store_true', help="Activate Einstein's form for diffusion coefficient.")
+    parser.add_argument('--radialDiffusion', default = False, 
+                        action='store_true', help="Activate the radial diffusion loss source term")
     parser.add_argument('--iSample', metavar='iSample', default=0,
                         type=int, help='Sample index, if BOLSIG chemistry is used.')
     parser.add_argument('--gam', metavar='gam', default=0.01, type=float, help='Secondary Electron Emission Coefficient')
@@ -2303,6 +2396,13 @@ if __name__ == "__main__":
         print("#   The Einstein's form for diffusion coefficient is not used.")
         EinsteinForm = False
 
+    radialDiffusionActivationFactor = 1.0
+    if(args.radialDiffusion==True):
+        print('#   Radial Diffusion Losses activated.')
+        radialDiffusionActivationFactor = 1.0
+    else:
+        radialDiffusionActivationFactor = 0.0
+
     if(args.savedata!=None):
         print("#")
         print("#   Saving every time step to {0:s}".format(args.savedata))
@@ -2315,13 +2415,14 @@ if __name__ == "__main__":
     # Instantiate solver class
     tds = timeDomainCollocationSolver(Ns, 1, args.Np, elasticCollisionActivationFactor,
                                       backgroundSpecieActivationFactor, EinsteinForm,
+                                      radialDiffusionActivationFactor,
                                       gam=args.gam, V0 = args.V0, VDC = args.VDC,
                                       scenario=args.scenario, scheme=args.tscheme,
                                       iSample = args.iSample)
 
     # Default IC (overwritten below if we are restarting)
     #tds.U1[0:tds.Ns*tds.Np] = 1e-4
-    ne_0 = 5.0e-3                                # Set intial density here for easier initialization
+    ne_0 = 1.0e-3                               # Set intial density here for easier initialization
     tds.U1[0:(tds.Ns-1)*tds.Np] = ne_0           # Electron inital density
     for ionIdx in tds.params.posIonIdx:          # Ion species initial density (the sum of all ion species should equal electrons)
         tds.U1[ionIdx*tds.Np:(ionIdx+1)*tds.Np] = ne_0/len(tds.params.posIonIdx)
