@@ -2367,7 +2367,7 @@ class timeDomainCollocationSolver:
     def step_adaptive(self, time, dt, verbose=True, rtol=1e-8, 
                       weak_bc=False, computeSensitivity=False,              
                       dt_init=None, dt_min=1e-5, dt_max=0.0625,
-                      iter_target=6, iter_max=14, safety=0.3):
+                      iter_target=6, iter_max=14, safety=0.3, jac_frequency=1):
 
         """
         Integrates from time to time + dt using variable sub-steps.
@@ -2406,7 +2406,8 @@ class timeDomainCollocationSolver:
 
             # try the sub-step
             converged, newt_iters = self.step(time + t_local + dt_sub, dt_sub, iter_max=iter_max,
-                                    rtol=1e-8, atol=1e-12, verbose=True, weak_bc=False)
+                                              rtol=1e-8, atol=1e-12, verbose=True, weak_bc=False,
+                                              jac_frequency=jac_frequency)
 
             if converged: # accept
 
@@ -2747,7 +2748,7 @@ class timeDomainCollocationSolver:
             time += dt
 
             # advance
-            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
             #self.filter()
             print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
                 istep, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
@@ -2778,7 +2779,7 @@ class timeDomainCollocationSolver:
 
 
     def solve_adaptive(self, time0, dt, Nstep, savedata=None, verbose=False,
-              rtol=1e-6, computeSensitivity=False, weak_bc=False):
+                       rtol=1e-6, computeSensitivity=False, weak_bc=False, jac_frequency=1):
 
 
         if self.args.use_gpu==1:
@@ -2808,7 +2809,7 @@ class timeDomainCollocationSolver:
         dt_max = float(1/8) 
         iter_target = 6           # desired Newton iterations
         iter_max = 14             # Maximum number of nonlinear iteration before it reduces the timestep
-        safety = 0.5              # How fast the timestep grows (default was 0.9)
+        safety = 0.3              # How fast the timestep grows (default was 0.9)
 
         dt_init = None
         if dt_init is None:
@@ -2838,9 +2839,11 @@ class timeDomainCollocationSolver:
 
             # advance
             # self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
-            self.step_adaptive(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, computeSensitivity=computeSensitivity,              
-                               dt_init=dt_init, dt_min=dt_min, dt_max=dt_max, 
-                               iter_target=iter_target, iter_max=iter_max, safety=safety)
+            self.step_adaptive(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, computeSensitivity=computeSensitivity,
+                               dt_init=dt_init, dt_min=dt_min, dt_max=dt_max,
+                               iter_target=iter_target, iter_max=iter_max, safety=safety,
+                               jac_frequency=jac_frequency)
+                               
 
             time += dt # dt = 1 ->  a RF period
 
@@ -2930,7 +2933,7 @@ class timeDomainCollocationSolver:
                 self.A0 = xp.copy(self.A1)
 
             # advance
-            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
+            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
             #self.filter()
             print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
                 istep, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),

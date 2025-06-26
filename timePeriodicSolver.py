@@ -47,6 +47,7 @@ class timePeriodicSolver:
 
         self.alpha = alpha0
         self.increaseFac = increaseFac
+        self.adaptive = False
 
 
     def periodicityResidual(self, Uic, Nt):
@@ -72,10 +73,17 @@ class timePeriodicSolver:
         self.tds.A1 = np.copy(I_Ndof)
 
         # Run from IC for 1 period
-        self.tds.solve(0.0, 1.0/Nt, Nt,
-                       savedata=None, verbose=True, rtol=1e-8,
-                       computeSensitivity=True, weak_bc=self.args.weakbc,
-                       jac_frequency=self.args.jacfreq)
+        if self.adaptive:
+            self.tds.solve_adaptive(0.0, 1.0, Nt,
+                                    savedata=None, verbose=True, rtol=1e-8,
+                                    computeSensitivity=True, weak_bc=self.args.weakbc,
+                                    jac_frequency=self.args.jacfreq)
+
+        else:
+            self.tds.solve(0.0, 1.0/Nt, Nt,
+                           savedata=None, verbose=True, rtol=1e-8,
+                           computeSensitivity=True, weak_bc=self.args.weakbc,
+                           jac_frequency=self.args.jacfreq)
 
         # Compute difference between final state and Uic
         self.res = self.tds.U2 - Uic
@@ -106,16 +114,6 @@ class timePeriodicSolver:
     def solveNewtonStep(self, Uic, Nt):
         # solve for newton update
 
-        # # line-search / damping step
-        # alpha = 1.0
-        # c1 = 1e-4
-        # U2_old = self.U2.copy()
-
-        # # Line search
-        # U2_old = self.U2.copy()
-        # U2_new, r, normr, alpha, success = self.line_search(U2_old, dU, r, normr, time, dt, weak_bc)
-
-
         #Uic += np.linalg.solve(self.jac, -self.res)
         print("Solving sensitivity system...")
         Uic += self.alpha * np.linalg.solve(self.jac, -self.res)
@@ -129,10 +127,9 @@ class timePeriodicSolver:
     def residual_only(self, Uguess, Nt):
         """
         Returns (residual_vector, residual_norm).
-        Uses the existing periodicityResidual; skips Jacobian to save time.
+        Uses the existing periodicityResidual
         """
-        res_norm = self.periodicityResidual(Uguess, Nt, build_jac=False)
-        # self.periodicityResidual already stores the residual vector
+        res_norm = self.periodicityResidual(Uguess, Nt)
         return self.res, res_norm
 
     def solveNewtonStep_lineSearch(self, Uic, Nt,
@@ -147,7 +144,7 @@ class timePeriodicSolver:
         # -----------------------------------------------------------
         # (A) Compute Newton direction:  dU  =  –J⁻¹ r
         #     self.jac   and self.res  were built in the last call to
-        #     periodicityResidual(build_jac=True)
+        #     periodicityResidual
         # -----------------------------------------------------------
         dU   = np.linalg.solve(self.jac, -self.res)
         rnorm0   = np.linalg.norm(self.res)
@@ -251,6 +248,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--lineSearch', default=False,
                         action='store_true', help="Use linear line search to find a good starting point.")
+
+    parser.add_argument('--adaptive', default=False,
+                        action='store_true', help="Use adaptive time-steping for time integration.")
 
     args = parser.parse_args()
 
@@ -402,6 +402,10 @@ if __name__ == "__main__":
                              iSample = args.iSample)
 
 
+
+    tps.adaptive = args.adaptive
+
+
     # Get the IC, for use in computing the residual below
     Uic = np.copy(tps.tds.U1)
 
@@ -419,7 +423,7 @@ if __name__ == "__main__":
     while ( (rnorm/rnorm0 > args.rtol) and (rnorm > args.atol) and (niter<args.Nn) ):
         tic = cpu_time.time()
 
-        if args.backgroundSpecieActivation==True:
+        if args.lineSearch==True:
             tps.solveNewtonStep_lineSearch(Uic, args.Nt, c1=1e-4, tau=0.5, max_ls=6)
         else:
             tps.solveNewtonStep(Uic, args.Nt)

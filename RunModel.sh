@@ -24,10 +24,14 @@ dt1=0.0078125
 # Nt1=512
 # dt1=0.001953125
 
+Nt2=256
+dt2=0.00390625
 
 # # For adaptive
-Nt=200
+Nt=400
 dt=1.0
+Nt1=1
+dt1=1.0
 
 
 # Model Selection
@@ -47,11 +51,11 @@ saveFile="newton_CR_CN_Np${Np}_fullsoln.npy"
 # saveFile="newton_8spec_CN_Np${Np}_fullsoln.npy"
 
 FLAGS="--V0 75 --VDC 0.0 --gam 0.1 --scenario $scenario --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField"
-# --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField
+# --EinsteinForm --elasticCollisionActivation --backgroundSpecieActivation --IonEffEField --lineSearch
 
 baseCmd="$EXE $FLAGS --Np $Np --Nt $Nt --dt $dt --tscheme BE"
-newtCmd="$NEWTEXE $FLAGS --Np $Np --Nt $Nt1 --Nn 20 --tscheme CN --alpha0 0.1 --increaseFac 1.5 --lineSearch --adaptive"
-saveCmd="$EXE $FLAGS --Np $Np --Nt $Nt1 --dt $dt1 --tscheme CN"
+newtCmd="$NEWTEXE $FLAGS --Np $Np --Nt $Nt1 --Nn 20 --tscheme CN --alpha0 0.1 --increaseFac 1.5 --adaptive"
+saveCmd="$EXE $FLAGS --Np $Np --Nt $Nt2 --dt $dt2 --tscheme CN"
 
 
 screenOut="runPrint.out"
@@ -72,7 +76,7 @@ rm -f $screenOut
 # $newtCmd --rtol 1e-6 --restart "${baseFile}T125.npy" \
 #                                 --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
-$newtCmd --rtol 1e-6 --restart "restart_cycle_0200.npy" \
+$newtCmd --rtol 1e-6 --restart "restart.npy" \
                                 --outfile $newtFile || error_exit "Shooting failed"
 
 
