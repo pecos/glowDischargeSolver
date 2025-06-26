@@ -235,6 +235,9 @@ def setPsaapPropertiesTestArm(gam, inputV0, inputVDC, params, Nr, iSample):
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
 
+    # Do not clip the state
+    params.clip_state = False
+
     reactionExpressionslist = [f"{params.A[0]} * energy**{params.B[0]} * np.exp(-{params.C[0]} / energy)",
                                f"{params.A[1]} * energy**{params.B[1]} * np.exp(-{params.C[1]} / energy)",
                                f"{params.A[2]} * energy**{params.B[2]} * np.exp(-{params.C[2]} / energy)",

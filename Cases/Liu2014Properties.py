@@ -162,6 +162,12 @@ def setLiu2014Properties(gam, inputV0, inputVDC, params, Nr, iSample):
 
     params.EeBC = 0.75
 
+    params.clip_state = False
+    params.density_floor = -10.0
+    params.temperature_floor = -10.0
+    params.energy_floor = -10.0
+
+
     # Parameters needed to compute the current with dimensions
     params.V0Ltau  = V0 / (L * tau)
     params.V0L     = V0 / L

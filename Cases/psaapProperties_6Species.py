@@ -123,6 +123,12 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Ns, Nr, iSample)
     L   = 2.00*0.005              # half-gap-width [m] (gap width is 2 cm)
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
+    # Set density and temperature floors (minimum values). Values in the simulations that 
+    # are lower that the below are clipped.
+    density_floor = 1e6/np0
+    temperature_floor = 0.02526171245797859 # [eV] = 293.15 [K]
+    energy_floor = 3.0/2.0 * temperature_floor * density_floor 
+
     # Chemistry parameters (charge number, Cv, Cp)
     Z = np.zeros(Ns+1); Cv = np.zeros(Ns+1);    Cp = np.zeros(Ns+1)
     Z[0]    = -1;       Cv[0]    = 3.0/2.0;     Cp[0]    = 5.0/2.0;     # E
@@ -423,6 +429,12 @@ def setPsaapProperties_6Species(gam, inputV0, inputVDC, params, Ns, Nr, iSample)
     params.qe      = qe            # unit charge [C]
     params.eps0    = eps0          # unit charge [C]
     params.eArea   = electrodeArea # electrode area [m^2]
+
+    # Floor
+    params.density_floor = density_floor
+    params.temperature_floor = temperature_floor
+    params.energy_floor = energy_floor
+
 
     reactionExpressionslist = [f"{params.A[i]} * energy**{params.B[i]} * np.exp(-{params.C[i]} / energy)" for i in range(Nr) ]
 

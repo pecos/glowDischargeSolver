@@ -39,10 +39,10 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 # ic = 9; c = True; f = '../discard_1.npy'; cl = 'r-'; lb = "adaptive"; m = "8sp"
 # case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 9; c = True; f = '../restart.npy'; cl = 'r-'; lb = "adaptive"; m = "8sp"
+ic = 9; c = True; f = '../restart.npy'; cl = 'r-'; lb = "adaptive"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
-ic = 10; c = True; f = '../restart_cycle_0080.npy'; cl = 'b-'; lb = "adaptive"; m = "8sp"
+ic = 10; c = True; f = '../restart_CR_cycle_0098.npy'; cl = 'b-'; lb = "adaptive"; m = "CR"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 

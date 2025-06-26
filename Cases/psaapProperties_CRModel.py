@@ -121,6 +121,12 @@ def setPsaapProperties_CRModel(gam, inputV0, inputVDC, params, Ns):
 
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
+    # Set density and temperature floors (minimum values). Values in the simulations that 
+    # are lower that the below are clipped.
+    density_floor = 1e6/np0
+    temperature_floor = 0.02526171245797859 # [eV] = 293.15 [K]
+    energy_floor = 3.0/2.0 * temperature_floor * density_floor 
+
     # Chemistry parameters (charge number, Cv, Cp)
     Z = np.zeros(Ns+1); Cv = np.zeros(Ns+1);    Cp = np.zeros(Ns+1)
     Z[0]    = -1;       Cv[0]    = 3.0/2.0;     Cp[0]    = 5.0/2.0;     # E
@@ -338,6 +344,10 @@ def setPsaapProperties_CRModel(gam, inputV0, inputVDC, params, Ns):
     params.eps0    = eps0          # permittivity of free space
     params.eArea   = electrodeArea # electrode area [m^2]
 
+    # Floor
+    params.density_floor = density_floor
+    params.temperature_floor = temperature_floor
+    params.energy_floor = energy_floor
 
 
 

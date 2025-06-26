@@ -17,7 +17,7 @@ sys.path.append(crmodel_dir)
 
 
 from os import environ
-N_THREADS = '8'
+N_THREADS = '1'
 environ['OMP_NUM_THREADS'] = N_THREADS
 environ['OPENBLAS_NUM_THREADS'] = N_THREADS
 environ['MKL_NUM_THREADS'] = N_THREADS
@@ -192,6 +192,12 @@ class modelClosures:
         self.EeBC = 0.75
         # self.EeBC = 1.5
         self.electron_energy_dirichlet = True
+
+        # Floor parameters
+        self.clip_state = True
+        self.density_floor = 1e6/self.np0
+        self.temperature_floor = 0.02526171245797859 # [eV] = 293.15 [K]
+        self.energy_floor = 3.0/2.0 * self.temperature_floor * self.density_floor 
 
         # Parameters needed to compute the current with dimensions
         self.V0Ltau  = 100 / (2.54 * 0.005 * (1./13.6e6))
@@ -744,6 +750,8 @@ class timeDomainCollocationSolver:
         self.ThreeOverTwo = 3.0/2.0  
 
         self.dt_adaptive = 0.0
+        self.newt_iters_1 = 1
+        self.newt_iters_2 = 1
 
 
         
@@ -881,13 +889,21 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
+        # NOTE(malamast): Apply a hard floor to the number densities
+        if self.params.clip_state:
+            dens = np.where(dens < self.params.density_floor, self.params.density_floor, dens)
+
         nT = xp.zeros((self.Np, 1),dtype=xp.float64)
         nT = Uin[self.Ns*self.Np:(self.Ns+1)*self.Np] # assumes just 1 temperature!
+
+        # NOTE(malamast): Apply a hard floor to the electron energy
+        if self.params.clip_state:
+            nT = np.where(nT < self.params.energy_floor, self.params.energy_floor, nT)
+
         Te = nT/dens[:,iele]
   
         if self.IonEffEField: 
             Eeff = Uin[(self.Nv-1)*self.Np:(self.Nv)*self.Np] # Effective electric field for argon ions
-
 
         ntot = xp.zeros((self.Np, 1),dtype=xp.float64)
         # add all heavies but background
@@ -1231,8 +1247,12 @@ class timeDomainCollocationSolver:
         res[(self.Ns+1)*self.Np-1] = rstrg[7]
 
         for i in range(self.Nion+1,self.Ns-1):
-            res[i*self.Np  ] = dens[ 0,i] - 0.0
-            res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
+            if self.params.clip_state:
+              res[i*self.Np  ] = dens[ 0,i] - self.params.density_floor
+              res[(i+1)*self.Np-1] = dens[-1,i] - self.params.density_floor
+            else:
+              res[i*self.Np  ] = dens[ 0,i] - self.params.density_floor
+              res[(i+1)*self.Np-1] = dens[-1,i] - self.params.density_floor
 
         # if solving for background density, enforce Dirichlet condition on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
@@ -1300,8 +1320,12 @@ class timeDomainCollocationSolver:
         res[(self.Ns+1)*self.Np-1] = rstrg[7]
 
         for i in range(self.Nion+1,self.Ns-1):
-            res[i*self.Np  ] = dens[ 0,i] - 0.0
-            res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
+            if self.params.clip_state:
+              res[i*self.Np  ] = dens[ 0,i] - self.params.density_floor
+              res[(i+1)*self.Np-1] = dens[-1,i] - self.params.density_floor
+            else:
+              res[i*self.Np  ] = dens[ 0,i] - 0.0
+              res[(i+1)*self.Np-1] = dens[-1,i] - 0.0
 
         # if solving for background density, enforce Dirichlet condition on heavy species temperature
         if (self.backgroundSpecieActivationFactor > 0):
@@ -1419,7 +1443,16 @@ class timeDomainCollocationSolver:
         for i in range(0,self.Ns):
             dens[:,i] = Uin[i*self.Np:(i+1)*self.Np,0]
 
+        # NOTE(malamast): Apply a hard floor to the number densities
+        if self.params.clip_state:
+            dens = np.where(dens < self.params.density_floor, self.params.density_floor, dens)
+
         nT = Uin[self.Ns*self.Np:(self.Ns+1)*self.Np] # assumes just 1 temperature!
+
+        # NOTE(malamast): Apply a hard floor to the electron energy
+        if self.params.clip_state:
+            nT = np.where(nT < self.params.energy_floor, self.params.energy_floor, nT)
+
         Te = nT/dens[:,iele]
 
 
@@ -1444,14 +1477,14 @@ class timeDomainCollocationSolver:
         Tg = xp.zeros((self.Np, 1),dtype=xp.float64)
         Tg = (self.params.p0 - nT)/ntot
 
+        # NOTE(malamast): I clip the electron temperature when a low value occurs. 
+        Te = xp.where(Te < Tg,Tg, Te) 
+
         Tg_U = xp.zeros((self.Np, self.Nv),dtype=xp.float64)
         for i in range(0, self.Nv):
             Tg_U[:,i] = -(Tg[:,0]/ntot[:,0])*ntot_U[:,i]
 
         Tg_U[:,self.Ns] += -self.ones_Np/ntot[:,0]
-
-        # NOTE(malamast): I clip the electron temperature when a low value occurs. 
-        Te = xp.where(Te < Tg,Tg, Te) 
 
         Te_U = xp.zeros((self.Np, self.Nv),dtype=xp.float64)
         Te_U[:,0] = -Te[:,0]/dens[:,iele[0]]
@@ -2355,7 +2388,7 @@ class timeDomainCollocationSolver:
                     count, normr, normr/normr0))
 
             converged = ((normr/normr0 < rtol) or (normr < atol))
-            if not np.isfinite(normr) or (not (normr < 0.9 * normr0)): 
+            if not np.isfinite(normr) or (not (normr < 0.95 * normr0)): 
                 converged = False
                 break
                          
@@ -2363,35 +2396,33 @@ class timeDomainCollocationSolver:
 
 
 
-        
-    def step_adaptive(self, time, dt, verbose=True, rtol=1e-8, 
-                      weak_bc=False, computeSensitivity=False,              
+    def step_adaptive(self, time, dt, verbose=True, rtol=1e-8,
+                      weak_bc=False, computeSensitivity=False,
                       dt_init=None, dt_min=1e-5, dt_max=0.0625,
-                      iter_target=6, iter_max=14, safety=0.3, jac_frequency=1):
-
+                      iter_target=6, iter_max=14, safety=0.3,
+                      alpha=0.7, beta=0.3, gamma=0.2, jacc_frequency=1):
         """
         Integrates from time to time + dt using variable sub-steps.
         """
         xp = self.xp_module
         if dt_init is None:
-            dt_init = float(dt / 128)        # safe heuristic
+            dt_init = float(dt / 64)        # safe heuristic
 
 
         if self.dt_adaptive > 0.0:
-            dt_sub = self.dt_adaptive
+            dt_local = self.dt_adaptive
         else:
-            dt_sub  = min(dt_init, dt_max)
+            dt_local  = min(dt_init, dt_max)
 
-        dt_sub = max(min(dt_sub, dt_max), dt_min)
-
+        dt_local = max(min(dt_local, dt_max), dt_min)
 
 
         t_local = 0.0                    # time elapsed *inside* this outer step
 
         while t_local < dt - 1e-15:
-            if dt_sub > dt - t_local:
-                self.dt_adaptive = dt_sub
-                dt_sub = dt - t_local   # final sliver closes the gap
+            if dt_local > dt - t_local:
+                self.dt_adaptive = dt_local
+                dt_local = dt - t_local   # final sliver closes the gap
 
 
             # prepare for next step
@@ -2405,8 +2436,8 @@ class timeDomainCollocationSolver:
                 A0_save, A1_save = self.A0.copy(), self.A1.copy()
 
             # try the sub-step
-            converged, newt_iters = self.step(time + t_local + dt_sub, dt_sub, iter_max=iter_max,
-                                              rtol=1e-8, atol=1e-12, verbose=True, weak_bc=False,
+            converged, newt_iters = self.step(time + t_local + dt_local, dt_local, iter_max=iter_max,
+                                              rtol=1e-8, atol=1e-12, verbose=False, weak_bc=False,
                                               jac_frequency=jac_frequency)
 
             if converged: # accept
@@ -2414,26 +2445,43 @@ class timeDomainCollocationSolver:
                 # propagate sensitivity for this accepted sub-step
                 if computeSensitivity:
                     self.A0 = xp.copy(self.A1)
-                    self.stepSensitivity(time + t_local + dt_sub, dt_sub,
-                                        verbose=False, weak_bc=weak_bc)
+                    self.stepSensitivity(time + t_local + dt_local, dt_local,
+                                        verbose=verbose, weak_bc=weak_bc)
 
 
-                t_local += dt_sub
+                t_local += dt_local
                 if verbose:
-                    print(f" 1/dt = {int(1/dt_sub):2d},  iters = {newt_iters:2d},  time = {time+t_local:.2e}")
+                    print(f" 1/dt = {int(1/dt_local):2d},  iters = {newt_iters:2d},  time = {time+t_local:.2e}")
 
-                # adapt dt_sub for the *next* trial
-                grow   = 1 + safety * max(0, (iter_target - newt_iters)/iter_target)
-                shrink = 1 / (1 + safety * max(0, (newt_iters - iter_target)/iter_target))
+                # # adapt dt_local for the *next* trial
+                # grow   = 1 + safety * max(0, (iter_target - newt_iters)/iter_target)
+                # shrink = 1 / (1 + safety * max(0, (newt_iters - iter_target)/iter_target))
 
-                if newt_iters <= iter_target: 
-                    grow   = 1 + safety * max(0, (iter_target - newt_iters)/iter_target)
-                    dt_sub *= grow
-                else:
-                    shrink = 1 / (1 + safety * max(0, (newt_iters - iter_target)/iter_target))
-                    dt_sub *= shrink
+                # if newt_iters <= iter_target: 
+                #     grow   = 1 + safety * max(0, (iter_target - newt_iters)/iter_target)
+                #     dt_local *= grow
+                # else:
+                #     shrink = 1 / (1 + safety * max(0, (newt_iters - iter_target)/iter_target))
+                #     dt_local *= shrink
 
-                dt_sub = max(min(dt_sub, dt_max), dt_min)
+                # Avoid divide by zero
+                if newt_iters <= 0:
+                    newt_iters = 1
+
+                # Compute growth/shrink factor
+                factor = (iter_target / newt_iters) ** alpha * \
+                         (self.newt_iters_1/newt_iters) ** beta * \
+                         (self.newt_iters_1**2/newt_iters/self.newt_iters_2) ** gamma 
+
+                # Clamp factor to avoid excessive growth/shrink
+                factor = max(min(factor, 2.0), 0.2)
+
+                dt_local *= factor
+
+                dt_local = max(min(dt_local, dt_max), dt_min)
+
+                self.newt_iters_2 = self.newt_iters_1
+                self.newt_iters_1 = newt_iters
 
             else: # reject, roll back
                 self.U0, self.U1, self.U2 = U0_save, U1_save, U2_save
@@ -2441,10 +2489,11 @@ class timeDomainCollocationSolver:
                 if computeSensitivity:
                     self.A0, self.A1 = A0_save, A1_save
 
-                dt_sub *= 0.5
+                dt_local *= 0.2 # Retry step with smaller Δt / Back off aggressively
+
                 if verbose:
-                    print(f" Step failed — reducing dt to {dt_sub:.2e}")
-                if dt_sub < dt_min:
+                    print(f" Step failed — reducing dt to {dt_local:.2e}")
+                if dt_local < dt_min:
                     raise RuntimeError("step_adaptive: dt dropped below dt_min")
 
 
@@ -2805,15 +2854,21 @@ class timeDomainCollocationSolver:
 
         # Adaptive solver parameters
         dt_init = None 
-        dt_min = 1e-5 
-        dt_max = float(1/8) 
+        dt_min = 1e-6 
+        dt_max = float(1/16) 
         iter_target = 6           # desired Newton iterations
         iter_max = 14             # Maximum number of nonlinear iteration before it reduces the timestep
         safety = 0.3              # How fast the timestep grows (default was 0.9)
+        alpha = 0.7               # (0.6 – 0.8) Proportional parameter for the P controller of dt
+        beta = 0.3                # (0.2 – 0.4) Integral parameter for the I controller of dt
+        gamma = 0.2               # (0.1 – 0.3) Derivative (optional) parameter for the D controller of dt
+
+        self.newt_iters_1 = iter_target
+        self.newt_iters_2 = iter_target
 
         dt_init = None
         if dt_init is None:
-            dt_init = float(dt / 128)  # safe heuristic
+            dt_init = float(dt / 64)  # safe heuristic
         if dt_max is None:
             dt_max = dt
 
@@ -2841,9 +2896,9 @@ class timeDomainCollocationSolver:
             # self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc)
             self.step_adaptive(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, computeSensitivity=computeSensitivity,
                                dt_init=dt_init, dt_min=dt_min, dt_max=dt_max,
-                               iter_target=iter_target, iter_max=iter_max, safety=safety,
+                               iter_target=iter_target, iter_max=iter_max,
+                               safety=safety, alpha=alpha, beta=beta, gamma=gamma,
                                jac_frequency=jac_frequency)
-                               
 
             time += dt # dt = 1 ->  a RF period
 
@@ -2933,7 +2988,7 @@ class timeDomainCollocationSolver:
                 self.A0 = xp.copy(self.A1)
 
             # advance
-            self.step(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
+            self.step_fixed_dt(time, dt, verbose=verbose, rtol=rtol, weak_bc=weak_bc, jac_frequency=jac_frequency)
             #self.filter()
             print("{0:d} {1:.6e} {2:.6e} {3:.6e} {4:.6e} {5:.6e} {6:.6e} {7:.6e}".format(
                 istep, time, self.U2[0:self.Np].min(), self.U2[0:self.Np].max(),
@@ -2955,7 +3010,7 @@ class timeDomainCollocationSolver:
                 np.save('restart.npy', self.U2)
 
                 if cycle_idx % save_every_cycles == 0:
-                    np.save(f"restart_cycle_{cycle_idx:04d}.npy", self.U2)
+                    np.save(f"restart_cycle_{int(time0)+cycle_idx:04d}.npy", self.U2)
 
 
             # print(f"CPU Time / timestep is {cpu_time.time() - start_time} seconds.")

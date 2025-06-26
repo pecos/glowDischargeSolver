@@ -622,7 +622,8 @@ class CollisionalRadiativeModel:
         #  Ideal gas law: p_0 = p_n + p_i + p_e
         T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion + nAr2i + nAr2m)   # [K]
  
-        # T_e = xp.where(T_e < T_g*K_eV,T_g*K_eV, T_e)       
+        # Clip small values of electron temperature
+        T_e = xp.where(T_e < T_g*K_eV,T_g*K_eV, T_e)       
 
         """
         Compute Electron Energy Distribution Function (EEDF) based on a Maxwellian distribution:
@@ -821,7 +822,6 @@ class CollisionalRadiativeModel:
         # T_e -> [eV] 
 
         # Clip negative values
-        
         # y[:,xp.where(y <= 0.0)] = 0.0
         y[y < 0.0] = 0.0
 
@@ -848,6 +848,9 @@ class CollisionalRadiativeModel:
         # Temperature of heavy species (from ideal gas law)
         #  Ideal gas law: p_0 = p_n + p_i + p_e
         T_g = (p_0/spc.k - ne * T_e/K_eV) / (xp.sum(npop, axis=1) + nion + nAr2i + nAr2m)   # [K]
+
+        # Clip small values of electron temperature
+        T_e = xp.where(T_e < T_g*K_eV,T_g*K_eV, T_e)   
 
         iN1s5 = self.iN1s5  # metastable  1          
         iN1s4 = self.iN1s4  # resonance   2
@@ -876,7 +879,7 @@ class CollisionalRadiativeModel:
         # from becoming too small at the sheaths. This is to prevent "pump out" of low density points.
         Si_g = self.ElecrtonImpactIonizationRate[0,:,0]
         nuiz =  n_g * Si_g
-        ne_backg = 1e8; Te_backg = 0.5
+        ne_backg = 1e7; Te_backg = 0.1
         ne_backg_source =  nuiz * ne_backg * (0.9 + 0.1 * (ne_backg / ne)**2 )
         dydt[:,iNe]   += ne_backg_source
         dydt[:,iEe] += 3.0 / 2.0 * Te_backg * ne_backg_source

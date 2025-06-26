@@ -675,7 +675,7 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 
 ## ic = 86; c = True; f = '../Results/CR/L/1Torr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Bolsig+ old"; m = "CR3"
 ## case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
-ic = 86; c = True; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Bolsig+"; m = "CR3"
+ic = 86; c = False; f = '../Results/CR/L/new/1Torr75V/Ns19_StBC/newton_CR_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "Bolsig+"; m = "CR3"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
 
 ## ic = 87; c = True; f = '../Results/CR/L/1Torr75V/Ns19_StBC_Dn/newton_CR_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "Druyvesteyn old"; m = "CR3"
@@ -749,8 +749,12 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 
 
 
-ic = 101; c = True; f = '../newton_8spec_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "8 species"; m = "8sp"
+# ic = 101; c = True; f = '../newton_8spec_CN_Np150_fullsoln.npy'; cl = 'g'; lb = "8 species"; m = "8sp"
+# case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+                
+ic = 101; c = True; f = '../Results/CR/L/new/1Torr75V/8spec/newton_8spec_CN_Np150_fullsoln.npy'; cl = 'b'; lb = "8spec"; m = "8sp"
 case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m 
+
 
 
 
@@ -758,7 +762,7 @@ case[ic] = c; file[ic] = f; clr[ic] = cl; label[ic] = lb; model[ic] = m
 
 # these values are required to "redimensionalize" the results
 # they must be consistent with the scenario input file
-Pressure  = 2.5*spc.torr               # [Pa] 
+Pressure  = 1.0*spc.torr               # [Pa] 
 GasTemperature = 293.15                 # [K]
 nAr = Pressure/GasTemperature/spc.k    # [#/m^3] Number density based on bulk temperature (not necessarily true density in two-temperature gas)
 
