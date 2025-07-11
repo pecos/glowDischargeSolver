@@ -1,6 +1,19 @@
-import sys 
-sys.path.append('./Cases/')  # Add the path to the folder containing my_module.py
-sys.path.append('./CRModel/src/')  # Add the path to the folder containing my_module.py
+import os
+import sys
+
+solver_dir = os.path.dirname(os.path.abspath(__file__))
+case_dir = os.path.join(solver_dir, 'Cases')
+crmodel_dir = os.path.join(solver_dir, 'CRModel', 'src')
+
+print(solver_dir)
+print(case_dir)
+print(crmodel_dir)
+
+sys.path.append(case_dir)
+sys.path.append(crmodel_dir)
+
+#sys.path.append('./Cases/')  # Add the path to the folder containing my_module.py
+#sys.path.append('./CRModel/src/')  # Add the path to the folder containing my_module.py
 
 import numpy as np
 import numpy.polynomial.chebyshev as cheb
