@@ -61,6 +61,14 @@ def setPsaapProperties_6Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     L   = 2.00*0.005              # half-gap-width [m] (gap width is 2 cm)
     electrodeArea = np.pi*0.05**2 # electrode area [m^2] (electrode diameter = 0.1 m)
 
+    # Chemistry parameters (charge number, Cv, Cp)
+    Ns = 6
+    Z = np.zeros(Ns+1); Cv = np.zeros(Ns+1);    Cp = np.zeros(Ns+1)
+    Z[0]    = -1;       Cv[0]    = 3.0/2.0;     Cp[0]    = 5.0/2.0;     # E
+    Z[1]    =  1;       Cv[1]    = 3.0/2.0;     Cp[1]    = 5.0/2.0;     # Ar+
+    Z[2:Ns] =  0;       Cv[2:Ns] = 3.0/2.0;     Cp[2:Ns] = 5.0/2.0;     # Ar2+
+    Z[-1]   = -1;       Cv[-1]   = 3.0/2.0;     Cp[-1]   = 5.0/2.0;     # Ee electron energy 
+
     # transport parameters
     nmue = 9.66e21   # argon number density times electron mobility [1/(V*cm*s)]
     #nmui = 4.65e19   # argon number density times ion mobility [1/(V*cm*s)]
@@ -223,6 +231,10 @@ def setPsaapProperties_6Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
                    22: "E + Ar(r) => E + Ar(4p)"}
 
     # 4) Set values in params class
+    params.Z[:]     = Z[:]
+    params.Cv[:]    = Cv[:]
+    params.Cp[:]    = Cp[:]
+
     params.D[0]    = De
     params.D[1]    = Di
     params.D[2]    = Dm
@@ -259,6 +271,11 @@ def setPsaapProperties_6Species_Nominal(gam, inputV0, inputVDC, params, Nr, iSam
     # params.EC = 2.0 * me / mAr * 3.8e9 * tau
 
     params.verticalShift = verticalShift / V0
+
+    params.EeBC = 0.75
+
+    params.clip_state = False
+
 
     # Parameters needed to compute the current with dimensions
     params.V0Ltau  = V0 / (L * tau)

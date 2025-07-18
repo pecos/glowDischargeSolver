@@ -69,13 +69,14 @@ if __name__ == "__main__":
 
     difference_norm, reference_norm = evaluateDifference(reference_soln, test_soln, Np, Nv)
     print("Summary of differences:")
+    print("{0:5s} {1:12s} {2:12s}".format("State", "Diff", "Rel diff"))
     for i in range(Nv):
-        print("  State {0:d}: {1:.6e}".format(i, difference_norm[i]))
+        print("{0:5d} {1:.6e} {2:.6e}".format(i, difference_norm[i], difference_norm[i] / reference_norm[i]))
 
     test_fail = False
     for i in range(Nv):
         if difference_norm[i] / reference_norm[i] > rel_norm_tol:
-            print("Component {0:d} failed relative l2 norm check", i)
+            print("Component {0:d} failed relative l2 norm check".format(i))
             test_fail = True
 
     if not test_fail:
