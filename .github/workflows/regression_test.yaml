@@ -35,3 +35,5 @@ jobs:
       run: ./testRunBackground.sh
     - name: Run six species test
       run: ./test6Species.sh
+    - name: Run CR model test
+      run: ./testCRModel.sh
