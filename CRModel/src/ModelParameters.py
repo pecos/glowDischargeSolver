@@ -284,19 +284,27 @@ class modelParameters:
         
         for itrans in self.EmissionTransitions: 
             i_lvl = -1
-            index_temp = np.where(self.Term_lvl == self.Term_i[itrans])
+            #index_temp = np.where(self.Term_lvl == self.Term_i[itrans])
+            print(type(self.Term_lvl))
+            print(type(self.Term_i[itrans]))
+            print(self.Term_lvl)
+            print(self.Term_i[itrans])
+            index_temp = np.where(np.asarray(self.Term_lvl) == self.Term_i[itrans])
+            #index_temp = np.atleast_1d(np.asarray(self.Term_lvl == self.Term_i[itrans])).nonzero()
+            print(index_temp[0])
             for i in index_temp[0]:
                 if  (self.Configuration_lvl[i] == self.Configuration_i[itrans] and self.J_lvl[i] == self.J_i[itrans]):
                     i_lvl = i
-                    # print(itrans,i_lvl,Configuration_lvl[i],Term_lvl[i],J_lvl[i] )           
-            if i_lvl < 0:        
+                    print(itrans,i_lvl,self.Configuration_lvl[i],self.Term_lvl[i],self.J_lvl[i] )
+            if i_lvl < 0:
                 print(itrans,"Couldn't find the index of the corresponding level while looping through the transitions.")
                 raise SystemExit(0)    
             self.index_i_lvl[itrans] = i_lvl
 
 
             j_lvl = -1
-            index_temp = np.where(self.Term_lvl == self.Term_j[itrans]) 
+            index_temp = np.where(np.asarray(self.Term_lvl) == self.Term_j[itrans])
+            #index_temp = np.atleast_1d(np.asarray(self.Term_lvl == self.Term_j[itrans])).nonzero()
             for j in index_temp[0]:
                 if  (self.Configuration_lvl[j] == self.Configuration_j[itrans] and self.J_lvl[j] == self.J_j[itrans]):
                     j_lvl = j
