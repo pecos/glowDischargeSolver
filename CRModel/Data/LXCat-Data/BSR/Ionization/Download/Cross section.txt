@@ -1,0 +1,109 @@
+LXCat, www.lxcat.net
+Generated on 02 May 2023. All rights reserved.
+
+RECOMMENDED REFERENCE FORMAT
+- BSR database, www.lxcat.net, retrieved on May 2, 2023.
+Be aware that some databases and solvers can additionally have instructions how to reference corresponding data.
+Please check below in the headers of databases.
+
+CROSS SECTION DATA FORMAT
+In downloaded files, each collision process is defined by a block consisting of
+1st line
+Keyword in capitals indicating the type of the collision. Possible collision types are elastic, effective, excitation,
+ionization, or attachment (capital letters required, key words are case sensitive), where "elastic" is used to denote
+the elastic momentum transfer cross section and where "effective" denotes the total momentum transfer cross section (sum
+of elastic momentum transfer and total inelastic cross sections).  The latter is useful for solving the Boltzmann
+equation in the 2-term approximation.
+2nd line
+Name of the target particle species. This name is a character string, freely chosen by the user, e.g. "Ar". Optionally
+for excitation processes, the name of the corresponding excited state can be specified on the same line, separated from
+the first name either by arrow "->" (dash + greater than) or by double-head arrow "<->" (less than + dash +
+greater than), e.g. "Ar -> Ar*" and "Ar <-> Ar*", respectively. In the later case BOLSIG+ will automatically
+define the inverse superelastic process, constructing the superelastic cross-section by detailed balancing, and
+considering the indicated excited state as the target. In this case, the ratio of statistical weights must be input in
+the 3rd line (see below).
+3rd line
+For elastic and effective collisions, the ratio of the electron mass to the target particle mass. For excitation or
+ionization collisions, the electron energy loss (nominally the threshold energy) in eV. For attachment, the 3rd line is
+missing. In case of an excitation process where an excited state has been indicated on the 2nd line using double-head
+arrow "<->", the 3rd line must specify also ratio of the statistical weights of the final state to the initial state
+as the second parameter in 3rd line this is needed by BOLSIG+ to calculate the de-excitation cross-section. The
+statistical weight ratio, if given, will also be used by the automatic superelastics option in BOLSIG+. If this ratio is
+not provided then BOLSIG+ will assume it unity.
+from 4th line (optionally)
+User comments and reference information, maximum 100 lines. The only constraint on format is that these comment lines
+must not start with a number.
+Finally
+Table of the cross section as a function of energy. The table starts and ends by a line of dashes "------" (at least 5),
+and has otherwise two numbers per line: the energy in eV and the cross section in m2.
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+DATABASE:         BSR (Quantum-mechanical calculations by O. Zatsarinny and K. Bartschat)
+PERMLINK:         www.lxcat.net/BSR
+DESCRIPTION:      The results in this database are from non-relativistic (LS-coupling), semi-relativistic (Breit-Pauli),
+                  and full-relativistic (Dirac) B-spline R-matrix (close-coupling) treatments of electron collisions
+                  with a number of species. Individually optimized, term-dependent sets of non-orthogonal valence
+                  orbitals are used to account for the potentially strong term dependence in the one-electron valence
+                  orbitals, especially for the heavy noble gases. The predictions have been validated against a number
+                  of benchmark experimental data measured in crossed-beam setups. Very good agreement is generally
+                  achieved in the near-threshold resonance regime, where the excitation process is often dominated by
+                  negative-ion resonances.
+                  For e-Ar collisions, angle-differential cross sections are also available.  These were obtained in the
+                  semi-relativistic framework.
+CONTACT:          Kathryn R. Hamilton or Klaus Bartschat
+                  Dept. of Physics  Astronomy Drake University
+                  Des Moines, Iowa 50311, USA
+                  Email: kathryn.hamilton@drake.edu  klaus.bartschat@drake.edu
+HOW TO REFERENCE: "BSR: B-spline atomic R-matrix codes." O. Zatsarinny 2006 Comp. Phys. Commun. 174 273.  
+                  "The B-spline R-matrix method for atomic processes: application to atomic structure, electron
+                  collisions and photoionization." 
+                  O. Zatsarinny and K. Bartschat 2013 J. Phys. B: At. Mol. Opt. Phys. 46 112001.  
+                  The BSR codes are publicly available through https://github.com › zatsaroi › BSR3.  
+                  Compiled versions with instructions and test cases are available from the Atomic and Molecular Gateway
+                  
+                  at https://ampgateway.org/home/home1/homec1/documentation_copy/bsr-documentation/.
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+************************************************************************************************************************
+
+COMMENT: O. Zatsarinny, Y. Wang, and K. Bartschat, Electron-impact excitation of argon at intermediate energies, Physical Review
+         A 89, 022706 (2014).
+
+********************************************************** Ar **********************************************************
+
+IONIZATION
+Ar -> Ar^+
+ 1.576000e+1
+SPECIES: e / Ar
+PROCESS: E + Ar -> E + E + Ar+, Ionization
+PARAM.:  E = 15.76 eV
+UPDATED: 2017-09-09 00:14:00
+COLUMNS: Energy (eV) | Cross section (m2)
+-----------------------------
+ 1.576000e+1	0.000000e+0
+ 1.800000e+1	1.277200e-21
+ 1.900000e+1	2.074700e-21
+ 2.000000e+1	3.219900e-21
+ 2.100000e+1	4.408700e-21
+ 2.200000e+1	5.405200e-21
+ 2.300000e+1	6.672000e-21
+ 2.400000e+1	7.663000e-21
+ 2.500000e+1	8.700000e-21
+ 3.000000e+1	1.225100e-20
+ 4.000000e+1	1.725600e-20
+ 5.000000e+1	1.951700e-20
+ 6.000000e+1	2.117900e-20
+ 7.000000e+1	2.226900e-20
+ 8.000000e+1	2.283400e-20
+ 9.000000e+1	2.377700e-20
+ 1.000000e+2	2.457600e-20
+ 1.250000e+2	2.436600e-20
+ 1.500000e+2	2.314200e-20
+ 1.750000e+2	2.190200e-20
+ 2.000000e+2	2.073500e-20
+ 2.250000e+2	1.967200e-20
+ 2.500000e+2	1.871200e-20
+ 2.750000e+2	1.769100e-20
+ 3.000000e+2	1.724900e-20
+-----------------------------
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

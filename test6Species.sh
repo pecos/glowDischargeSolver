@@ -32,8 +32,9 @@ diffCmd="python3 ../diffSolns.py --reference ../reference_solns/Nominal_Np250_so
 screenOut="run6species.out"
 rm -f $screenOut
 
-$newtCmd --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 --restart "../reference_solns/Nominal_Np250_restart.npy" \
-                                --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
+$newtCmd --weakbc --V0 100 --VDC 0.0 --gam 0.01 --rtol 1e-8 \
+         --restart "../reference_solns/Nominal_Np250_restart.npy" \
+         --outfile $newtFile >> $screenOut || error_exit "Shooting failed"
 
 $diffCmd --solution $newtFile >> $screenOut || error_exit "Solution differs from reference"
 

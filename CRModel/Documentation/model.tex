@@ -1,0 +1,308 @@
+
+%*********************************************************
+\section{Introduction} \label{sec:Introduction}
+%*********************************************************
+
+\subsection{Description} \label{sec:Description}
+
+
+A zero-dimensional collisional-radiative (CR) model for argon plasma coupled to the Boltzmann equation (BE) for free electron kinetics. The model simultaneously predicts level distributions and the electron energy distribution function (EEDF). 
+
+
+\subsection{Literature review} \label{sec:Literature}
+
+Here, we briefly discuss some important papers we have found so far. The notation of the variables adopted in the  present report was taken from \cite{kapper2011ionizing}. 
+
+\cite{colonna2001coupled} developed a population kinetics model for hydrogen \ce{H}. They coupled a collisional-radiative model with the Boltzmann equation for free electrons. Later, they extended this model and coupled it with 1-D radiative transfer equation  to study a steady normal shock generated in an \ce{H2 / He} plasma \citep{capitelli2013coupling}.
+
+\cite{hartgers2001crmodel} describe well the capabilities of collisional-radiative models. It is a good introduction to these models and the basic atomic processes.
+
+The model of \cite{chung2021population} is a state-of-the-art model in population kinetics modelling for Argon plasma, I have found so far. They compared results obtained with cross-sections from different atomic databases.  The complete model included \textbf{45844} transitions! Simpler models with fewer transitions deviated from the complete model at high $T_e > 2$~ev. They have incorporated many atomic processes and used a two-temperature Maxwellian plasma approximation to describe NLTE. However, they did not couple their CR model with the Boltzmann equation for free electrons.   
+
+\cite{bogaerts1998collisional} used a Monte-Carlo method to solve the EEDF and couple it with a CR model for argon. However, they did not discuss deviations from LTE.   They used 64 excited states and incorporated many atomic processes. Some collision cross-sections were calculated based on extended hydrogen relationships. \cite{gangwar2012argon} employed a CR model (Maxwellian distribution for the EEDF) for argon with 40 excited states. They provided the cross-sections to the LXCat electron scattering database. 
+
+Many studies on Argon involving CR models seem to be based on the pioneering work of \cite{vlcek1989collisional,vlcek1991collisional}. 
+
+A lot of theoretical aspects are explained in \citep{li2013numerical}.
+
+
+%*********************************************************
+\section{Mathematical model} \label{sec:MathModel}
+%*********************************************************
+
+
+\subsection{Assumptions} \label{sec:Assumptions}
+
+\begin{itemize}[noitemsep,topsep=1pt,parsep=1pt,partopsep=3pt]
+    \item The plasma is homogeneous and neutral $n_e = n_{+}$.
+    \item Let the velocity distribution of heavy particles be Maxwellian. 
+    \item Ideal gas low applies for heavy particles. 
+    \item Quasi-isotropic approximation for the solution of the BE for electrons.
+    \item Ion-atom and Ion-electron collisions have been neglected.  
+    \item We use the detailed balance principle to calculate the inverse rates of atomic processes. There is a complication when we solve BE for electrons since we need to define $T_e$ for the inverse processes of ionization. See, for example, Eq. \eqref{eq:cross-section_3b-recomb}.
+    \item We consider only singly ionized plasma and that ions are in the ground state. 
+    % \item In plasmas, the surrounding charged particles behave collectively in such a manner as to effectively shield two particular particles from interacting with each other when their separation exceeds a distance of the order of the Debye length $\lambda_D$. Eq. \eqref{eq:DebyeCondition} should hold for the plasma conditions in question \citep{mitchner1973partially}.
+
+    % \begin{equation}
+    %     \label{eq:lambda_d}
+    %     \lambda_D = \sqrt{\frac{\epsilon_0 k T}{n_e e^2}}
+    % \end{equation}
+
+    % \begin{equation}
+    %     \label{eq:DebyeCondition}
+    %     N_D = \frac{4}{3} \pi \lambda_D^3 n_e >> 1
+    % \end{equation}
+    
+\end{itemize}
+
+
+\subsection{Atomic processes} \label{sec:processes}
+% \begin{itemize}[noitemsep,topsep=1pt,parsep=1pt,partopsep=3pt]
+\begin{itemize}
+    \item Electron impact excitation / deexcitation \\ \ce{Ar(i) + e- (\epsilon) <=>[C_{ij}][F_{ji}] Ar(j) + e- (\epsilon-E_{ij})} 
+    \item Electron impact ionization / three-body recombination \\ \ce{Ar(i) + e- (\epsilon) <=>[S_{i}][Q_{i}] Ar+ + e- (\epsilon-\Epsilon_{i}) + e-} 
+
+    \item radiation trapping \\  \ce{Ar(i) + h v_{ij} <-[][ A^{eff}_{ji}] Ar(j) } for ${i<j}$  
+    \\ Optical thickness is treated with escape factors $\eta \in (0,1)$ \\ $A^{eff}_{ji} = \eta A_{ji}$
+
+    
+    \item Radiative recombination /Photoionization \\ \ce{Ar(i) + h {v} <-[][\Lambda_i R_i] Ar+ + e- }
+
+    \item Heavy particle collision excitation \\ \ce{Ar(i) + Ar(1) <=>[K_{ij}][L_{ji}]  Ar(j) + Ar(1) }  
+
+    \item Heavy particle collision ionization \\  
+    \ce{Ar(i) + Ar(1) <=>[V_{i}][W_{i}]  Ar+ + e- + Ar(1) }  \\    
+    \ce{Ar(i) + Ar(j) ->[K_{ij}^I] Ar+ + Ar(1) + e- } (Only for metastable and resonance states)  
+
+    % \item Wall losses
+
+    % \item Electron capture?
+    % \item Autoionization?
+
+
+\end{itemize}
+
+\noindent where $E_{ij} = E_j - E_i$ and $E_{i} = E_{ion} - E_i$.
+
+
+% \subsection{Radiation} \label{sec:radiation}
+
+% \begin{itemize}
+
+%     \item Spontaneous emission  \\ \ce{Ar(i) + h v_{ji} <-[A_{ji}] Ar(j)} for ${j>i}$ 
+%     \item Photon absorption?  \\ \ce{Ar(i) + h v_{ji} ->[\rho_v B_{ij}] Ar(j) } for ${j>i}$ 
+%     \item Stimulated emission?  \\ \ce{Ar(i) + h v_{ji} + h v_{ji}  <-[\rho_v B_{ji}]  Ar(j) + h v_{ji}} for ${j>i}$     
+
+% \end{itemize}
+
+
+% \ce{Zn^2+ <=>[+ 2OH-][+ 2H+] $\underset{\text{amphoteres Hydroxid}}{\ce{Zn(OH)2 v}}$
+% <=>[+ 2OH-][+ 2H+] $\underset{\text{Hydroxozikat}}{\ce{[Zn(OH)4]^2-}}$
+% }
+
+\subsection{Input parameters} \label{sec:input}
+\begin{itemize}[noitemsep,topsep=1pt,parsep=1pt,partopsep=3pt]
+    \item Pressure - $P$ (The system becomes over-determined if we force pressure to be constant. 
+    \item Heavy-particle temperature - $T_h$
+    \item Electron temperature? - $T_e$ \\
+    \item Electric field intensity - $E(t)$  \\ This is introduced in the Boltzmann equation for free electrons.
+    \item The inelastic cross-sections and Einstein coefficients are taken from available databases, e.g. LXCat $\rightarrow$ BSR, NIST, etc. 
+\end{itemize}
+
+
+
+\subsection{Equations} \label{sec:equations}
+
+
+\subsubsection{Population kinetics} \label{sec:CRmodel}
+
+Let $n_i$ be the population number densities of the $i-th$ energy level (the ground state and the excited levels), $n_e$ the electron number density, and $n_+$ the number density of ions.  The population kinetics are described by a system of non-linear ODEs: 
+
+\begin{multline}
+    \label{eq:number_densities_ex}
+    \frac{d n_i}{dt} = 
+    \underbrace{ n_e \sum_{k<i} n_k C_{ki} -n_e n_i \sum_{j>i} C_{ij} - n_i n_e \sum_{j>i} F_{ij} + n_e \sum_{j>i} n_j F_{ji} }_{\text{electron impact de/excitation}} \\
+    \underbrace{ n_1 \sum_{k<i} n_k K_{ki} -n_1 n_i \sum_{j>i} K_{ij} - n_i n_1 \sum_{j>i} L_{ij} + n_1 \sum_{j>i} n_j L_{ji} }_{\text{atom impact de/excitation}}    \\
+    \underbrace{ - n_i n_e S_i    + n_+ n_e^2 Q_i  }_\text{electron impact ionization /  3-body recomb.}
+    \underbrace{ - n_i n_1 V_i    + n_+ n_e n_1 W_i  }_\text{atom impact ionization /  3-body recomb.}
+    \underbrace{ + n_+ n_e \Lambda_i R_i  }_\text{ \, radiative recomb.} \\
+    \underbrace{ + \sum_{j>i} \eta_{ji} A_{ji} n_j  - n_i \sum_{k<i} \eta_{ik} A_{ik} }_{\text{radiation trapping}}
+    % \underbrace{ - n_i  \sum_{j} K_{ij}^I n_j }_\text{particle collision ionization}
+    % \underbrace{ - \nu_i^d n_i }_\text{wall losses}
+\end{multline}
+
+
+\begin{multline}
+    \label{eq:number_densities_ion}
+    \frac{d n_+}{dt} =  \frac{d n_e}{dt}  =   n_e \sum_i S_i n_i - n_+ n_e^2 \sum_i Q_i  + n_1 \sum_i V_i n_i - n_+ n_e n_1 \sum_i W_i \\
+    - n_+ n_e \sum_i \Lambda_i R_i + \sum_{i} \sum_{j} K_{ij}^I n_j n_i
+\end{multline}
+
+\noindent where $C$ denotes the rates of electron impact de/excitation, $A_{ji}$ are the spontaneous emission Einstein coefficients (from j to i), $S_i$  and $Q_i$  are the rates of electron impact ionization and three-body recombination, respectively. The rate of heavy particle collision ionization is $K_{ij}^I$, while $\nu_i^d $ is a diffusion coefficient representing wall losses.    The size of this system of equations depends on the number of excited states that need to be included, which is driven by the number of transitions incorporated in the model. The number of excited states and transitions is restricted by the available data for the collision cross-sections and A-Einstein coefficients found in atomic databases.    
+
+Energy rate equations \citep{kapper2011ionizing}:
+
+\begin{multline}
+    \label{eq:energy_cons_atoms}
+    \frac{d E_h}{dt}  =   n_1 \sum_i \sum_{j>i} E_{ij} (n_j L_{ji} - n_i K_{ij})  + n_1 \sum_i E_{ionz,i} (n_e n_+ W_i - n_i V_i) -  \sum_i \sum_{j>i} E_{ij} n_j A_{ji}\\
+    - 3 \rho_e n_n k_b (T_h -T_e) \frac{k_{en}}{m_{Ar}} - 3 \rho_e n_+ k_b (T_h -T_e) \frac{\overline{k}_{ei}}{m_{Ar}}
+\end{multline}
+
+\noindent where $E_{ij} = E_j - E_i$ 
+
+
+\begin{multline}
+    \label{eq:energy_cons_electrons}
+    \frac{d E_e}{dt}  =  S_{abs} +  n_e \sum_i \sum_{j>i} E_{ij} (n_j F_{ji} - n_i C_{ij})  + n_e \sum_i E_{ionz,i} (n_e n_+ Q_i - n_i S_i) \\ 
+    -n_e n_+ \sum_i \Lambda_i R_i' 
+    - n_+ n_e \frac{16 \pi^2}{3 \sqrt{3}} \frac{\overline{v_e} Z_{eff}^2 e^6 \overline{g}}{m_e h (4 \pi \epsilon_0 c)^3} \\
+    + 3 \rho_e n_n k_b (T_h -T_e) \frac{k_{en}}{m_{Ar}} + 3 \rho_e n_+ k_b (T_h -T_e) \frac{\overline{k}_{ei}}{m_{Ar}}
+\end{multline}
+
+\noindent where $S_{abs}$ is the power deposition representing the time-averaged power absorbed by the electrons. 
+
+The electron temperature is then given by: 
+\begin{equation}
+    E_e = \frac{3}{2} k_b  T_e n_e   
+\end{equation}
+
+
+Units of variables:
+
+\begin{itemize}[noitemsep,topsep=1pt,parsep=1pt,partopsep=3pt]
+    \item $n_i \rightarrow [\frac{\#}{m^3}]$
+    \item $C_{ij} \rightarrow [\frac{m^3}{s}]$
+    \item $K_{ij}^I \rightarrow [\frac{m^3}{s}]$
+    \item $A_{ij} \rightarrow [\frac{1}{s}]$
+    \item $S_i  \rightarrow [\frac{m^3}{s}]$
+    \item $R_i  \rightarrow [\frac{m^3}{s}]$
+    \item $Q_i  \rightarrow [\frac{m^6}{s}]$
+    \item $\nu_i^d \rightarrow [\frac{1}{s}]$
+    \item $f(\epsilon) \rightarrow [\frac{1}{J}]$
+    \item $\sigma_{ij} \rightarrow [m^2]$    
+\end{itemize}
+
+
+
+\subsubsection{Boltzmann equation for free electrons} \label{sec:EEDF}
+The time evolution of the EEDF is described by the Boltzmann equation for free electrons. The BE for free electrons in the homogeneous and quasi-approximation takes the form: 
+
+\begin{equation}
+    \label{eq:BoltzmannEq}
+    \frac{\partial f(\epsilon,t)}{\partial t} =  - \frac{\partial J_E}{\partial \epsilon} - \frac{\partial J_{el}}{\partial \epsilon} -\frac{\partial J_{e-e}}{\partial \epsilon} - S_{in} - S_{sup}
+\end{equation}
+
+\noindent where $ f(\epsilon,t)$ is the EEDF. The $J$ terms in the RHS of Eq.  \eqref{eq:BoltzmannEq} denote electron flux in the energy space due to electric field, $J_E$, the elastic, $J_{el}$, and the electron-electron, $J_{e-e}$, collisions. The $S$ terms in the RHS of Eq.  \eqref{eq:BoltzmannEq} describe the jump of electrons in the energy space due to the inelastic, $S_{in}$, and the superelastic, $S_{sup}$, collisions.  
+
+
+
+\subsubsection{Atomic kinetics} \label{sec:AtomicKinetics}
+
+For now, we just assume Maxwellian velocity distribution for free electrons; therefore,  the electron energy distribution function takes the form: 
+% 
+\begin{equation}
+    \label{eq:EEDF_Maxwellian}
+    f(\epsilon) = 2 \sqrt{\frac{\epsilon}{\pi}} \left( \frac{1}{k_b T_e} \right)^{\frac{3}{2}} \exp(-\frac{\epsilon}{k_b T_e})
+\end{equation}
+% 
+In principle, if the EEDF is known, the electron temperature can be calculated from the following:
+% 
+\begin{equation}
+    \label{eq:Definition_of_Te}
+    \frac{3}{2} k_b T_e = \int_{0}^\infty \epsilon \, f(\epsilon) \, d\epsilon
+\end{equation}
+% 
+
+The rate coefficients for electron-atom collisions are evaluated as follows: 
+% 
+\begin{equation}
+    \label{eq:Rate_ElectronAtomCollisions}
+    K^e = \int_{E_t}^\infty f(\epsilon) \, \sigma(\epsilon) \, \sqrt{\frac{2 \epsilon}{m_e}} \, d\epsilon
+\end{equation}
+% 
+\begin{equation}
+    \label{eq:Rate_RadiativeRecombination}
+    R' = \int_{0}^\infty \epsilon f(\epsilon) \, \sigma(\epsilon) \, \sqrt{\frac{2 \epsilon}{m_e}} \, d\epsilon
+\end{equation}
+% 
+where $\sigma(\epsilon)$ is the collision cross-section of the $i \rightarrow j$ transition ($E_i$ is the lower energy level; $E_j$ is the higher energy level), $v(\epsilon) = \sqrt{\frac{2 \epsilon}{m_e}}$ is the electron velocity magnitude at energy $\epsilon$ and $E_t$ is the threshold energy of the process. Cross-sections for superelastic collisions are evaluated based on the detailed balance principle (Klein-Rosseland relation)\footnote{\citet{oxenius2012kinetic} uses $Q$ for collision cross-sections and $\sigma$ for radiative cross-sections.}: 
+%  
+\begin{equation}
+    \label{eq:cross-section_superelastic}
+    \sigma_\text{de-exct}(j,i,\epsilon') = \frac{g_i}{g_j} \frac{\epsilon}{\epsilon'} \sigma_\text{exct}(i,j,\epsilon)  
+\end{equation}
+% 
+where $\epsilon' = \epsilon - E_{ij}$ (be very careful with the energies here.). After integration and some math, we end up with:
+%  
+\begin{equation}
+    \label{eq:cross-section_superelastic_rates}
+    F_\text{de-exct}^e(j,i) = \frac{g_i}{g_j} \exp(\frac{E_{ij}}{k_b T_e}) C_\text{exct}^e(i,j)   
+\end{equation}
+% 
+
+
+
+%  
+\cite{kapper2011ionizing} explains how to calculate the 3-b recombination rate based on the partition faction of electrons. Similar arguments are given by \cite{kruger1973partially}.  
+\begin{equation}
+    \label{eq:cross-section_3b-recomb}
+    \sigma_\text{3b-recomb}(i,\epsilon')  = \frac{g_i}{2 g_1^+} (\frac{h^2}{2 \pi m_e k T_e})^{3/2} \frac{\epsilon}{\epsilon'} \sigma_\text{ioniz}(i,\epsilon)  
+\end{equation}
+% 
+where $\epsilon' = \epsilon - E_{\text{ioniz},i}$. After integration and some math, we end up with:
+%  
+\begin{equation}
+    \label{eq:}
+    Q_i = \frac{g_i}{2 g_1^+} (\frac{h^2}{2 \pi m_e k T_e})^{3/2} \exp(\frac{E_{\text{ioniz},i}}{k_b T_e}) S_i   
+\end{equation}
+% 
+
+Information for photoionization cross-sections is given by \cite{kapper2011ionizing}. Then by detail balancing we can calculate the cross-sections for radiative recombination: 
+%
+\begin{equation}
+    \label{eq:cross-section_rad_recomb}
+    \sigma_\text{rad.recomb}(i,\epsilon) = \frac{g_i}{2 g_1^+} (\frac{(h \nu)^2}{m_e c^2})\frac{1}{\epsilon} \sigma_\text{photoioniz}(i,h \nu)  
+\end{equation}
+% 
+where $\epsilon = h \nu - E_{\text{ioniz},i}$. The energy losses are then given by Eq. \eqref{eq:Rate_RadiativeRecombination}.
+
+
+\section{Numerical method} \label{sec:NumericalMethod}
+
+\subsection{Discretisation  of BE for prediction of EEDF}
+
+For the numerical solution of Eq. \eqref{eq:BoltzmannEq}, the electron energy space is truncated in $(\epsilon_0, \epsilon_{max})$ and the latter is discretised  into $(\epsilon_0, ..., \epsilon_k)$. If equal intervals of $\Delta \epsilon$ are to be employed, then the energy levels are described by $\epsilon_i = (i-0.5) \Delta \epsilon, i = 1,...,k$ and a probability density $f_i$ is assigned to each $\epsilon_i$.   In this manner, Eq. \eqref{eq:BoltzmannEq} is converted into a system of non-linear ODEs  describing the evolution of EEDF: 
+% 
+\begin{equation}
+    \label{eq:discretised_EEDF}
+    \frac{d f_i}{dt} =  \sum_j [C_{i,j} + T(f)_{i,j}]f_j
+\end{equation}
+% 
+The matrix $C_{i,j}$ describes the linear processes, while $T(f)$ describes those that depend on EEDF. 
+
+BOLSIG+ uses another method (probably faster?) for the solution of Eq. \eqref{eq:BoltzmannEq}. We could compare with BOLSIG+'s method. 
+
+\subsection{Numerical scheme}
+\begin{itemize}[noitemsep,topsep=1pt,parsep=1pt,partopsep=3pt]
+    \item One system of ODEs for the CR model.
+    \item One system of ODEs for the discretised BE for electrons. 
+    \item The two systems of ODEs are strongly coupled together.
+    \item The system is stiff.
+    \item Implicit BDF method for time integration with  variable time steps.
+    \item It might be worth trying a fractional-step method. 
+\end{itemize}
+
+
+
+\section{Applications} \label{sec:Applications}
+
+\begin{itemize}[noitemsep,topsep=1pt,parsep=1pt,partopsep=3pt]
+    % \item Examine different conditions relevant to the ICP torch and the glow discharge experiment. 
+    \item Couple this model with the glowDischarge code in order to validate the cross-sections.
+    \item Couple this model with the torch1D model.
+    \item Perform a timescale analysis $\rightarrow$ Dominant mechanisms $\rightarrow$ examine frequent assumptions. 
+    \item Use this model as a validation case for developing reduced-order models for plasma kinetics/radiation!
+
+    % \item Extend it to 1-D and examine radiation transfer phenomena.    
+\end{itemize}
+

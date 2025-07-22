@@ -1,0 +1,84 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=3cm]{geometry}
+\usepackage[utf8]{inputenc}
+
+%*********************************************************
+
+\usepackage{graphicx}
+\usepackage{epstopdf,epsfig}
+
+\epstopdfDeclareGraphicsRule{.tiff}{png}{.png}{convert #1 \OutputFile}
+\AppendGraphicsExtensions{.tiff}
+\PrependGraphicsExtensions{.tiff}
+
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{pdfpages}
+\usepackage[british]{babel}
+\usepackage{adjustbox}
+\usepackage{amsmath}
+\usepackage{physics}  
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{sidecap}
+\usepackage[round]{natbib}
+\usepackage{enumitem}
+\usepackage{authblk}
+\usepackage{lscape}
+\usepackage{xfrac}
+\usepackage[version=4]{mhchem}
+
+\graphicspath{{figures/}}
+
+%*********************************************************
+
+\title{A population kinetics model for argon plasma}
+
+\author[1]{Malamas Tsagkaridis\footnote{Email: malamas.tsagkaridis@austin.utexas.edu}}
+\affil[1]{Oden Institute for Computational Engineering and Sciences, The University of Texas at Austin, Austin, Texas 78712, USA}
+
+
+\date{}
+\setcounter{Maxaffil}{0}
+\renewcommand\Affilfont{\itshape\small}
+
+
+\newcommand{\beginsupplement}{%
+        \setcounter{table}{0}
+        \renewcommand{\thetable}{S\arabic{table}}%
+        \setcounter{figure}{0}
+        \renewcommand{\thefigure}{S\arabic{figure}}%
+        \setcounter{section}{0}
+        \renewcommand{\thesection}{S\arabic{section}}%        
+}
+
+
+\newcommand{\beginappendix}{%
+        \setcounter{table}{0}
+        \renewcommand{\thetable}{A\arabic{table}}%
+        \setcounter{figure}{0}
+        \renewcommand{\thefigure}{A\arabic{figure}}%
+         \setcounter{section}{0}
+         \renewcommand{\thesection}{Appendix}%        
+}
+
+\begin{document}
+
+\maketitle
+
+%*********************************************************
+
+% \listoftables
+% \listoffigures
+
+\tableofcontents
+
+\include{model.tex}
+
+\bibliographystyle{abbrvnat}
+\bibliography{Bibliography/References.bib}
+%-----------------------------------------------------------
+\addcontentsline{toc}{section}{References}  %add References section to Table of Contents
+
+
+\end{document}

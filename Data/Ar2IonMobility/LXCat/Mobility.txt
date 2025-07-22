@@ -1,0 +1,49 @@
+LXCat, www.lxcat.net
+Generated on 30 Aug 2024. All rights reserved.
+
+RECOMMENDED REFERENCE FORMAT
+- Viehland database, www.lxcat.net, retrieved on August 30, 2024.
+Be aware that some databases and solvers can additionally have instructions how to reference corresponding data.
+Please check below in the headers of databases.
+
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+DATABASE:         Viehland database
+PERMLINK:         www.lxcat.net/Viehland
+DESCRIPTION:      The data here are from the Gaseous Ion Transport and Rate Coefficient Database, Software Release 4.1
+                  (March, 2006), as extended and updated on a regular basis.
+CONTACT:          Larry A. Viehland, Viehland@Chatham.edu
+HOW TO REFERENCE: L. A. Viehland and C. C. Kirkpatrick, Int. J. Mass Spectrom. Ion Proc. 149/150 (1995) 555.
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+************************************************************************************************************************
+
+COMMENT: Compiled Ko Data of Ellis et al., At. Data Nucl. Data Tables 17 (1976) 177.
+
+********************************************************** Ar **********************************************************
+
+SPECIES: Ar2^+ / Ar
+PROCESS: Mobility (Ko)
+PARAM.:  Tgas = 300 K
+UPDATED: 2010-05-14 15:04:20
+COLUMNS: Reduced electric field (Td) | Mobility (cm2/Vs)
+-----------------------------
+ 5.000000e+0	1.830000e+0
+ 6.000000e+0	1.830000e+0
+ 8.000000e+0	1.830000e+0
+ 1.000000e+1	1.830000e+0
+ 1.200000e+1	1.830000e+0
+ 1.500000e+1	1.830000e+0
+ 2.000000e+1	1.830000e+0
+ 2.500000e+1	1.840000e+0
+ 3.000000e+1	1.840000e+0
+ 4.000000e+1	1.850000e+0
+ 5.000000e+1	1.860000e+0
+ 6.000000e+1	1.880000e+0
+ 8.000000e+1	1.910000e+0
+ 1.000000e+2	1.930000e+0
+ 1.200000e+2	1.930000e+0
+ 1.400000e+2	1.900000e+0
+ 1.600000e+2	1.860000e+0
+ 1.700000e+2	1.800000e+0
+-----------------------------
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
